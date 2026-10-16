@@ -23,6 +23,12 @@ STATUS.md
 /build/
 /dist/
 *.egg-info/
+# a virtual environment made inside the clone (CONTRIBUTING installs into the system's Python instead)
+.venv/
+# worktrees the optimize workflow makes here: each is a whole checkout of this repo, not files of it
+.claude/worktrees/
+# the detailed log the optimize workflow keeps on this computer; the committed record is docs/changes/
+notes/
 # the website's build (site/build.py): the pages it writes, and the preview with its checks
 site/dist/
 site/preview.html
