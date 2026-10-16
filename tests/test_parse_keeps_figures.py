@@ -7,7 +7,7 @@ a page with nothing dangerous in it comes out the same with the safety pass as w
 named so a failure says which one went.
 
 Run from the repo root:
-    python3 -m unittest discover tests
+    python -m unittest discover tests
 """
 import json
 import unittest

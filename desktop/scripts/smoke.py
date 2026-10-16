@@ -1,7 +1,7 @@
 """The app's Python before it ships: TextFold's tests, three files read without a model, and the server answering
 with them listed. The release build (.github/workflows/desktop.yml) runs it with the payload's own Python:
 
-    payload/python/bin/python3 scripts/smoke.py        (payload\\python\\python.exe on Windows)
+    payload\\python\\python.exe scripts\\smoke.py
 
 A folder of its own stands in for the home and the data folder; nothing calls a model (TEXTFOLD_NO_MODELS)."""
 import json

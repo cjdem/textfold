@@ -4,7 +4,7 @@ Each harness installs its own folder and nothing outside it, so plugins/pi-textf
 and of its section; these tests fail as soon as one copy is changed without the other.
 
 Run from the repo root:
-    python3 -m unittest discover tests
+    python -m unittest discover tests
 """
 import re
 import unittest

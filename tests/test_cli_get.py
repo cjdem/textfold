@@ -2,7 +2,7 @@
 are found first, as the server finds them when it starts (#6). Nothing here runs an agent or calls a model.
 
 Run from the repo root:
-    python3 -m unittest discover tests
+    python -m unittest discover tests
 """
 import argparse
 import unittest

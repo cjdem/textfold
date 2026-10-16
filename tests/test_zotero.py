@@ -4,7 +4,7 @@ Nothing here reaches the reader's own Zotero, settings or library: the settings 
 fake answers on a free port of this computer, and the server run here looks for no model (TEXTFOLD_NO_MODELS).
 
 Run from the repo root:
-    python3 -m unittest discover tests
+    python -m unittest discover tests
 """
 import json
 import os

@@ -7,7 +7,7 @@ in it and one that is a picture of a page, and check which one is read without t
 page by hand with a drawing between its paragraphs, labels on it and a caption under it.
 
 Run from the repo root:
-    python3 -m unittest discover tests
+    python -m unittest discover tests
 """
 import tempfile
 import unittest

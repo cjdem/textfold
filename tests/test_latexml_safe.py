@@ -4,7 +4,7 @@ The page-level tests (test_parse_sanitize.py, test_parse_keeps_figures.py) go th
 make_safe() with one small fragment per case, including the spellings a browser reads as a script URL.
 
 Run from the repo root:
-    python3 -m unittest discover tests
+    python -m unittest discover tests
 """
 import unittest
 

@@ -1,6 +1,6 @@
 """The pictures of the README, made from a real paper in the reader.
 
-    python3 tools/readme_assets.py [paper id] [stills]   (default 2512.23916; its static page must exist: python3 -m textfold export <id>)
+    python tools/readme_assets.py [paper id] [stills]    (default 2512.23916; its static page must exist: python -m textfold export <id>)
 
 Writes docs/assets/: logo.svg, zoom.gif and zoom-zh.gif (Full to Topic and back), notes.png (a highlight and a note),
 keep.png (the highlight kept at Takeaway); with "stills", only the two pictures. Each frame of the animations is taken with the zoom held at an exact

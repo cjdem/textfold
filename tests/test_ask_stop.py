@@ -2,7 +2,7 @@
 not stopped is answered into it. The model and the paper are stand-ins here: nothing calls a model.
 
 Run from the repo root:
-    python3 -m unittest discover tests
+    python -m unittest discover tests
 """
 import json
 import tempfile

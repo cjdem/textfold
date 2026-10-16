@@ -4,7 +4,7 @@ A document folded into five levels, from a map of its sections to every word, in
 write: a reader app, an agent that wants the gist before it spends its context on the whole text, a checker that wants
 to know which lines a model wrote and what they rest on.
 
-`python3 -m textfold get <link or file> --json` writes it; `python3 -m textfold get <link> --level key --section 3` writes one level of one
+`python -m textfold get <link or file> --json` writes it; `python -m textfold get <link> --level key --section 3` writes one level of one
 section as Markdown. Version 0 may still change: fields will be added without a new version, and a field renamed or
 removed will come with version 1.
 

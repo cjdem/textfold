@@ -6,7 +6,7 @@ it with innerHTML on the local server's own origin. textfold/latexml_safe.py is 
 line in that direction (the other direction, that figures and sizes survive, is test_parse_keeps_figures.py).
 
 Run from the repo root:
-    python3 -m unittest discover tests
+    python -m unittest discover tests
 """
 import json
 import re

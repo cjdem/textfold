@@ -2,7 +2,7 @@
 folder of its own (store.DATA, set to a temporary one for each test).
 
 Run from the repo root:
-    python3 -m unittest discover tests
+    python -m unittest discover tests
 """
 import json
 import os

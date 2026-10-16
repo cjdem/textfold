@@ -3,7 +3,7 @@ unless the settings choose a model (and a reasoning level) of their own; a choic
 The catalog is a stand-in: nothing is scanned or called.
 
 Run from the repo root:
-    python3 -m unittest discover tests
+    python -m unittest discover tests
 """
 import unittest
 from unittest import mock

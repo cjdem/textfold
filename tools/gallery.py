@@ -1,7 +1,7 @@
 """A static gallery of papers to read in TextFold, for a free host (GitHub Pages, Cloudflare Pages).
 
-    python3 tools/gallery.py --make pi/deepseek/deepseek-v4-flash    generates what the list still lacks, then builds
-    python3 tools/gallery.py                                         builds out/gallery/site: index.html, <id>/index.html
+    python tools/gallery.py --make pi/deepseek/deepseek-v4-flash     generates what the list still lacks, then builds
+    python tools/gallery.py                                          builds out/gallery/site: index.html, <id>/index.html
 
 It needs pikepdf besides the reader's own requirements: pip install -r tools/requirements-gallery.txt
 

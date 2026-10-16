@@ -6,8 +6,8 @@ llms.txt and assets/, with the clips from docs/assets and the app's own fonts (I
 site: no visitor's browser asks a font service for anything; monospace is the system's, as in the app). preview.html is the two pages in one, for a look before anything
 goes up, with what search engines and AI read shown at the bottom.
 
-    python3 site/build.py                          the pages
-    python3 site/build.py --gallery <its clone>    and the gallery (github.com/chenxiachan/paperfold-gallery) in
+    python site/build.py                           the pages
+    python site/build.py --gallery <its clone>     and the gallery (github.com/chenxiachan/paperfold-gallery) in
                                                    dist/gallery/, its pages in the sitemap: what GitHub Pages serves
                                                    (.github/workflows/site.yml)"""
 import argparse

@@ -326,7 +326,7 @@ def parse(html, meta):
     try:
         soup = BeautifulSoup(html, "lxml")
     except Exception as e:   # bs4's FeatureNotFound: the parser the page is read with is not installed
-        raise RuntimeError("The lxml package is missing: run  python3 -m pip install -r requirements.txt") from e
+        raise RuntimeError("The lxml package is missing: run python -m pip install -r requirements.txt") from e
     art = soup.select_one("article.ltx_document")
     doc = Doc(meta)
     # LaTeXML embeds SVG figures as <object>; an <img> shows them as well and can carry a data URI
