@@ -20,7 +20,7 @@
       lang_t: 'Read in your language', lang_d: 'Pick one of twelve languages. The text is translated sentence by sentence, and every formula stays as typeset.',
       levels_t: 'Five levels', levels_d: '{levels}. Each level keeps less of every paragraph, so more of the whole fits on the screen.',
       map_t: 'A map of the text', map_d: 'At {topic}, the text becomes a map of section cards. You see how the sections build on each other before you read any of them.',
-      zoom_t: 'Zoom under your fingers', zoom_d: 'Pinch, scroll with ⌘ or Ctrl, press 1 to 5, or drag the level bar. Words that stay slide to their new place. Click a paragraph to open just that one.',
+      zoom_t: 'Zoom under your fingers', zoom_d: 'Pinch, scroll with Ctrl, press 1 to 5, or drag the level bar. Words that stay slide to their new place. Click a paragraph to open just that one.',
       voice_t: 'Serif is the author', voice_d: 'The author’s words are set in a serif, AI’s in a sans serif. {brief} keeps the author’s own sentences, word for word.',
       anchor_t: 'AI points to its source', anchor_d: 'Every line AI wrote points back to the sentences it rests on. Colors mark each paragraph’s role in the argument.',
       original_t: 'Beside the original', original_d: 'For a paper or a PDF, {original} at the top opens its pages at the left. Each paragraph is marked where it stands on its page.',
@@ -37,7 +37,7 @@
       lang_t: '用你的语言读', lang_d: '十二种语言任选。逐句翻译，公式保持原样。',
       levels_t: '五个层级', levels_d: '{levels}。每往上一级，每段留下的更少，一屏能看到的整体就更多。',
       map_t: '一张文本地图', map_d: '到了{topic}层，文本变成一张章节卡片的地图。还没读正文，就先看清各章节怎样一步步搭起来。',
-      zoom_t: '随手缩放', zoom_d: '双指捏合、按住 ⌘ 或 Ctrl 滚动、按数字键 1 到 5，或拖动层级条。留下来的词会滑到新位置。点一个段落，只展开这一段。',
+      zoom_t: '随手缩放', zoom_d: '双指捏合、按住 Ctrl 滚动、按数字键 1 到 5，或拖动层级条。留下来的词会滑到新位置。点一个段落，只展开这一段。',
       voice_t: '衬线体是作者的原话', voice_d: '作者的原话用衬线体，AI 写的用无衬线体。{brief}层保留的是作者的原句，一字不改。',
       anchor_t: 'AI 的每句话都有出处', anchor_d: 'AI 写的每一行都指回它依据的原句。颜色标出每段在论证中的角色。',
       original_t: '对照原文', original_d: '论文和 PDF 可以点顶部的「{original}」，左边打开原来的页面。每一段都标出它在页上的位置。',
@@ -54,7 +54,7 @@
       lang_t: '用你的語言讀', lang_d: '十二種語言任選。逐句翻譯，公式保持原樣。',
       levels_t: '五個層級', levels_d: '{levels}。每往上一級，每段留下的更少，一個畫面能看到的整體就更多。',
       map_t: '一張文本地圖', map_d: '到了{topic}層，文本變成一張章節卡片的地圖。還沒讀內文，就先看清各章節怎樣一步步搭起來。',
-      zoom_t: '隨手縮放', zoom_d: '雙指捏合、按住 ⌘ 或 Ctrl 捲動、按數字鍵 1 到 5，或拖動層級條。留下來的詞會滑到新位置。點一個段落，只展開這一段。',
+      zoom_t: '隨手縮放', zoom_d: '雙指捏合、按住 Ctrl 捲動、按數字鍵 1 到 5，或拖動層級條。留下來的詞會滑到新位置。點一個段落，只展開這一段。',
       voice_t: '襯線體是作者的原話', voice_d: '作者的原話用襯線體，AI 寫的用無襯線體。{brief}層保留的是作者的原句，一字不改。',
       anchor_t: 'AI 的每句話都有出處', anchor_d: 'AI 寫的每一行都指回它依據的原句。顏色標出每段在論證中的角色。',
       original_t: '對照原文', original_d: '論文和 PDF 可以點頂部的「{original}」，左邊開啟原來的頁面。每一段都標出它在頁上的位置。',
@@ -71,7 +71,7 @@
       lang_t: 'あなたの言語で読む', lang_d: '12 の言語から選べます。一文ずつ翻訳し、数式は組まれたままです。',
       levels_t: '5 つのレベル', levels_d: '{levels}。レベルが上がるほど各段落は短くなり、全体が一画面に収まります。',
       map_t: 'テキストの地図', map_d: '{topic}では、テキストが章ごとのカードの地図になります。本文を読む前に、章どうしのつながりが見えます。',
-      zoom_t: '指先でズーム', zoom_d: 'ピンチ、⌘ か Ctrl を押しながらスクロール、1〜5 のキー、またはレベルバーのドラッグで切り替えます。残る言葉は新しい位置へ滑っていきます。段落をクリックすると、その段落だけを開きます。',
+      zoom_t: '指先でズーム', zoom_d: 'ピンチ、Ctrl を押しながらスクロール、1〜5 のキー、またはレベルバーのドラッグで切り替えます。残る言葉は新しい位置へ滑っていきます。段落をクリックすると、その段落だけを開きます。',
       voice_t: 'セリフ体は著者の言葉', voice_d: '著者の言葉はセリフ体、AI が書いた文はサンセリフ体で表示します。{brief}は著者の文を一字一句そのまま残します。',
       anchor_t: 'AI の文には出典がある', anchor_d: 'AI が書いた各行は、根拠となった原文の文を指し示します。段落の色は、論証の中での役割を表します。',
       original_t: '原文と並べて読む', original_d: '論文や PDF では、上部の「{original}」で左側に元のページを開けます。各段落がページのどこにあるかを示します。',
@@ -88,7 +88,7 @@
       lang_t: '내 언어로 읽기', lang_d: '12개 언어 중에서 고를 수 있습니다. 문장 단위로 번역하고, 수식은 그대로 둡니다.',
       levels_t: '다섯 단계', levels_d: '{levels}. 단계가 올라갈수록 단락은 짧아지고, 한 화면에 전체가 더 많이 들어옵니다.',
       map_t: '글의 지도', map_d: '{topic} 단계에서는 글이 장별 카드로 된 지도가 됩니다. 본문을 읽기 전에 장들이 어떻게 이어지는지 보입니다.',
-      zoom_t: '손끝으로 확대와 축소', zoom_d: '핀치하거나, ⌘ 또는 Ctrl을 누른 채 스크롤하거나, 숫자 키 1~5를 누르거나, 단계 막대를 끌어 보세요. 남는 단어는 새 자리로 미끄러져 갑니다. 단락을 클릭하면 그 단락만 펼쳐집니다.',
+      zoom_t: '손끝으로 확대와 축소', zoom_d: '핀치하거나, Ctrl을 누른 채 스크롤하거나, 숫자 키 1~5를 누르거나, 단계 막대를 끌어 보세요. 남는 단어는 새 자리로 미끄러져 갑니다. 단락을 클릭하면 그 단락만 펼쳐집니다.',
       voice_t: '세리프체는 저자의 말', voice_d: '저자의 말은 세리프체로, AI가 쓴 글은 산세리프체로 보입니다. {brief} 단계는 저자의 문장을 한 글자도 바꾸지 않고 그대로 둡니다.',
       anchor_t: 'AI의 문장에는 출처가 있습니다', anchor_d: 'AI가 쓴 모든 줄은 근거가 된 원문 문장을 가리킵니다. 단락의 색은 논증에서 맡은 역할을 나타냅니다.',
       original_t: '원문과 나란히', original_d: '논문이나 PDF는 위쪽의 \'{original}\' 버튼을 누르면 왼쪽에 원래 페이지가 열립니다. 각 단락이 페이지의 어디에 있는지 표시됩니다.',
@@ -105,7 +105,7 @@
       lang_t: 'Lee en tu idioma', lang_d: 'Elige entre doce idiomas. El texto se traduce frase a frase y cada fórmula queda tal como está.',
       levels_t: 'Cinco niveles', levels_d: '{levels}. Cada nivel conserva menos de cada párrafo, así que cabe más del conjunto en la pantalla.',
       map_t: 'Un mapa del texto', map_d: 'En el nivel {topic}, el texto se convierte en un mapa de tarjetas por sección. Ves cómo se apoyan unas secciones en otras antes de leer ninguna.',
-      zoom_t: 'Zoom con los dedos', zoom_d: 'Pellizca, desplaza con ⌘ o Ctrl, pulsa de 1 a 5 o arrastra la barra de niveles. Las palabras que se quedan se deslizan a su nuevo sitio. Haz clic en un párrafo para abrir solo ese.',
+      zoom_t: 'Zoom con los dedos', zoom_d: 'Pellizca, desplaza con Ctrl, pulsa de 1 a 5 o arrastra la barra de niveles. Las palabras que se quedan se deslizan a su nuevo sitio. Haz clic en un párrafo para abrir solo ese.',
       voice_t: 'La serifa es el autor', voice_d: 'Las palabras del autor van en una letra con serifa y las de la IA en una sin serifa. {brief} conserva las frases del autor, palabra por palabra.',
       anchor_t: 'La IA señala su fuente', anchor_d: 'Cada línea que escribe la IA apunta a las frases en que se apoya. Los colores marcan el papel de cada párrafo en el argumento.',
       original_t: 'Junto al original', original_d: 'En un artículo o un PDF, «{original}», arriba, abre sus páginas a la izquierda. Cada párrafo aparece marcado donde está en su página.',
@@ -122,7 +122,7 @@
       lang_t: 'Lisez dans votre langue', lang_d: 'Choisissez parmi douze langues. Le texte est traduit phrase par phrase, et chaque formule reste telle quelle.',
       levels_t: 'Cinq niveaux', levels_d: '{levels}. Chaque niveau garde moins de chaque paragraphe, et l’ensemble tient mieux sur un écran.',
       map_t: 'Une carte du texte', map_d: 'Au niveau {topic}, le texte devient une carte de fiches par section. Vous voyez comment les sections s’enchaînent avant d’en lire une seule.',
-      zoom_t: 'Zoomer du bout des doigts', zoom_d: 'Pincez, faites défiler avec ⌘ ou Ctrl, tapez 1 à 5 ou faites glisser la barre des niveaux. Les mots qui restent glissent vers leur nouvelle place. Cliquez sur un paragraphe pour n’ouvrir que lui.',
+      zoom_t: 'Zoomer du bout des doigts', zoom_d: 'Pincez, faites défiler avec Ctrl, tapez 1 à 5 ou faites glisser la barre des niveaux. Les mots qui restent glissent vers leur nouvelle place. Cliquez sur un paragraphe pour n’ouvrir que lui.',
       voice_t: 'L’empattement, c’est l’auteur', voice_d: 'Les mots de l’auteur sont en caractères à empattement, ceux de l’IA sans empattement. {brief} garde les phrases de l’auteur, mot pour mot.',
       anchor_t: 'L’IA montre sa source', anchor_d: 'Chaque ligne écrite par l’IA renvoie aux phrases sur lesquelles elle s’appuie. Les couleurs indiquent le rôle de chaque paragraphe dans l’argument.',
       original_t: 'À côté de l’original', original_d: 'Pour un article ou un PDF, « {original} », en haut, ouvre ses pages à gauche. Chaque paragraphe y est marqué à sa place sur la page.',
@@ -139,7 +139,7 @@
       lang_t: 'In deiner Sprache lesen', lang_d: 'Wähle eine von zwölf Sprachen. Der Text wird Satz für Satz übersetzt, und jede Formel bleibt, wie sie gesetzt ist.',
       levels_t: 'Fünf Stufen', levels_d: '{levels}. Jede Stufe behält weniger von jedem Absatz, so passt mehr vom Ganzen auf den Bildschirm.',
       map_t: 'Eine Karte des Textes', map_d: 'Auf der Stufe {topic} wird der Text zu einer Karte aus Abschnittskarten. Du siehst, wie die Abschnitte aufeinander aufbauen, bevor du einen davon liest.',
-      zoom_t: 'Zoomen mit den Fingern', zoom_d: 'Mit zwei Fingern ziehen, mit ⌘ oder Strg scrollen, die Tasten 1 bis 5 drücken oder die Stufenleiste ziehen. Wörter, die bleiben, gleiten an ihren neuen Platz. Ein Klick auf einen Absatz öffnet nur diesen.',
+      zoom_t: 'Zoomen mit den Fingern', zoom_d: 'Mit zwei Fingern ziehen, mit Strg scrollen, die Tasten 1 bis 5 drücken oder die Stufenleiste ziehen. Wörter, die bleiben, gleiten an ihren neuen Platz. Ein Klick auf einen Absatz öffnet nur diesen.',
       voice_t: 'Serifen sind der Autor', voice_d: 'Die Worte des Autors stehen in einer Serifenschrift, die der KI in einer serifenlosen. {brief} behält die Sätze des Autors Wort für Wort.',
       anchor_t: 'Die KI zeigt ihre Quelle', anchor_d: 'Jede Zeile, die die KI schreibt, verweist auf die Sätze, auf die sie sich stützt. Farben zeigen die Rolle jedes Absatzes im Argument.',
       original_t: 'Neben dem Original', original_d: 'Bei einem Paper oder einer PDF öffnet „{original}“ oben die Seiten links. Jeder Absatz ist dort markiert, wo er auf seiner Seite steht.',
@@ -156,7 +156,7 @@
       lang_t: 'Leia no seu idioma', lang_d: 'Escolha entre doze idiomas. O texto é traduzido frase por frase, e cada fórmula fica como foi composta.',
       levels_t: 'Cinco níveis', levels_d: '{levels}. Cada nível guarda menos de cada parágrafo, então cabe mais do todo na tela.',
       map_t: 'Um mapa do texto', map_d: 'No nível {topic}, o texto vira um mapa de cartões por seção. Você vê como as seções se apoiam umas nas outras antes de ler qualquer uma.',
-      zoom_t: 'Zoom na ponta dos dedos', zoom_d: 'Faça pinça, role com ⌘ ou Ctrl, aperte de 1 a 5 ou arraste a barra de níveis. As palavras que ficam deslizam para o novo lugar. Clique em um parágrafo para abrir só ele.',
+      zoom_t: 'Zoom na ponta dos dedos', zoom_d: 'Faça pinça, role com Ctrl, aperte de 1 a 5 ou arraste a barra de níveis. As palavras que ficam deslizam para o novo lugar. Clique em um parágrafo para abrir só ele.',
       voice_t: 'Serifa é o autor', voice_d: 'As palavras do autor aparecem em fonte serifada, as da IA em fonte sem serifa. {brief} guarda as frases do autor, palavra por palavra.',
       anchor_t: 'A IA mostra sua fonte', anchor_d: 'Cada linha escrita pela IA aponta para as frases em que se apoia. As cores marcam o papel de cada parágrafo no argumento.',
       original_t: 'Ao lado do original', original_d: 'Em um artigo ou PDF, “{original}”, no topo, abre as páginas à esquerda. Cada parágrafo aparece marcado onde está na página.',
@@ -173,7 +173,7 @@
       lang_t: 'Leggi nella tua lingua', lang_d: 'Scegli tra dodici lingue. Il testo è tradotto frase per frase e ogni formula resta com’è.',
       levels_t: 'Cinque livelli', levels_d: '{levels}. Ogni livello tiene meno di ogni paragrafo, così sullo schermo entra più dell’insieme.',
       map_t: 'Una mappa del testo', map_d: 'Al livello {topic}, il testo diventa una mappa di schede per sezione. Vedi come le sezioni si reggono l’una sull’altra prima di leggerne una.',
-      zoom_t: 'Zoom sotto le dita', zoom_d: 'Pizzica, scorri con ⌘ o Ctrl, premi da 1 a 5 o trascina la barra dei livelli. Le parole che restano scivolano al loro nuovo posto. Fai clic su un paragrafo per aprire solo quello.',
+      zoom_t: 'Zoom sotto le dita', zoom_d: 'Pizzica, scorri con Ctrl, premi da 1 a 5 o trascina la barra dei livelli. Le parole che restano scivolano al loro nuovo posto. Fai clic su un paragrafo per aprire solo quello.',
       voice_t: 'Le grazie sono l’autore', voice_d: 'Le parole dell’autore sono in un carattere con grazie, quelle dell’IA senza grazie. {brief} tiene le frasi dell’autore, parola per parola.',
       anchor_t: 'L’IA indica la fonte', anchor_d: 'Ogni riga scritta dall’IA rimanda alle frasi su cui si basa. I colori segnano il ruolo di ogni paragrafo nell’argomentazione.',
       original_t: 'Accanto all’originale', original_d: 'Per un articolo o un PDF, «{original}», in alto, apre le pagine a sinistra. Ogni paragrafo è segnato dove si trova nella sua pagina.',
@@ -190,7 +190,7 @@
       lang_t: 'Читайте на своём языке', lang_d: 'Выберите один из двенадцати языков. Текст переводится по предложениям, а каждая формула остаётся как есть.',
       levels_t: 'Пять уровней', levels_d: '{levels}. На каждом уровне от абзаца остаётся меньше, и на экране помещается больше целого.',
       map_t: 'Карта текста', map_d: 'На уровне «{topic}» текст становится картой из карточек разделов. Видно, как разделы опираются друг на друга, ещё до чтения.',
-      zoom_t: 'Масштаб под пальцами', zoom_d: 'Сведите пальцы, прокрутите с ⌘ или Ctrl, нажмите клавиши от 1 до 5 или потяните полосу уровней. Слова, которые остаются, переезжают на новое место. Щёлкните по абзацу, чтобы открыть только его.',
+      zoom_t: 'Масштаб под пальцами', zoom_d: 'Сведите пальцы, прокрутите с Ctrl, нажмите клавиши от 1 до 5 или потяните полосу уровней. Слова, которые остаются, переезжают на новое место. Щёлкните по абзацу, чтобы открыть только его.',
       voice_t: 'Засечки означают автора', voice_d: 'Слова автора набраны шрифтом с засечками, а слова ИИ набраны шрифтом без засечек. Уровень «{brief}» сохраняет предложения автора слово в слово.',
       anchor_t: 'ИИ указывает на источник', anchor_d: 'Каждая строка, написанная ИИ, отсылает к предложениям, на которые она опирается. Цвет показывает роль каждого абзаца в рассуждении.',
       original_t: 'Рядом с оригиналом', original_d: 'Для статьи или PDF кнопка «{original}» вверху открывает страницы слева. Каждый абзац отмечен там, где он стоит на странице.',
@@ -207,7 +207,7 @@
       lang_t: 'अपनी भाषा में पढ़ें', lang_d: 'बारह भाषाओं में से चुनें। पाठ का अनुवाद वाक्य दर वाक्य होता है, और हर सूत्र जैसा था वैसा रहता है।',
       levels_t: 'पाँच स्तर', levels_d: '{levels}। हर स्तर पर हर अनुच्छेद का कम हिस्सा बचता है, इसलिए स्क्रीन पर पूरे पाठ का ज़्यादा हिस्सा दिखता है।',
       map_t: 'पाठ का नक्शा', map_d: '{topic} स्तर पर पाठ खंडों के कार्डों का नक्शा बन जाता है। कोई खंड पढ़ने से पहले ही दिखता है कि खंड एक दूसरे पर कैसे टिके हैं।',
-      zoom_t: 'उँगलियों से ज़ूम', zoom_d: 'पिंच करें, ⌘ या Ctrl के साथ स्क्रॉल करें, 1 से 5 दबाएँ, या स्तर पट्टी खींचें। जो शब्द बचते हैं, वे अपनी नई जगह पर खिसक जाते हैं। किसी अनुच्छेद पर क्लिक करें, तो सिर्फ़ वही खुलता है।',
+      zoom_t: 'उँगलियों से ज़ूम', zoom_d: 'पिंच करें, Ctrl के साथ स्क्रॉल करें, 1 से 5 दबाएँ, या स्तर पट्टी खींचें। जो शब्द बचते हैं, वे अपनी नई जगह पर खिसक जाते हैं। किसी अनुच्छेद पर क्लिक करें, तो सिर्फ़ वही खुलता है।',
       voice_t: 'सेरिफ़ यानी लेखक', voice_d: 'लेखक के शब्द सेरिफ़ फ़ॉन्ट में हैं, AI के शब्द बिना सेरिफ़ वाले फ़ॉन्ट में। {brief} स्तर लेखक के वाक्यों को शब्दशः रखता है।',
       anchor_t: 'AI अपना स्रोत दिखाता है', anchor_d: 'AI की लिखी हर पंक्ति उन वाक्यों की ओर इशारा करती है जिन पर वह टिकी है। रंग बताते हैं कि तर्क में हर अनुच्छेद की भूमिका क्या है।',
       original_t: 'मूल के साथ', original_d: 'शोधपत्र या PDF के लिए, ऊपर “{original}” बाईं ओर उसके पन्ने खोलता है। हर अनुच्छेद पन्ने पर अपनी जगह पर चिह्नित दिखता है।',
@@ -258,7 +258,7 @@
       rows.forEach((r, i) => r.forEach(([x, w, keep]) => { s += `<rect class="${keep ? 'tk-acc' : 'tk-line'}" x="${x}" y="${7 + i * 6}" width="${w}" height="3" rx="1.5"/>`; }));
       s += '<rect class="tk-acc" x="8" y="45" width="14" height="3" rx="1.5"/><rect class="tk-acc" x="25" y="45" width="16" height="3" rx="1.5"/><rect class="tk-acc" x="44" y="45" width="9" height="3" rx="1.5"/>';
       s += '<path class="tk-s-acc tk-dash tk-thin" d="M27 10.5 C27 30 15 32 15 43M41 16.5 C41 32 33 34 33 43M54.5 22.5 C54.5 34 48.5 36 48.5 43"/>';
-      s += '<rect class="tk-card" x="79" y="8" width="14" height="14" rx="3.5"/><text x="86" y="18.6" text-anchor="middle" class="tk-key">⌘</text>'
+      s += '<rect class="tk-card" x="79" y="8" width="14" height="14" rx="3.5"/><text x="86" y="17.5" text-anchor="middle" class="tk-key" style="font-size:6px">Ctrl</text>'
         + '<text class="tk-mono" x="97" y="17.5" text-anchor="middle">+</text><rect class="tk-card" x="101" y="6" width="12" height="18" rx="6"/><path class="tk-s-muted" d="M107 9.5v4"/>';
       s += [1, 2, 3, 4, 5].map((n, i) => `<rect class="${n === 3 ? 'tk-acc' : 'tk-card'}" x="${8 + i * 14}" y="55" width="11" height="11" rx="3"/><text class="tk-mono${n === 3 ? ' tk-white' : ''}" x="${13.5 + i * 14}" y="62.6" text-anchor="middle">${n}</text>`).join('');
       s += '<path class="tk-s-muted" d="M91 56l4 4.5-4 4.5M109 56l-4 4.5 4 4.5"/>';   // a pinch
@@ -428,7 +428,7 @@
     page = p; render();
   }
 
-  // while it is open the page behind takes no keys, no wheel and no pinch: the reader's 1–5, L, ⌘-scroll and Esc are its own
+  // while it is open the page behind takes no keys, no wheel and no pinch: the reader's 1–5, L, Ctrl-scroll and Esc are its own
   function onKey(e) {
     if (!root) return;
     e.stopPropagation();
@@ -463,7 +463,7 @@
       + `<div class="tt-head"><div><h2 class="tt-title" id="tt-title">${esc(w.title)}</h2><p class="tt-sub">${esc(w.sub)}</p></div>`
       + `<button type="button" class="tt-x" aria-label="${esc(w.close)}" title="${esc(w.close)}">${ICON.x}</button></div>`
       + '<div class="tt-body"><p class="tt-label"></p><div class="tt-grid"></div></div><div class="tt-nav"></div>'
-      + `<div class="tt-keys"><span><kbd>1</kbd>–<kbd>5</kbd> ${esc(w.k_levels)}</span><span><kbd>⌘</kbd>/<kbd>Ctrl</kbd> + ${esc(w.k_scroll)} ${esc(w.k_zoom)}</span>`
+      + `<div class="tt-keys"><span><kbd>1</kbd>–<kbd>5</kbd> ${esc(w.k_levels)}</span><span><kbd>Ctrl</kbd> + ${esc(w.k_scroll)} ${esc(w.k_zoom)}</span>`
       + `<span><kbd>L</kbd> ${esc(w.k_lang)}</span><span><kbd>←</kbd><kbd>→</kbd> ${esc(w.k_pages)}</span><span><kbd>Esc</kbd> ${esc(w.k_close)}</span></div></div>`;
     dialog = root.firstChild;
     root.addEventListener('click', (e) => {

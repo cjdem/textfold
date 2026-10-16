@@ -11,8 +11,8 @@ No change may make the zoom less smooth. If you touch the reader, measure before
 ```bash
 git clone https://github.com/chenxiachan/textfold.git
 cd textfold
-python3 -m pip install -r requirements.txt
-python3 -m textfold serve
+python -m pip install -r requirements.txt
+python -m textfold serve
 ```
 
 Then open `http://localhost:3017` and connect a model (the README says how).
@@ -28,7 +28,7 @@ Then open `http://localhost:3017` and connect a model (the README says how).
 ## Pull requests
 
 - One change per pull request: what it changes, why, and how you checked it.
-- Run the tests before you send it: `python3 -m unittest discover tests` (they need nothing more than the requirements, and touch none of your papers).
+- Run the tests before you send it: `python -m unittest discover tests` (they need nothing more than the requirements, and touch none of your papers).
 - Match the code around it: plain names, and comments that say why rather than what.
 - Keep keys and papers out of commits. Settings and keys live in `~/.textfold/`; papers and their levels in `papers/`, which git ignores.
 

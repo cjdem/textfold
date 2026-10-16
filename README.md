@@ -52,7 +52,7 @@ Your agent writes more than you have time to read. A [Claude Code mod](https://c
 
 - **Read.** Paste a link or drop a file; it opens as a map of its sections that you zoom into. [Get started ↓](#get-started)
 - **Fold your agent's replies.** One key per level in Claude Code and in Pi, with no second model. [In Claude Code and Pi ↓](#in-claude-code-and-pi)
-- **Plug it into your workflow.** `python3 -m textfold get` hands your agent or script a document one level at a time, and an open format lets any program read and write folded text. [For agents ↓](#for-agents-and-scripts)
+- **Plug it into your workflow.** `python -m textfold get` hands your agent or script a document one level at a time, and an open format lets any program read and write folded text. [For agents ↓](#for-agents-and-scripts)
 
 ## What you get
 
@@ -65,7 +65,7 @@ Your agent writes more than you have time to read. A [Claude Code mod](https://c
 
 - **Your language.** Twelve languages, translated sentence by sentence, with every formula as typeset.
 
-- **Your library, in order.** Search it with ⌘K, keep documents in folders (drag one in, or right-click it), and list it by kind, by when each came in, or by when you last opened it.
+- **Your library, in order.** Search it with Ctrl+K, keep documents in folders (drag one in, or right-click it), and list it by kind, by when each came in, or by when you last opened it.
 
 <table>
 <tr>
@@ -90,16 +90,16 @@ To turn it on, in Zotero 7: **Settings › Advanced › Allow other applications
 
 ## Get started
 
-**[Download the app](https://chenxiachan.github.io/textfold/#download)** for macOS (Apple silicon or Intel) or Windows. Everything it needs is inside, Python included.
+**[Download the app](https://chenxiachan.github.io/textfold/#download)** for Windows. Everything it needs is inside, Python included.
 
 Or install the Python package, on any system and for your own pipeline:
 
 ```bash
-python3 -m pip install textfold
-python3 -m textfold serve
+python -m pip install textfold
+python -m textfold serve
 ```
 
-Open `http://localhost:3017`. The first time, [connect a model](#connect-a-model); then paste a link or drop a file, and pick a language. You need Python 3.9 or newer (the one macOS ships with works).
+Open `http://localhost:3017`. The first time, [connect a model](#connect-a-model); then paste a link or drop a file, and pick a language. You need Python 3.9 or newer.
 
 | Paste or drop | What TextFold reads |
 |---|---|
@@ -120,8 +120,8 @@ What you read is kept in your system's folder for app data, shared with the desk
 ```bash
 git clone https://github.com/chenxiachan/textfold.git
 cd textfold
-python3 -m pip install -r requirements.txt
-python3 -m textfold serve
+python -m pip install -r requirements.txt
+python -m textfold serve
 ```
 
 What you read is then kept in the clone.
@@ -145,7 +145,7 @@ Your questions can go to a stronger model than the one that writes the levels: *
 
 | Do | To |
 |---|---|
-| Pinch, or ⌘ / Ctrl + scroll | zoom around the pointer |
+| Pinch, or Ctrl + scroll | zoom around the pointer |
 | `1` to `5` | jump to a level |
 | Click a paragraph | open just that paragraph |
 | Click a figure | see it enlarged |
@@ -154,16 +154,16 @@ Your questions can go to a stronger model than the one that writes the levels: *
 | Select text | highlight, write a note, or ask |
 | **Ask the paper**, bottom right | ask about the whole text |
 | `L` | next language |
-| `⌘K` (Ctrl+K) or `/` | search your library |
+| `Ctrl+K` or `/` | search your library |
 
 ## For agents and scripts
 
-`python3 -m textfold get` gives a document one level at a time, coarsest first, so an agent reads the map before it spends its context on the whole text:
+`python -m textfold get` gives a document one level at a time, coarsest first, so an agent reads the map before it spends its context on the whole text:
 
 ```bash
-python3 -m textfold get https://arxiv.org/abs/2512.23916        # the map: every section's topic
-python3 -m textfold get 2512.23916 --level key --section 3      # one section: its points, each with its reason
-python3 -m textfold get report.pdf --json                       # the whole document, in the TextFold format
+python -m textfold get https://arxiv.org/abs/2512.23916        # the map: every section's topic
+python -m textfold get 2512.23916 --level key --section 3      # one section: its points, each with its reason
+python -m textfold get report.pdf --json                       # the whole document, in the TextFold format
 ```
 
 A document not folded yet is folded first, with the model you connected. Every line a model wrote is marked as such and anchored to the author's sentences it rests on: [docs/format.md](https://github.com/chenxiachan/textfold/blob/main/docs/format.md) describes the format, for any program that reads or writes folded text.
@@ -173,7 +173,7 @@ A document not folded yet is folded first, with the model you connected. Every l
 **Save**, at the top of the reader, keeps a page as one HTML file that opens anywhere without a server: its levels, the notes you choose and, if you like, its original PDF to read beside it. It can also keep only your notes, as a page, a PDF, Markdown for Obsidian or JSON. From the command line, the page without your notes:
 
 ```bash
-python3 -m textfold export 2512.23916
+python -m textfold export 2512.23916
 ```
 
 TextFold is a tool, and its license covers its code. When you share a file, follow the terms of the original text, shown under its title.

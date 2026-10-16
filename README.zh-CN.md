@@ -52,7 +52,7 @@ Agent 写的，总比你有空读的多。一个 [Claude Code mod](https://code.
 
 - **读。** 粘贴链接或拖入文件，打开就是一张章节地图，再往里缩放。[开始使用 ↓](#开始使用)
 - **折叠 agent 的回答。** 在 Claude Code 和 Pi 里一个键一个层级，不用第二个模型。[在 Claude Code 和 Pi 里 ↓](#在-claude-code-和-pi-里)
-- **接入你的工作流。** `python3 -m textfold get` 把文档一层一层地交给你的 agent 或脚本；开放的格式让任何程序都能读写折叠后的文字。[给 agent 用 ↓](#给-agent-和脚本用)
+- **接入你的工作流。** `python -m textfold get` 把文档一层一层地交给你的 agent 或脚本；开放的格式让任何程序都能读写折叠后的文字。[给 agent 用 ↓](#给-agent-和脚本用)
 
 ## 你会得到
 
@@ -65,7 +65,7 @@ Agent 写的，总比你有空读的多。一个 [Claude Code mod](https://code.
 
 - **用你的语言读。** 十二种语言，逐句翻译，公式保持原样。
 
-- **你的文献库，井井有条。** 用 ⌘K 搜索；建文件夹整理文档，拖进去或者右键移进去；按类型、添加时间或最近打开排序。
+- **你的文献库，井井有条。** 用 Ctrl+K 搜索；建文件夹整理文档，拖进去或者右键移进去；按类型、添加时间或最近打开排序。
 
 <table>
 <tr>
@@ -90,16 +90,16 @@ Agent 写的，总比你有空读的多。一个 [Claude Code mod](https://code.
 
 ## 开始使用
 
-**[下载软件](https://chenxiachan.github.io/textfold/zh.html#download)**，有 macOS（Apple 芯片或 Intel）和 Windows 版。需要的东西都在里面，包括 Python。
+**[下载软件](https://chenxiachan.github.io/textfold/zh.html#download)**，只有 Windows 版。需要的东西都在里面，包括 Python。
 
 也可以装 Python 包，任何系统都能用，也能接进你自己的流程：
 
 ```bash
-python3 -m pip install textfold
-python3 -m textfold serve
+python -m pip install textfold
+python -m textfold serve
 ```
 
-在浏览器里打开 `http://localhost:3017`。第一次使用先[连接一个模型](#连接模型)，然后粘贴链接或拖入文件，再选择语言。需要 Python 3.9 或更新的版本（macOS 自带的就可以）。
+在浏览器里打开 `http://localhost:3017`。第一次使用先[连接一个模型](#连接模型)，然后粘贴链接或拖入文件，再选择语言。需要 Python 3.9 或更新的版本。
 
 | 粘贴或拖入 | TextFold 读到的 |
 |---|---|
@@ -120,8 +120,8 @@ python3 -m textfold serve
 ```bash
 git clone https://github.com/chenxiachan/textfold.git
 cd textfold
-python3 -m pip install -r requirements.txt
-python3 -m textfold serve
+python -m pip install -r requirements.txt
+python -m textfold serve
 ```
 
 这样文档保存在代码目录里。
@@ -145,7 +145,7 @@ TextFold 用你已有的模型，不需要注册账号。启动时它会自己�
 
 | 操作 | 作用 |
 |---|---|
-| 双指捏合，或 ⌘ / Ctrl 加滚轮 | 围绕鼠标所在处缩放 |
+| 双指捏合，或 Ctrl 加滚轮 | 围绕鼠标所在处缩放 |
 | `1` 到 `5` | 跳到某一层 |
 | 点击某一段 | 只展开这一段 |
 | 点击图片 | 放大查看 |
@@ -154,16 +154,16 @@ TextFold 用你已有的模型，不需要注册账号。启动时它会自己�
 | 选中文字 | 高光、写笔记或追问 |
 | 右下角 **问全文** | 就整篇提问 |
 | `L` | 切换到下一种语言 |
-| `⌘K`（Ctrl+K）或 `/` | 搜索文献库 |
+| `Ctrl+K` 或 `/` | 搜索文献库 |
 
 ## 给 agent 和脚本用
 
-`python3 -m textfold get` 一次给出一份文档的一个层级，从最概括的开始。agent 可以先读地图，再决定把上下文花在哪一节：
+`python -m textfold get` 一次给出一份文档的一个层级，从最概括的开始。agent 可以先读地图，再决定把上下文花在哪一节：
 
 ```bash
-python3 -m textfold get https://arxiv.org/abs/2512.23916        # 地图：每一节的主题
-python3 -m textfold get 2512.23916 --level key --section 3      # 某一节：每个要点和它的理由
-python3 -m textfold get report.pdf --json                       # 整份文档，TextFold 格式
+python -m textfold get https://arxiv.org/abs/2512.23916        # 地图：每一节的主题
+python -m textfold get 2512.23916 --level key --section 3      # 某一节：每个要点和它的理由
+python -m textfold get report.pdf --json                       # 整份文档，TextFold 格式
 ```
 
 还没折叠过的文档会先用你连接的模型折叠。模型写的每一行都标明是模型写的，并且指回它依据的作者原句：[docs/format.md](https://github.com/chenxiachan/textfold/blob/main/docs/format.md) 说明了这个格式，任何读写折叠文本的程序都可以用。
@@ -173,7 +173,7 @@ python3 -m textfold get report.pdf --json                       # 整份文档�
 阅读页顶部的 **保存** 把一页存成一个 HTML 文件，不需要服务器，在哪里都能打开：各个层级、你选的标注，还可以带上原文 PDF 在左边对照。也可以只存你的标注，存成网页、PDF、Obsidian 用的 Markdown 或 JSON。命令行也能导出这一页，只是不带你的标注：
 
 ```bash
-python3 -m textfold export 2512.23916
+python -m textfold export 2512.23916
 ```
 
 TextFold 只是一个工具，它的许可证只管代码。分享文件时，请遵守原文的许可条款，它标在每篇的标题下方。

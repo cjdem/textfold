@@ -18,14 +18,15 @@ Serif text is the author's; sans text is a summary. At every level the words tha
 ## Use
 
 ```bash
-python3 -m pip install -r requirements.txt   # beautifulsoup4, lxml, Pillow
-python3 -m textfold serve                    # http://localhost:3017  (ThoughtDAG keeps 3001)
+python -m pip install -r requirements.txt   # beautifulsoup4, lxml, Pillow
+python -m textfold serve                    # http://localhost:3017  (ThoughtDAG keeps 3001)
 ```
 
-The same code is a Python package (`pyproject.toml`): `python3 -m pip wheel . --no-deps` builds it, with the reader's
-pages (`textfold/web/`) inside, and `pip install textfold` gives the `textfold` command. The docs write `python3 -m textfold` instead: macOS's own Python
-installs a user's packages with their commands in `~/Library/Python/3.9/bin`, which is not on the PATH, so `textfold`
-alone is not found there, and `python3 -m textfold` always is. Run from a clone, papers are
+The same code is a Python package (`pyproject.toml`): `python -m pip wheel . --no-deps` builds it, with the reader's
+pages (`textfold/web/`) inside, and `pip install textfold` gives the `textfold` command. The docs write
+`python -m textfold` instead: pip puts that command's own folder (`Scripts\`, under the install or the user's
+`%APPDATA%\Python`) where the PATH may not reach, so `textfold` alone is not always found, and `python -m textfold`
+always is. Run from a clone, papers are
 kept in the clone; installed, in the system's folder for app data (`store.app_data()`, shared with the desktop app).
 
 The landing takes a link or ID (arXiv, PubMed Central, Europe PMC, bioRxiv, medRxiv, a DOI, Wikipedia), or a Markdown
@@ -45,14 +46,13 @@ project, or wherever `TEXTFOLD_DATA` points (`PAPERFOLD_DATA`, its earlier name,
 `~/.textfold/`.
 
 The app (`desktop/`, see its README): an Electron window around the same server, with its own CPython
-(python-build-standalone) and packages, so a reader installs nothing. For macOS, Apple silicon and Intel, signed and
-notarized with the certificate ThoughtDAG uses, and for Windows; each built on its own system by
+(python-build-standalone) and packages, so a reader installs nothing. For Windows, built on its own system by
 `.github/workflows/desktop.yml` when a version is tagged, beside the package for PyPI.
 
 A gallery for a free static host: `tools/gallery.json` lists one paper per field, each with its field and a line on
-why it is worth reading in every gallery language (en, zh, de). `python3 tools/gallery.py --make <model>` generates
+why it is worth reading in every gallery language (en, zh, de). `python tools/gallery.py --make <model>` generates
 what the list lacks in a folder of its own (`out/gallery/papers`; a paper already in the library starts from there,
-without its notes), and `python3 tools/gallery.py` writes `out/gallery/site/`: an index in the three languages and
+without its notes), and `python tools/gallery.py` writes `out/gallery/site/`: an index in the three languages and
 each paper's static reader, opened at the Topic level. A paper with a PDF (an arXiv paper) gets it beside its page, with
 PDF.js in `assets/`, so Original shows its typeset pages there as in the app; a PDF over 4 MB has its large pictures
 made smaller with pikepdf (`pip install -r tools/requirements-gallery.txt`; fonts and text untouched), and without it
@@ -70,7 +70,7 @@ takes the gallery from there. The repository's own Pages keeps its old address, 
 
 Models (⚙ Model & API), ported from ThoughtDAG's model access:
 
-- **Agents on this computer**, found at startup (and on Rescan) on PATH, the login shell's PATH, the usual install
+- **Agents on this computer**, found at startup (and on Rescan) on PATH, the usual install
   directories and the node version managers. Claude Code, Codex and Pi run generations, each listing its own models
   (Pi brings whatever providers it is configured with); Gemini CLI, Qwen Code, opencode, Cursor Agent, Kimi CLI, Amp,
   Goose, Crush, Droid, Copilot CLI, iFlow and Aider are reported when present. Claude Code is called without the
@@ -120,8 +120,8 @@ Models (⚙ Model & API), ported from ThoughtDAG's model access:
 Command line, without the server:
 
 ```bash
-python3 -m textfold 2512.23916 --lang zh --lang ja   # generate English + translations, then export
-python3 -m textfold export 2512.23916                # one self-contained HTML file in out/<id>/
+python -m textfold 2512.23916 --lang zh --lang ja   # generate English + translations, then export
+python -m textfold export 2512.23916                # one self-contained HTML file in out/<id>/
 ```
 
 ### Is the same paper always the same?
@@ -132,7 +132,7 @@ versioned layers in `papers/<id>/layers/` (`en.json`, `tr-<lang>.json`); the rea
 model call, so it reads the same every time it is opened. Regenerate writes a new version; a translation built on an
 older English version is marked outdated. Model replies are also cached by prompt in `papers/<id>/llm-cache/`.
 
-In the page: pinch or ⌘/Ctrl-scroll zooms around the pointer, scrolling over the level bar or dragging it zooms too,
+In the page: pinch or Ctrl-scroll zooms around the pointer, scrolling over the level bar or dragging it zooms too,
 keys `1`–`5` jump to a level, `-`/`=` step, `L` cycles languages, clicking a paragraph below Full opens just that one,
 `Esc` closes it. The zoom is continuous: it can stop half way or turn back, and it lays nothing out while it runs. When
 the reader is still, the screen is laid out at each level ahead of time (in a hidden copy, one level per idle moment),
@@ -160,7 +160,7 @@ chosen, in the language being read or all of them; the file opens in that langua
 other page's in the viewer's browser, `D.saved`; with the original PDF if chosen, and PDF.js, so that the file opens
 the side-by-side view by itself: `D.pdf`, `D.pdfjs`, and a converted PDF's page map, `D.pdfmap`), or a PDF at the level being read (the column as it stands, paragraphs
 opened in place included, every paragraph drawn at that level first, the notes of the kinds chosen under their
-paragraphs, the level named on top and the TextFold mark at the end; ⌘P prints the same). Only the marks: one small
+paragraphs, the level named on top and the TextFold mark at the end; Ctrl+P prints the same). Only the marks: one small
 HTML page made in the browser (the passages quoted, or each mark in its whole paragraph if chosen; the notes, the
 questions and answers with their citations as labels, formulas as MathML, a link to the source, the mark), a PDF,
 Markdown for Obsidian (block ids, callouts, links back) or the notes data (JSON, with `made_by`). The dialog says, for
@@ -178,7 +178,7 @@ The answer cites up to five paragraphs; a cite opens its paragraph in place.
 In the app the mark (in the bar and in the sidebar's rail) leads home; the rail's second button opens the list of
 papers. A paper is deleted from the list after a prompt that says what goes with it: its folder (layers, model
 replies, notes) moves to `papers/.trash/<id>-<time>/`, from where it can be moved back. A paper being generated
-cannot be deleted. The list is searched (⌘K or /), ordered by kind, by when each document came in or by when it was
+cannot be deleted. The list is searched (Ctrl+K or /), ordered by kind, by when each document came in or by when it was
 last opened, and kept in folders, one level deep, a document in one at most: dragged there, or moved from the menu a
 right click opens on it. Folders and dates are in `library.json` beside `papers/` (`library.py`). The format, the contract for every export, is `docs/notes-format.md`; the server keeps notes in
 `papers/<id>/notes.json`, a static page in the browser.
@@ -211,7 +211,7 @@ table is its caption; a numbered heading ("2.1 Methods") keeps its number apart.
 A document is stored by `local.py` as a paper is: `papers/md-<title words>-<hash>/` with `source.html` (normalized),
 `source.md`, `meta.json` and `img/`, the images copied from beside the file, downloaded, or decoded, once. The id
 carries a hash of the text, so the same file opened twice is one paper and an edited file a new one; a stored document
-is never rewritten, since its layers belong to the text they were made from. `python3 -m textfold notes.md` does the same
+is never rewritten, since its layers belong to the text they were made from. `python -m textfold notes.md` does the same
 from the command line (images found beside the file); the landing sends the file's text (`POST /api/import`), so
 images given by a relative path are left out there and shown by name.
 
@@ -263,7 +263,7 @@ arXiv's PDF). While the engine is not installed, a PDF that has its words in it 
 (the drawings and pictures above or below it, up to the prose around them) and cut from its page with pypdfium2
 (`engine.crop_here`). A scanned PDF, and every PDF once the engine is there, goes to
 the PDF engine (`engine.py`): MinerU 4, pinned, in `<app data>/engine` (a PaperFold install in its old place is used
-there), installed from the landing, the settings or `python3 -m textfold engine install`. Its command line only (`mineru-kit
+there), installed from the landing, the settings or `python -m textfold engine install`. Its command line only (`mineru-kit
 parse --format zip`), never the `mineru` document library. Fast is MinerU's flash tier (seconds, no model; formulas as
 pictures); accurate is advanced (a vision model, several seconds a page), with `--disable-image-analysis`.
 `pdfdoc.py` turns `structured_content.json` into the document: running heads and page numbers out, the title from the
@@ -276,8 +276,8 @@ With the engine installed, it reads them all: Word, PowerPoint, Excel, OpenDocum
 OFD (its fast tier only: no model is needed) and pictures (either tier, as a scanned page). Without it, TextFold reads
 the common ones itself, at once (`office.py`): .docx through mammoth, its formulas turned from OMML into LaTeX first
 (`omml.py`, written for what latex2mathml and KaTeX both read); .pptx, .xlsx and .epub from their own XML; .csv and
-.tsv; a saved page's article (.html, .mhtml, its pictures from inside the file); and on a Mac .doc, .rtf and .odt
-through `textutil`. It writes the engine's shape (`structured_content.json` and `images/`), so `pdfdoc.py` stores both
+.tsv; and a saved page's article (.html, .mhtml, its pictures from inside the file). It writes the engine's shape
+(`structured_content.json` and `images/`), so `pdfdoc.py` stores both
 alike; a file whose structure is its own keeps its headings' depths, its captions and its notes. A picture, an old
 PowerPoint or Excel file, an OpenDocument sheet or deck still wait for the engine; a file the engine fails on falls back
 to `office.py`.
@@ -321,9 +321,14 @@ No change may make the zoom less smooth. Measure before and after with the GPU a
 screen actually showed, on a dense paper (2512.23916):
 
 ```bash
-python3 -m textfold export 2512.23916
-python3 tools/zoombench.py 2512.23916                 # out/compare/<id>/<version>.html pages
+python -m textfold export 2512.23916
+python tools/zoombench.py 2512.23916                 # out/compare/<id>/<version>.html pages
 ```
+
+The tool drives Windows' Direct3D 11 backend (`--use-angle=d3d11`) and needs `playwright` and an exported page under
+`out/compare/`, so on a machine without them the axis stays **unmeasured** — say so, never "no impact on performance".
+Its numbers are Windows numbers and cannot be compared with the Metal ones recorded before this fork went
+Windows-only.
 
 Frame intervals from requestAnimationFrame in a default headless browser hide most of what a reader feels.
 
@@ -364,13 +369,14 @@ textfold/llm.py      the call (cached) for every kind of model; llm_openai.py: O
 textfold/build.py    reader pages: app mode (served) and static mode (one file)
 textfold/library.py  the sidebar's library: folders, when each document came in and was last opened (library.json)
 textfold/notes.py    the reader's notes (docs/notes-format.md) and questions answered by the model
-textfold/fold.py     the TextFold format (docs/format.md) and a document at one level as Markdown (python3 -m textfold get)
+textfold/fold.py     the TextFold format (docs/format.md) and a document at one level as Markdown (python -m textfold get)
 textfold/web/   reader.js (render + FLIP morph), app.js (sidebar, landing, settings, jobs), i18n.js, CSS, templates
-tests/          python3 -m unittest discover tests: the arXiv page's safety pass, the Zotero library (a fake Zotero),
+tests/          python -m unittest discover tests: the arXiv page's safety pass, the Zotero library (a fake Zotero),
                 agents on Windows
 desktop/       the app (its README): Electron around the same server, with its own Python; desktop/scripts/smoke.py
                 checks that Python before it ships (.github/workflows/desktop.yml)
-tools/zoombench.py  zoom smoothness as the screen sees it (GPU, 2x, Chrome's frame trace), on out/compare/<id>/ pages
+tools/zoombench.py  zoom smoothness as the screen sees it (Windows' d3d11 GPU backend, 2x, Chrome's frame trace), on
+                out/compare/<id>/ pages; needs playwright and an exported page
 tools/readme_assets.py  the README's pictures, made from a real paper in the reader
 ```
 

@@ -4,8 +4,8 @@
   python -m textfold <arxiv id or url> [--lang zh] ...   generate from the command line, then export
   python -m textfold notes.md [--lang zh] ...           the same for a Markdown file
   python -m textfold export <arxiv id>                   one self-contained HTML file in out/<id>/
-  python3 -m textfold get <link or file> [--level topic] [--section 3] [--json]   a document at one level (for a person or an agent)
-  python3 -m textfold engine status | install | remove              the PDF engine (MinerU, about 3.4 GB)
+  python -m textfold get <link or file> [--level topic] [--section 3] [--json]   a document at one level (for a person or an agent)
+  python -m textfold engine status | install | remove              the PDF engine (MinerU, about 3.4 GB)
 """
 import argparse
 import shutil
@@ -37,7 +37,7 @@ def get(a):
         elif not (store.pdir(pid) / "meta.json").exists():
             if not engine.where():
                 what = "PDF" if ext == "pdf" else "picture" if ext in engine.PICTURES else f"{engine.FILES[ext]} file"
-                _say(f"This {what} needs the PDF engine: python3 -m textfold engine install")
+                _say(f"This {what} needs the PDF engine: python -m textfold engine install")
                 return 2
             tier = engine.tier_for(f"x.{ext}", models.load_settings().get("pdf_tier") or "fast")
             out = store.DATA / "uploads" / f"{pid}-{tier}"
@@ -69,7 +69,7 @@ def get(a):
     except RuntimeError as e:   # fetched and parsed; its levels need a model: the local ones, said so
         if "No model" not in str(e):
             raise
-        _say("No model: the written levels are the author's first sentences (connect one with python3 -m textfold serve, Settings).")
+        _say("No model: the written levels are the author's first sentences (connect one with python -m textfold serve, Settings).")
     d = fold.document(pid, a.lang)
     if a.json:
         import json
@@ -87,7 +87,7 @@ def engine_cmd(args):
     elif what == "remove":
         engine.uninstall()
     elif what != "status":
-        _say("python3 -m textfold engine status | install | remove")
+        _say("python -m textfold engine status | install | remove")
         return 2
     st = engine.status()
     print(f"PDF engine: {'installed' if st['installed'] else 'not installed'} (MinerU {st['version']})"
@@ -100,14 +100,14 @@ def main():
         from . import __version__
         return print(f"TextFold {__version__}")
     if len(sys.argv) > 1 and sys.argv[1] == "serve":
-        ap = argparse.ArgumentParser(prog="python3 -m textfold serve")
+        ap = argparse.ArgumentParser(prog="python -m textfold serve")
         ap.add_argument("--port", type=int, default=3017)
         a = ap.parse_args(sys.argv[2:])
         from .server import serve
         return serve(a.port)
     if len(sys.argv) > 1 and sys.argv[1] == "get":
         from .fold import LEVELS
-        ap = argparse.ArgumentParser(prog="python3 -m textfold get", description="A document at one level: the map first, then the parts that matter, deeper.")
+        ap = argparse.ArgumentParser(prog="python -m textfold get", description="A document at one level: the map first, then the parts that matter, deeper.")
         ap.add_argument("ref", help="a link (any web page, arXiv, PubMed Central, bioRxiv, Wikipedia, GitHub), an arXiv id, a DOI, or a file (.pdf, .docx, .pptx, .xlsx, .epub, .html, a picture, .md, .txt)")
         ap.add_argument("--level", default="topic", choices=LEVELS, help="topic (a map of the sections) ... full (every word); default topic")
         ap.add_argument("--section", help="one section: its number (3.2), its id (S3), or its place in the list (1 is the first)")
