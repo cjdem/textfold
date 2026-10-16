@@ -6,7 +6,7 @@ VERSION = "0.10.7"
 SITE = "https://chenxiachan.github.io/textfold/"
 REPO = "https://github.com/chenxiachan/textfold"
 DL = REPO + "/releases/latest/download/"
-FILES = {"mac_arm": "TextFold-mac-arm64.dmg", "mac_x64": "TextFold-mac-x64.dmg", "win": "TextFold-win-x64-setup.exe"}
+FILES = {"win": "TextFold-win-x64-setup.exe"}
 LANGS_NATIVE = "English, 简体中文, 繁體中文, 日本語, 한국어, Español, Français, Deutsch, Português, Italiano, Русский, हिन्दी"
 
 S = {
@@ -14,9 +14,9 @@ S = {
     "title": ("TextFold · Fold any text, from a map to every word",
               "TextFold · 任何文字，从地图折到每一个字"),
     "description": ("TextFold is a free, open-source reader and toolkit that folds papers, web pages, documents and AI output into five levels, "
-                    "from a one-screen map to every word. A Python package for your pipeline and agents, and an app for macOS and Windows.",
+                    "from a one-screen map to every word. A Python package for your pipeline and agents, and an app for Windows.",
                     "TextFold 是免费开源的阅读器和工具包，把论文、网页、文档和 AI 的输出折成五层，从一屏地图到每一个字。"
-                    "既是给流程和 Agent 用的 Python 包，也有 macOS 和 Windows 软件。"),
+                    "既是给流程和 Agent 用的 Python 包，也有 Windows 软件。"),
 
     "nav_download": ('Download',
         '下载'),
@@ -32,10 +32,6 @@ S = {
     "h1": ("Fold any text, from a one‑screen map to every word.", "任何文字，从一屏地图折到每一个字。"),
     "sub": ("Papers, web pages, documents, and your agent's output. On your computer.",
             "论文、网页、文档，还有 Agent 的输出。都在你自己的电脑上。"),
-    "cta_mac": ('Download for Mac',
-        '下载 Mac 版'),
-    "cta_mac_x64": ('Download for Mac',
-        '下载 Mac 版'),
     "cta_win": ('Download for Windows',
         '下载 Windows 版'),
     "copy": ('Copy',
@@ -62,10 +58,8 @@ S = {
     "app_p": ('Nothing else to install. It finds Claude Code, Codex or Pi on your computer, or connects a free model in one click.',
         '不用再装别的。它会找到你电脑上的 Claude Code、Codex 或 Pi，也能一键连上免费模型。'),
 
-    "which_mac": ('<b>Which Mac?</b> Apple menu › About This Mac: <em>Chip Apple M…</em> or <em>Processor Intel</em>.',
-        '<b>哪种 Mac？</b>苹果菜单 › 关于本机：写着 <em>芯片 Apple M…</em> 或 <em>处理器 Intel</em>。'),
-    "app_meta": (f'Version {VERSION} · macOS 12 or later · The app updates itself.',
-        f'版本 {VERSION} · macOS 12 或更新 · 软件会自己更新。'),
+    "app_meta": (f'Version {VERSION} · Windows 10 and 11, 64-bit · The app updates itself.',
+        f'版本 {VERSION} · Windows 10 和 11，64 位 · 软件会自己更新。'),
     "for_you": ('For this computer',
         '适合这台电脑'),
 
@@ -105,10 +99,6 @@ S = {
 
     "hero_note": ('Free and open source · No account · Formerly PaperFold',
         '免费开源 · 不用注册 · 原名 PaperFold'),
-    "cta_mac_sub": ('Apple silicon · .dmg',
-        'Apple 芯片 · .dmg'),
-    "cta_mac_x64_sub": ('Intel · .dmg',
-        'Intel · .dmg'),
     "cta_win_sub": ('64-bit · installer',
         '64 位 · 安装程序'),
     "cta_py_sub": ('python3 -m pip install textfold',
@@ -121,24 +111,12 @@ S = {
         '获取 TextFold'),
     "apps_h": ('Or read in the app',
         '或者，用软件来读'),
-    "dl_mac_arm_os": ('macOS · Apple silicon',
-        'macOS · Apple 芯片'),
-    "dl_mac_arm_for": ('Macs with an M1 chip or later',
-        'M1 及之后芯片的 Mac'),
-    "dl_mac_x64_os": ('macOS · Intel',
-        'macOS · Intel'),
-    "dl_mac_x64_for": ('Macs with an Intel processor',
-        'Intel 处理器的 Mac'),
-    "dl_mac_signed": ('Signed and notarized by Apple',
-        '已签名，并经苹果公证'),
     "dl_win_os": ('Windows',
         'Windows'),
     "dl_win_for": ('Windows 10 and 11, 64-bit',
         'Windows 10 和 11，64 位'),
     "dl_win_note": ('Not signed yet: the first time, choose More info, then Run anyway.',
         '暂未签名：第一次打开时点“更多信息”，再点“仍要运行”。'),
-    "dl_btn_dmg": ('Download .dmg',
-        '下载 .dmg'),
     "dl_btn_exe": ('Download installer',
         '下载安装程序'),
     "see_h": ('See it work',

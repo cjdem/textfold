@@ -19,7 +19,7 @@
       <h1>{{h1}}</h1>
       <pre class="ascii-line" data-options='{{typer_json}}'>{{sub}}</pre>
       <div class="ctas">
-        <a class="cta primary" data-cta href="{{dl_mac_arm_url}}"><span class="cta-t" data-cta-t>{{cta_mac}}</span><span class="cta-s" data-cta-s>{{cta_mac_sub}}</span></a>
+        <a class="cta primary" data-cta href="{{dl_win_url}}"><span class="cta-t" data-cta-t>{{cta_win}}</span><span class="cta-s" data-cta-s>{{cta_win_sub}}</span></a>
         <div class="cmd"><code>python3 -m pip install textfold</code><button type="button" class="copy" data-copy="python3 -m pip install textfold" data-done="{{copied}}">{{copy}}</button></div>
       </div>
     </div>
@@ -55,20 +55,6 @@ claude plugin install textfold@textfold</code></pre>
       <h3 id="apps" class="sub">{{apps_h}}</h3>
       <p class="sub-lead">{{app_p}}</p>
       <div class="cards">
-        <article class="card" data-os="mac-arm">
-          <p class="you">{{for_you}}</p>
-          <h3>{{dl_mac_arm_os}}</h3>
-          <p class="for">{{dl_mac_arm_for}}</p>
-          <p class="fine">{{dl_mac_signed}}</p>
-          <a class="btn" href="{{dl_mac_arm_url}}">{{dl_btn_dmg}}</a>
-        </article>
-        <article class="card" data-os="mac-x64">
-          <p class="you">{{for_you}}</p>
-          <h3>{{dl_mac_x64_os}}</h3>
-          <p class="for">{{dl_mac_x64_for}}</p>
-          <p class="fine">{{dl_mac_signed}}</p>
-          <a class="btn" href="{{dl_mac_x64_url}}">{{dl_btn_dmg}}</a>
-        </article>
         <article class="card" data-os="win">
           <p class="you">{{for_you}}</p>
           <h3>{{dl_win_os}}</h3>
@@ -77,7 +63,6 @@ claude plugin install textfold@textfold</code></pre>
           <a class="btn" href="{{dl_win_url}}">{{dl_btn_exe}}</a>
         </article>
       </div>
-      <p class="which">{{which_mac}}</p>
       <p class="meta">{{app_meta}} <a href="{{repo}}/releases/latest" rel="noopener">{{notes}}</a></p>
     </div>
   </section>

@@ -4,12 +4,9 @@
   const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const roots = [...document.querySelectorAll('[data-root]')];
 
-  // ── the download for this computer: a Mac is taken for Apple silicon until the browser says Intel ──
+  // ── the download for this computer: the Windows app here, the Python package for anything else ──
   const ua = navigator.userAgent;
-  const ipad = /Macintosh/.test(ua) && navigator.maxTouchPoints > 1;
-  const os = /Windows NT/.test(ua) ? 'win'
-    : /Macintosh|Mac OS X/.test(ua) && !ipad && !/iPhone|iPod/.test(ua) ? 'mac-arm'
-    : /Linux|X11|CrOS/.test(ua) && !/Android/.test(ua) ? 'py' : null;
+  const os = /Windows NT/.test(ua) ? 'win' : 'py';
   function pick(id) {
     for (const root of roots) {
       const c = JSON.parse(root.querySelector('script.cta-conf').textContent)[id];
@@ -21,10 +18,7 @@
       a.querySelector('[data-cta-s]').textContent = c.s;
     }
   }
-  if (os) pick(os);
-  if (os === 'mac-arm' && navigator.userAgentData && navigator.userAgentData.getHighEntropyValues) {
-    navigator.userAgentData.getHighEntropyValues(['architecture']).then((v) => { if (v.architecture === 'x86') pick('mac-x64'); }).catch(() => {});
-  }
+  pick(os);
 
   // ── the clips: loaded and played when they come into view, paused when they leave ──
   const clips = [...document.querySelectorAll('.clips video')];

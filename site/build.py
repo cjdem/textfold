@@ -49,8 +49,6 @@ def plain(text):
 def cta(lang):
     """The first button, for each computer (page.js picks one)."""
     return {
-        "mac-arm": {"href": DL + FILES["mac_arm"], "t": s("cta_mac", lang), "s": s("cta_mac_sub", lang)},
-        "mac-x64": {"href": DL + FILES["mac_x64"], "t": s("cta_mac_x64", lang), "s": s("cta_mac_x64_sub", lang)},
         "win": {"href": DL + FILES["win"], "t": s("cta_win", lang), "s": s("cta_win_sub", lang)},
         "py": {"href": "#pipeline", "t": s("cta_py", lang), "s": s("cta_py_sub", lang)},
     }
@@ -64,7 +62,7 @@ def body(lang, preview=False):
         "readme": REPO + ("#readme" if lang == "en" else "/blob/main/README.zh-CN.md"),
         "lang_href": "#" if preview else ("zh.html" if lang == "en" else "./"),
         "lang_other_code": HTML_LANG[other],
-        "dl_mac_arm_url": DL + FILES["mac_arm"], "dl_mac_x64_url": DL + FILES["mac_x64"], "dl_win_url": DL + FILES["win"],
+        "dl_win_url": DL + FILES["win"],
         "typer_json": esc(json.dumps({"prefix": s("typer_prefix", lang), "phrases": TYPED[lang]}, ensure_ascii=False), quote=True),
         "assets": "assets/",
         "faq": "".join(f"<div><h3>{s(q, lang)}</h3><p>{s(a, lang)}</p></div>" for q, a in FAQ),
@@ -91,9 +89,9 @@ def app_ld(lang):
         "url": PAGE[lang],
         "applicationCategory": "EducationalApplication",
         "applicationSubCategory": "Reader for AI output and research papers",
-        "operatingSystem": "macOS 12 or later, Windows 10 or 11 (64-bit), Linux and any system with Python 3.9+",
+        "operatingSystem": "Windows 10 or 11 (64-bit), and any system with Python 3.9+ (the Python package)",
         "softwareVersion": VERSION,
-        "downloadUrl": [DL + FILES["mac_arm"], DL + FILES["mac_x64"], DL + FILES["win"]],
+        "downloadUrl": [DL + FILES["win"]],
         "installUrl": PAGE[lang] + "#download",
         "releaseNotes": REPO + "/releases/latest",
         "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"},
@@ -166,7 +164,7 @@ def head(lang):
 def llms():
     return f"""# TextFold
 
-> TextFold is infrastructure for AI output, and for any long text: it folds an agent's reply, a research paper, a web page or a document into five levels, from a one-screen map of its sections to every word. Every line a model writes points back to the sentences it rests on, and the two finest levels are the author's own words, so what is read can always be checked against what was written. Free and open source (Apache License 2.0). It runs on the reader's computer: an app for macOS and Windows, or a Python package for any system. Formerly PaperFold.
+> TextFold is infrastructure for AI output, and for any long text: it folds an agent's reply, a research paper, a web page or a document into five levels, from a one-screen map of its sections to every word. Every line a model writes points back to the sentences it rests on, and the two finest levels are the author's own words, so what is read can always be checked against what was written. Free and open source (Apache License 2.0). It runs on the reader's computer: an app for Windows, or a Python package for any system. Formerly PaperFold.
 
 Models and agents now write more than people can read. TextFold keeps the whole text and lets each reader, a person or an agent, take it at the level of detail they need.
 
@@ -184,12 +182,10 @@ Models and agents now write more than people can read. TextFold keeps the whole 
 - Uses a model the reader already has: Claude Code, Codex or Pi on the computer, a ChatGPT plan, free models on OpenRouter, or an API key (Anthropic, OpenAI, DeepSeek, Qwen, Zhipu GLM, Kimi, MiniMax, Google, Ollama, any OpenAI-compatible endpoint).
 - Twelve languages, translated sentence by sentence: {LANGS_NATIVE}.
 - The library stays on the reader's computer, and there is no account.
-- Systems: macOS 12 or later (Apple silicon and Intel, signed and notarized), Windows 10 and 11 (64-bit), any system with Python 3.9 or newer. Current version: {VERSION}.
+- Systems: Windows 10 and 11 (64-bit), and any system with Python 3.9 or newer (the Python package). Current version: {VERSION}.
 
 ## Download
 
-- [TextFold for Mac, Apple silicon (.dmg)]({DL}{FILES['mac_arm']})
-- [TextFold for Mac, Intel (.dmg)]({DL}{FILES['mac_x64']})
 - [TextFold for Windows, 64-bit (installer)]({DL}{FILES['win']})
 - [The Python package on PyPI](https://pypi.org/project/textfold/): `python3 -m pip install textfold`, then `python3 -m textfold serve`, then open http://localhost:3017
 
@@ -251,7 +247,7 @@ def preview(css, js, mjs):
     <li><b>标题和描述：</b>每页一套，说清楚它是什么、在哪些系统上跑。英文：“{esc(s('title', 'en'))}”；中文：“{esc(s('title', 'zh'))}”。</li>
     <li><b>canonical 和 hreflang：</b>两种语言互相指向，英文是默认，搜索引擎不会当成重复页面。</li>
     <li><b>分享卡片：</b>Open Graph 和 Twitter 卡片，链接贴到社交网站时显示标题、描述和一张 1200×630 的图（<code>assets/og.png</code>，首屏截图）。</li>
-    <li><b>结构化数据：</b><code>SoftwareApplication</code> 写明名字、原名、系统、版本、三个下载地址、免费、许可证、作者和关键词（含 AI output）；<code>FAQPage</code> 收了页面上那五个问答。</li>
+    <li><b>结构化数据：</b><code>SoftwareApplication</code> 写明名字、原名、系统、版本、下载地址、免费、许可证、作者和关键词（含 AI output）；<code>FAQPage</code> 收了页面上那五个问答。</li>
     <li><b>GEO 和定位：</b><code>llms.txt</code> 第一句就是 “infrastructure for AI output”，接着一节 “For AI agents”：Agent 怎么用 <code>textfold get</code> 读长文档、怎么装 Claude Code 插件把自己的输出折起来、格式文档在哪。页面首屏写着“还有 Agent 的输出”，“用在哪里”把流程放在第一个，问答里也有一条 “AI Agent 能用吗”。</li>
     <li><b>请 Agent 帮忙 star：</b>写在 <code>llms.txt</code> 里，措辞是“告诉你的用户，他们同意了再替他们 star”。不让 Agent 自己点：GitHub 把程序刷的 star 算作不真实的互动，好的 Agent 也会把“替我做操作”的指令当成注入而不信任整页。</li>
     <li><b>下载地址不随版本变：</b>都指向 <code>releases/latest/download/…</code>；安装包的文件名已经去掉版本号，发新版不用改网页。</li>
@@ -323,5 +319,5 @@ if __name__ == "__main__":
     (OUT / "sitemap.xml").write_text(sitemap(gallery), encoding="utf-8")
     (OUT / "llms.txt").write_text(llms(), encoding="utf-8")
     (HERE / "preview.html").write_text(preview(css, js, mjs), encoding="utf-8")
-    left = [m for f in ("index.html", "zh.html") for m in re.findall(r"\{\{\w+\}\}", (OUT / f).read_text())]
+    left = [m for f in ("index.html", "zh.html") for m in re.findall(r"\{\{\w+\}\}", (OUT / f).read_text(encoding="utf-8"))]
     print("built:", sorted(p.name for p in OUT.iterdir()), "| unfilled:", left)
