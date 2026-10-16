@@ -9,6 +9,27 @@ section is the module map, and its other sections state the constraints that
 are easy to break by accident. Read it before changing anything structural.
 `CONTRIBUTING.md` has the rules for a change.
 
+## This fork
+
+`origin` is `cjdem/textfold`, a fork of `chenxiachan/textfold`, and it is being
+made Windows-only. Two things that the obvious way of doing that gets wrong:
+
+- **`tools/zoombench.py` is a capability, not Mac code.** It is the only way to
+  check "Smoothness is a rule", and its one Mac-ism is `--use-angle=metal` on
+  line 40 — the Windows backend is `d3d11`. Deleting it removes the ability to
+  check the project's first rule on *any* machine, and `docs/DEVELOPMENT.md`
+  says the cheap substitute (headless rAF intervals) reports healthy while the
+  reader drops frames. If a task would remove it, say what is being given up
+  and ask, rather than treating it as cleanup.
+- **The `sys_platform` markers in `pyproject.toml` and `requirements.txt` are
+  for pip, not for runtime** — they keep a dependency from being installed
+  where no prebuilt wheel exists (elsewhere it would have to build from source,
+  needing Rust). Simplifying them for Windows is fine; making a dependency
+  uninstallable is not.
+
+Being Windows-only is a goal, not a licence to delete: a change that removes
+platform code should say what functionality goes with it.
+
 ## Working here
 
 - **Tests:** `python -m unittest discover tests` — 85 tests, about seven
