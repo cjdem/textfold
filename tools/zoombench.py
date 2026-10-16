@@ -1,14 +1,15 @@
 """How smooth the zoom is, measured as the screen sees it.
 
-    python3 tools/zoombench.py <paper id> [WIDTHxHEIGHT] [v03,v05,...]
+    python tools/zoombench.py <paper id> [WIDTHxHEIGHT] [v03,v05,...]
 
-Opens out/compare/<paper id>/<version>.html in Chromium with the Mac's GPU (Metal) at 2x pixels, plays the same
+Opens out/compare/<paper id>/<version>.html in Chromium on the PC's GPU (Windows' Direct3D 11 backend) at 2x pixels, plays the same
 gestures on each (a pinch out, a pinch in, a drag of the level bar, a click on Full) and reads Chrome's own frame
 trace: frames presented, frames dropped, and the longest gaps between presented frames.
 
 Why this way: frame intervals measured from requestAnimationFrame in a default headless browser (software rendering,
 1x pixels) only see the main thread. v0.8 looked perfect that way (every frame under 17 ms) and still dropped one frame
-in five on a real GPU at 2x, which is what the reader felt. Needs `pip install playwright` and `playwright install chromium`.
+in five on a real GPU at 2x, which is what the reader felt. That history was measured on Metal; Direct3D 11 measures
+Windows' numbers, which are a different set and not comparable with it. Needs `pip install playwright` and `playwright install chromium`.
 """
 import time, json, sys
 from playwright.sync_api import sync_playwright
@@ -37,7 +38,7 @@ def stats(fr):
 def run(pg, b, act):
     b.start_tracing(page=pg, categories=CATS); act(); return stats(frames(b.stop_tracing()))
 with sync_playwright() as p:
-    br = p.chromium.launch(channel='chromium', args=['--use-angle=metal', '--enable-gpu-rasterization'])
+    br = p.chromium.launch(channel='chromium', args=['--use-angle=d3d11', '--enable-gpu-rasterization'])
     for v in VERS:
         pg = br.new_page(viewport={'width': VW, 'height': VH}, device_scale_factor=2)
         pg.goto(B + v + '.html'); time.sleep(1.0)

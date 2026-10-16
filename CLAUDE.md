@@ -14,13 +14,16 @@ are easy to break by accident. Read it before changing anything structural.
 `origin` is `cjdem/textfold`, a fork of `chenxiachan/textfold`, and it is being
 made Windows-only. Two things that the obvious way of doing that gets wrong:
 
-- **`tools/zoombench.py` is a capability, not Mac code.** It is the only way to
-  check "Smoothness is a rule", and its one Mac-ism is `--use-angle=metal` on
-  line 40 — the Windows backend is `d3d11`. Deleting it removes the ability to
+- **`tools/zoombench.py` is a capability.** It is the only way to
+  check "Smoothness is a rule"; it now launches Chromium on Windows' Direct3D
+  11 backend (`--use-angle=d3d11`). Deleting it removes the ability to
   check the project's first rule on *any* machine, and `docs/DEVELOPMENT.md`
   says the cheap substitute (headless rAF intervals) reports healthy while the
   reader drops frames. If a task would remove it, say what is being given up
-  and ask, rather than treating it as cleanup.
+  and ask, rather than treating it as cleanup. Running it end to end still needs
+  `playwright` and exported comparison pages under `out/compare/`, neither of
+  which is installed here; its numbers are Windows numbers and cannot be
+  compared with the Metal ones recorded before.
 - **The `sys_platform` markers in `pyproject.toml` and `requirements.txt` are
   for pip, not for runtime** — they keep a dependency from being installed
   where no prebuilt wheel exists (elsewhere it would have to build from source,
@@ -56,6 +59,7 @@ rules that are easiest to get wrong live in
   `plugins/textfold/hooks/fold.ts`) must stay byte-identical.
 - Parsed HTML passes through `textfold/semantic.py`, and nothing renders around it.
 - A parser change renumbers atoms, so previously generated layers go stale.
-- **No change may make the zoom less smooth** — and `tools/zoombench.py` needs a
-  Mac, so on this machine that axis stays unmeasured. Say so; never report it as
-  unaffected.
+- **No change may make the zoom less smooth** — `tools/zoombench.py` measures it
+  on Windows' Direct3D 11 backend, but running it end to end needs `playwright`
+  and exported comparison pages, so on this machine that axis stays unmeasured.
+  Say so; never report it as unaffected.

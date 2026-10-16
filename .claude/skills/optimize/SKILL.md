@@ -41,7 +41,7 @@ Put the plan in front of them with `AskUserQuestion` — the candidates as optio
 
 Then these two, whichever apply:
 
-- **If the change touches the reader or anything the zoom runs through**, say plainly: this machine cannot measure smoothness — `tools/zoombench.py` needs a Mac's GPU, and `papers/` is empty. Ask whether to proceed knowing that axis stays unmeasured, or to stop. Never let a plan imply the smoothness rule was checked.
+- **If the change touches the reader or anything the zoom runs through**, say plainly: this machine cannot measure smoothness — `tools/zoombench.py` drives Windows' Direct3D 11 backend but needs `playwright` and exported comparison pages, and neither is installed here. Ask whether to proceed knowing that axis stays unmeasured, or to stop. Never let a plan imply the smoothness rule was checked.
 - **If the confirmed plan is bigger than one change**, say which part is being done now and which is left. `CONTRIBUTING.md` asks for one change at a time, and a branch that does three things cannot be verified as one.
 
 ## 3 · Isolate

@@ -19,7 +19,7 @@ Work in this order:
    - `plugins/pi-textfold/extension/fold.ts` must stay identical to `plugins/textfold/hooks/fold.ts`; `tests/test_pi_textfold_same_fold.py` enforces it.
    - Parsed HTML passes through `textfold/semantic.py`; nothing renders around it.
    - A parser change renumbers atoms, so layers generated before it are stale — `docs/DEVELOPMENT.md` says how.
-   - No change may make the zoom less smooth, and `tools/zoombench.py` needs a Mac. **If you cannot judge smoothness, say you cannot — never report it as unaffected.**
+   - No change may make the zoom less smooth, and `tools/zoombench.py` cannot run here — it wants `playwright` and an exported comparison page. **If you cannot judge smoothness, say you cannot — never report it as unaffected.**
 5. **Look for what is missing.** A new behaviour with no test, a documented rule the change quietly contradicts, a comment that now lies.
 
 Report each finding as `path:line`, one sentence saying what is wrong, and the concrete input or sequence that makes it wrong. Rank them: what breaks, then what might break, then what is merely untidy. If you find nothing, say what you tried and why each attempt failed to break it — "no findings" without that is not a verification.

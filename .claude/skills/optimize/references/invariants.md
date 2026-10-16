@@ -55,14 +55,16 @@ morph either preserves it or is a change to the product, not an optimization.
 ## No change may make the zoom less smooth
 
 **This machine cannot check it.** `tools/zoombench.py` measures frames from a
-real GPU at 2x pixels and hardcodes `--use-angle=metal`, and `papers/` is empty —
-it needs a Mac with `pip install playwright` and `playwright install chromium`.
+real GPU at 2x pixels on Windows' Direct3D 11 backend (`--use-angle=d3d11`) —
+but it needs `pip install playwright`, `playwright install chromium` and an
+exported page under `out/compare/`, and none of the three is on this machine.
 
 *Check:* if the change touches the reader, zoom or rendering, the honest answer
 is **unmeasured**. Write that in the record. Never "no impact on performance" —
-nobody measured one. If you can, export on a Mac and run
-`python tools/zoombench.py 2512.23916`, which is what `CONTRIBUTING.md` asks for
-with numbers before and after.
+nobody measured one. Its numbers are Windows numbers: the Metal figures recorded
+before this fork went Windows-only are a different set and cannot be compared
+with them. Where the tool can run, `python tools/zoombench.py 2512.23916` is what
+`CONTRIBUTING.md` asks for, with numbers before and after.
 
 ## Papers and keys stay out of commits
 

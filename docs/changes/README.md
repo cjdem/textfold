@@ -30,7 +30,8 @@ conversation gone, can understand the change without re-deriving it:
 - **Measured** — only what was measured, with the number. Omit the section when
   nothing was.
 - **Not measured** — what could plausibly be affected and was not checked. The
-  smoothness rule cannot be measured off a Mac; when a change touches the
+  smoothness rule needs `tools/zoombench.py` plus `playwright` and an exported
+  comparison page, which this machine does not have; when a change touches the
   reader, that belongs here. Leaving this out because the answer is awkward is
   the one failure this directory exists to prevent.
 - **Rejected** — what was tried and dropped, one line each. Cheapest to write
