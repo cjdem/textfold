@@ -2,23 +2,21 @@
 
 The same local server and reader in one window, with its own Python, so a reader needs nothing installed. Agents
 on the computer (Claude Code, Codex, Pi), the ChatGPT bridge and API providers work as they do in the browser.
-What you read is kept where `python3 -m textfold serve` keeps it, so the two share one library: on a Mac
-`~/Library/Application Support/TextFold/`, on Windows `%LOCALAPPDATA%\TextFold\`. Settings and keys are in
-`~/.textfold/`. `TEXTFOLD_DATA` points the app at another folder, as it does the server.
+What you read is kept where `python -m textfold serve` keeps it, so the two share one library:
+`%LOCALAPPDATA%\TextFold\`. Settings and keys are in `~/.textfold/`. `TEXTFOLD_DATA` points the app at another
+folder, as it does the server.
 
 | System | File | Signed |
 |---|---|---|
-| macOS, Apple silicon | `TextFold-mac-arm64.dmg` | yes, and notarized |
-| macOS, Intel | `TextFold-mac-x64.dmg` | yes, and notarized |
 | Windows, 64-bit | `TextFold-win-x64-setup.exe` | not yet: SmartScreen asks once, More info › Run anyway |
 
-The installers' names carry no version, so `releases/latest/download/<name>` is always the newest (the download page
-links there); the `.zip` files the Macs update from do (`TextFold-<version>-mac-<arch>.zip`).
+The installer's name carries no version, so `releases/latest/download/<name>` is always the newest (the download
+page links there).
 
 ## Updates
 
 The app asks GitHub for the newest release a few seconds after it starts and every four hours: it reads the
-release's public `latest-mac.yml` or `latest.yml`, and sends nothing of the reader's. A newer version shows as a note
+release's public `latest.yml`, and sends nothing of the reader's. A newer version shows as a note
 at the bottom right of the page, in the reader's language. Nothing downloads until they click Download (only what
 changed, when the blockmap allows), and the new version installs when they click Restart, or the next time they quit.
 Settings shows the version and checks by hand. A copy run from the code (`npm start`) does not update itself.
@@ -29,9 +27,6 @@ Settings shows the version and checks by hand. A copy run from the code (`npm st
 ```bash
 cd desktop
 npm install
-npm run pack:mac      # unsigned, out/mac-<arch>/TextFold.app: to try it
-npm run dist:mac      # Apple silicon: signed and notarized .dmg and .zip (needs the signing environment below)
-npm run dist:mac:x64  # Intel, on an Intel Mac or on Apple silicon (its Python runs under Rosetta)
 npm run dist:win      # Windows, on Windows: the setup .exe
 ```
 
@@ -44,34 +39,16 @@ Before it ships, that Python runs TextFold's tests, reads a Markdown, an HTML an
 serves the reader with them listed:
 
 ```bash
-payload/python/bin/python3 scripts/smoke.py      # payload\python\python.exe scripts\smoke.py on Windows
+payload\python\python.exe scripts\smoke.py
 ```
 
 ## Releases
 
-`.github/workflows/desktop.yml` builds the three on their own systems (macos-15, macos-15-intel, windows-latest) when a
-version is tagged, as `publish.yml` sends the package to PyPI. They go into a draft release, published once all three
-have succeeded, with the files the apps update from: `latest.yml`, and one `latest-mac.yml` for both Macs
-(`scripts/latest-mac.py`, since each Mac's build writes its own). The tag, `textfold/__init__.py` and this folder's
-`package.json` name the same version, or nothing is built. Run by hand (Actions › desktop › Run workflow), the files
-are the run's artifacts, and a version may be given to the app alone: two such builds, an older and a newer, try an
-update from one to the other.
-
-## Signing and notarization
-
-The Developer ID certificate and the Apple account are the ones ThoughtDAG's desktop build uses; nothing is tied
-to one app. The repository's secrets:
-
-| Secret | What |
-|---|---|
-| `MAC_CERT_P12_BASE64` | the Developer ID Application certificate, exported as .p12, in base64 |
-| `MAC_CERT_PASSWORD` | the .p12's password |
-| `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`, `APPLE_TEAM_ID` | for notarization |
-
-On a computer, the same names without the prefix: `CSC_LINK` (the .p12's path or its base64) and `CSC_KEY_PASSWORD`,
-then the three Apple ones. The app id is `io.github.chenxiachan.textfold`. electron-builder signs every Mach-O file
-in the bundle, the bundled Python and its compiled modules included, with the hardened runtime and
-`build/entitlements.mac.plist`.
+`.github/workflows/desktop.yml` builds the app on windows-latest when a version is tagged, as `publish.yml` sends the
+package to PyPI. It goes into a draft release, published once it has succeeded, with the file the app updates from:
+`latest.yml`. The tag, `textfold/__init__.py` and this folder's `package.json` name the same version, or nothing is
+built. Run by hand (Actions › desktop › Run workflow), the files are the run's artifacts, and a version may be given
+to the app alone: two such builds, an older and a newer, try an update from one to the other.
 
 ## Windows
 

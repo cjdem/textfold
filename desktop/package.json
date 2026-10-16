@@ -10,10 +10,7 @@
   "scripts": {
     "start": "electron .",
     "payload": "node scripts/prepare-payload.mjs",
-    "dist:mac": "node scripts/prepare-payload.mjs darwin arm64 && electron-builder --mac dmg zip --arm64 --publish never",
-    "dist:mac:x64": "node scripts/prepare-payload.mjs darwin x64 && electron-builder --mac dmg zip --x64 --publish never",
-    "dist:win": "node scripts/prepare-payload.mjs win32 x64 && electron-builder --win nsis --x64 --publish never",
-    "pack:mac": "npm run payload && electron-builder --mac dir --publish never -c.mac.identity=null -c.mac.notarize=false"
+    "dist:win": "node scripts/prepare-payload.mjs win32 x64 && electron-builder --win nsis --x64 --publish never"
   },
   "devDependencies": {
     "electron": "^43.3.0",
@@ -38,29 +35,6 @@
         "to": "payload"
       }
     ],
-    "mac": {
-      "category": "public.app-category.education",
-      "icon": "build/icon.icns",
-      "extendInfo": {
-        "CFBundleIconName": "Icon"
-      },
-      "extraResources": [
-        {
-          "from": "build/Assets.car",
-          "to": "Assets.car"
-        }
-      ],
-      "target": [
-        "dmg",
-        "zip"
-      ],
-      "hardenedRuntime": true,
-      "gatekeeperAssess": false,
-      "entitlements": "build/entitlements.mac.plist",
-      "entitlementsInherit": "build/entitlements.mac.plist",
-      "notarize": true,
-      "artifactName": "${productName}-${version}-mac-${arch}.${ext}"
-    },
     "npmRebuild": false,
     "win": {
       "target": "nsis"
@@ -74,9 +48,6 @@
       "provider": "github",
       "owner": "chenxiachan",
       "repo": "textfold"
-    },
-    "dmg": {
-      "artifactName": "${productName}-mac-${arch}.${ext}"
     }
   },
   "dependencies": {

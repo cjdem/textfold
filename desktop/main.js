@@ -22,9 +22,8 @@ const CODE = PACKED ? path.join(PAYLOAD, 'app') : path.join(__dirname, '..');
 let server = null;
 let win = null;
 
-// the data folder (papers/, out/, server.log), the one `python3 -m textfold serve` keeps too (store.app_data()): on a Mac
-// ~/Library/Application Support/TextFold, Electron's own; on Windows %LOCALAPPDATA%\TextFold, where Electron's is Roaming
-// (TEXTFOLD_DATA, as for the server: another folder, for a test run)
+// the data folder (papers/, out/, server.log), the one `python -m textfold serve` keeps too (store.app_data()):
+// %LOCALAPPDATA%\TextFold, not Electron's own Roaming folder (TEXTFOLD_DATA, as for the server: another folder, for a test run)
 app.setName('TextFold');
 if (process.env.TEXTFOLD_DATA) app.setPath('userData', path.resolve(process.env.TEXTFOLD_DATA));
 else if (WIN) app.setPath('userData', path.join(process.env.LOCALAPPDATA || path.join(app.getPath('home'), 'AppData', 'Local'), 'TextFold'));
@@ -54,11 +53,9 @@ async function waitReady(port, tries = 160) {
 
 function startServer(port) {
   // A GUI app starts with a bare PATH: the usual install places are added so that the server finds node and npx
-  // (the ChatGPT bridge) at once; on a Mac it also asks the login shell for the agents' places (textfold/agents.py).
+  // (the ChatGPT bridge) at once.
   const home = app.getPath('home');
-  const extra = WIN
-    ? [path.join(process.env.APPDATA || path.join(home, 'AppData', 'Roaming'), 'npm'), path.join(process.env.ProgramFiles || 'C:\\Program Files', 'nodejs'), path.join(home, '.local', 'bin')]
-    : ['/opt/homebrew/bin', '/usr/local/bin', path.join(home, '.local', 'bin')];
+  const extra = [path.join(process.env.APPDATA || path.join(home, 'AppData', 'Roaming'), 'npm'), path.join(process.env.ProgramFiles || 'C:\\Program Files', 'nodejs'), path.join(home, '.local', 'bin')];
   const key = Object.keys(process.env).find((k) => k.toUpperCase() === 'PATH') || 'PATH';   // Windows spells it Path
   const env = {
     ...process.env,
@@ -204,8 +201,8 @@ function setupUpdates() {
   });
 }
 
-// The menu: the system's own, with Check for Updates (in the app's menu on a Mac, in Help on Windows) and the project
-// on GitHub. Its words follow the system's language, as the rest of the menu does.
+// The menu: the system's own, with Check for Updates (in Help) and the project on GitHub. Its words follow the
+// system's language, as the rest of the menu does.
 const CHECK = { en: 'Check for Updates…', zh: '检查更新…', 'zh-Hant': '檢查更新…', ja: 'アップデートを確認…', ko: '업데이트 확인…',
   es: 'Buscar actualizaciones…', fr: 'Rechercher des mises à jour…', de: 'Nach Updates suchen …', pt: 'Procurar atualizações…',
   it: 'Cerca aggiornamenti…', ru: 'Проверить обновления…', hi: 'अपडेट देखें…' };
@@ -214,12 +211,10 @@ function menu(byHand) {
   const label = CHECK[/^zh-(TW|HK|MO)|Hant/i.test(loc) ? 'zh-Hant' : loc.split('-')[0]] || CHECK.en;
   const check = { label, click: async () => { const r = await byHand(); if (r && r.kind !== 'available' && r.kind !== 'downloading' && r.kind !== 'ready') answer(r); } };
   const github = { label: 'TextFold on GitHub', click: () => shell.openExternal(REPO) };
-  const mac = process.platform === 'darwin';
   Menu.setApplicationMenu(Menu.buildFromTemplate([
-    ...(mac ? [{ role: 'appMenu', submenu: [{ role: 'about' }, check, { type: 'separator' }, { role: 'services' }, { type: 'separator' },
-      { role: 'hide' }, { role: 'hideOthers' }, { role: 'unhide' }, { type: 'separator' }, { role: 'quit' }] }] : [{ role: 'fileMenu' }]),
+    { role: 'fileMenu' },
     { role: 'editMenu' }, { role: 'viewMenu' }, { role: 'windowMenu' },
-    { role: 'help', submenu: mac ? [github] : [check, github] },
+    { role: 'help', submenu: [check, github] },
   ]));
 }
 

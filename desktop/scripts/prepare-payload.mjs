@@ -1,13 +1,10 @@
 // The runtime the app ships, in desktop/payload:
 //   python/   a standalone CPython (python-build-standalone, the "install_only_stripped" build for the app's system:
-//             Apple silicon, an Intel Mac, 64-bit Windows) with TextFold's packages (requirements.txt) installed into it
+//             64-bit Windows) with TextFold's packages (requirements.txt) installed into it
 //   app/      the code: textfold/ (its web/ inside)
-// On a Mac electron-builder copies it into the app's Resources and signs every Mach-O file in it with the app (hardened
-// runtime, build/entitlements.mac.plist), which notarization requires. Parts of CPython the server never uses
-// (tkinter and its Tcl/Tk, the test suite, IDLE) are left out: less to sign, a smaller app.
+// Parts of CPython the server never uses (tkinter and its Tcl/Tk, the test suite, IDLE) are left out: a smaller app.
 //
 //   node scripts/prepare-payload.mjs                  for this computer
-//   node scripts/prepare-payload.mjs darwin x64       an Intel Mac's, on Apple silicon too (its Python runs under Rosetta)
 //   PBS_URL=<tar.gz url> node scripts/...             a given build
 // A Windows payload is made on Windows: the packages are installed by the Python it ships.
 import { execFileSync } from 'node:child_process';
@@ -21,7 +18,7 @@ const desktop = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const root = path.dirname(desktop);
 const payload = path.join(desktop, 'payload');
 const [platform = process.platform, arch = process.arch] = process.argv.slice(2);
-const TARGETS = { 'darwin-arm64': 'aarch64-apple-darwin', 'darwin-x64': 'x86_64-apple-darwin', 'win32-x64': 'x86_64-pc-windows-msvc' };
+const TARGETS = { 'win32-x64': 'x86_64-pc-windows-msvc' };
 const TARGET = TARGETS[`${platform}-${arch}`];
 if (!TARGET) throw new Error(`no payload for ${platform}-${arch}: ${Object.keys(TARGETS).join(', ')}`);
 if ((platform === 'win32') !== (process.platform === 'win32')) throw new Error(`a ${platform} payload is made on ${platform}`);
@@ -52,9 +49,7 @@ await pipeline(Readable.fromWeb(res.body), createWriteStream(path.join(payload, 
 execFileSync('tar', ['-xzf', 'python.tar.gz'], { cwd: payload, stdio: 'inherit' });
 rmSync(path.join(payload, 'python.tar.gz'));
 const py = WIN ? path.join(payload, 'python', 'python.exe') : path.join(payload, 'python', 'bin', 'python3');
-// an Intel Mac's Python on Apple silicon runs under Rosetta, and pip then picks the Intel wheels
-const run = (args, opts) => execFileSync(platform === 'darwin' && arch !== process.arch ? 'arch' : py,
-  platform === 'darwin' && arch !== process.arch ? [arch === 'x64' ? '-x86_64' : '-arm64', py, ...args] : args, opts);
+const run = (args, opts) => execFileSync(py, args, opts);
 
 console.log('installing TextFold\'s packages…');
 run(['-m', 'pip', 'install', '--no-cache-dir', '--disable-pip-version-check', '--no-warn-script-location',
