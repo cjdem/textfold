@@ -55,15 +55,11 @@ def home():
 
 def legacy():
     """Where PaperFold installed it (kept there: 3.4 GB is not moved)."""
-    if sys.platform == "darwin":
-        return Path.home() / "Library" / "Application Support" / "PaperFold" / "engine"
-    if sys.platform == "win32":
-        return Path(os.environ.get("LOCALAPPDATA") or Path.home() / "AppData" / "Local") / "PaperFold" / "engine"
-    return Path(os.environ.get("XDG_DATA_HOME") or Path.home() / ".local" / "share") / "paperfold" / "engine"
+    return Path(os.environ.get("LOCALAPPDATA") or Path.home() / "AppData" / "Local") / "PaperFold" / "engine"
 
 
 def _bin(e, name):
-    return e / "venv" / ("Scripts" if sys.platform == "win32" else "bin") / (name + (".exe" if sys.platform == "win32" else ""))
+    return e / "venv" / "Scripts" / (name + ".exe")
 
 
 def _ready(e):
@@ -98,7 +94,7 @@ def _du(path):
 def status():
     e = where()
     out = {"installed": bool(e), "path": str(e or home()), "version": VERSION, "tiers": list(TIERS),
-           "supported": sys.platform in ("darwin", "linux", "win32"), "legacy": bool(e and e == legacy())}
+           "legacy": bool(e and e == legacy())}
     if e:
         key = (str(e), (e / "venv").stat().st_mtime)
         if key not in _size:   # the folder is large; counted once

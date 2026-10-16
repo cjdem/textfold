@@ -1,8 +1,8 @@
 """Coding agents already installed on this computer, ported from ThoughtDAG (runtime/agents/*.cjs).
 
 The server scans for them at startup (and on demand): every mainstream agent CLI is looked for on PATH,
-on the login shell's PATH, in the usual install directories and under the node version managers, as
-ThoughtDAG's where.cjs does. Three can run a generation, the three ThoughtDAG drives:
+in the usual install directories and under the node version managers, as ThoughtDAG's where.cjs does.
+Three can run a generation, the three ThoughtDAG drives:
 
   claude-code  claude -p, structured output by --json-schema        models: fable, opus, sonnet, haiku
   codex        codex exec, structured output by --output-schema      models: `codex app-server` model/list
@@ -44,40 +44,27 @@ REGISTRY = [
     ("aider", "Aider", "aider", [], False),
 ]
 PREFIX = {"claude-code": "claude/", "codex": "codex/", "pi": "pi/"}
-COMMON = ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin", "~/.bun/bin", "~/.npm-global/bin", "~/.local/bin"]
+# npm's global folder, Claude Code's own installer (~/.local/bin), Scoop, Node itself
+COMMON = [os.path.join(os.environ.get("APPDATA") or "~/AppData/Roaming", "npm"), "~/.local/bin", "~/.bun/bin", "~/scoop/shims",
+          os.path.join(os.environ.get("ProgramFiles") or "C:/Program Files", "nodejs")]
 WIN = os.name == "nt"
-if WIN:   # npm's global folder, Claude Code's own installer (~/.local/bin, above), Scoop, Node itself
-    COMMON = [os.path.join(os.environ.get("APPDATA") or "~/AppData/Roaming", "npm"), "~/.local/bin", "~/.bun/bin", "~/scoop/shims",
-              os.path.join(os.environ.get("ProgramFiles") or "C:/Program Files", "nodejs")]
 # Windows: a program is claude.exe, or npm's shim claude.cmd (the bare `claude` beside it is a shell script)
-EXTS = (".exe", ".cmd", ".bat") if WIN else ("",)
+EXTS = (".exe", ".cmd", ".bat")
 
 
 def _version_key(p):
     return [int(x) if x.isdigit() else 0 for x in re.findall(r"\d+", p)]
 
 
-_login_path = None
-
-
 def search_dirs():
-    """PATH, the login shell's PATH, common install dirs, version-manager dirs (ThoughtDAG where.cjs)."""
-    global _login_path
-    if _login_path is None and WIN:
-        _login_path = ""   # no login shell to ask
-    if _login_path is None:
-        shell = os.environ.get("SHELL", "/bin/zsh")
-        try:
-            cmd = [shell, "-l", "-c", "string join : $PATH"] if shell.endswith("fish") else [shell, "-ilc", 'printf "%s" "$PATH"']
-            r = subprocess.run(cmd, capture_output=True, text=True, timeout=4, stdin=subprocess.DEVNULL)
-            _login_path = (r.stdout.strip().splitlines() or [""])[-1]
-        except Exception:
-            _login_path = ""
-    dirs = os.environ.get("PATH", "").split(os.pathsep) + _login_path.split(":") + COMMON
+    """PATH, common install dirs, version-manager dirs (ThoughtDAG where.cjs).
+
+    No login shell is asked: the shell this was ported from is a Unix one, and there is none to ask on Windows."""
+    dirs = os.environ.get("PATH", "").split(os.pathsep) + COMMON
     managers = sorted(glob.glob(str(HOME / ".nvm/versions/node/*/bin")), key=_version_key, reverse=True)
-    for pattern in ["~/.fnm/node-versions/*/installation/bin", "~/Library/Application Support/fnm/node-versions/*/installation/bin",
+    for pattern in ["~/.fnm/node-versions/*/installation/bin",
                     "~/.volta/bin", "~/n/bin", "~/.nodenv/shims", "~/.asdf/shims", "~/.local/share/mise/shims", "~/.proto/bin",
-                    "~/Library/pnpm", "~/.local/share/pnpm", "~/.yarn/bin", "~/.config/yarn/global/node_modules/.bin",
+                    "~/.local/share/pnpm", "~/.yarn/bin", "~/.config/yarn/global/node_modules/.bin",
                     "~/.deno/bin", "~/.cargo/bin", "~/bin"]:
         managers += sorted(glob.glob(os.path.expanduser(pattern)), key=_version_key, reverse=True)
     out, seen = [], set()
@@ -90,20 +77,11 @@ def search_dirs():
 
 
 def child_env():
-    """Children get the widened PATH, so a node-based CLI finds node, and USER and LOGNAME even where the server was
-    started without them (launchd, cron, env -i): Claude Code finds its sign-in in the keychain under USER, and
-    without it says it is not logged in."""
-    env = {**os.environ, "PATH": os.pathsep.join(search_dirs())}
-    if not (env.get("USER") and env.get("LOGNAME")):
-        try:
-            import pwd   # not on Windows, where neither is needed
-            name = pwd.getpwuid(os.getuid()).pw_name
-        except (ImportError, KeyError):
-            name = None
-        for k in ("USER", "LOGNAME"):
-            if name and not env.get(k):
-                env[k] = name
-    return env
+    """Children get the widened PATH, so a node-based CLI finds node.
+
+    The USER/LOGNAME fallback the ported code carried is gone with it: it read the user's name through `pwd`,
+    which Windows does not have, and does not need."""
+    return {**os.environ, "PATH": os.pathsep.join(search_dirs())}
 
 
 def locate(binary, extra=()):
@@ -231,10 +209,8 @@ _lock = threading.Lock()
 
 def scan(log=None):
     """Find every registered agent, ask the runnable ones for their models. Safe to call from any thread."""
-    global _login_path
     with _lock:
         STATE["scanning"] = True
-        _login_path = None  # a new install may have changed the login PATH
         found, seen = [], {}
         for runtime, label, binary, extra, runnable in REGISTRY:
             # TEXTFOLD_NO_MODELS=1: none looked for (a test server, a CI run: nothing calls a model by accident)

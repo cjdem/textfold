@@ -1,8 +1,7 @@
 """The files TextFold reads by itself, without the PDF engine: Word (.docx, through mammoth, its formulas as LaTeX),
 PowerPoint (.pptx, its slides as sections), Excel (.xlsx) and CSV tables, saved web pages (.html, .mhtml, their
-article found by trafilatura) and e-books (.epub); on a Mac also .doc, .rtf and .odt, which the system's textutil turns
-into a Word file first. Written in the shape the engine writes (structured_content.json: pages of blocks, and the
-pictures in images/), so that pdfdoc stores them as it stores the engine's.
+article found by trafilatura) and e-books (.epub). Written in the shape the engine writes (structured_content.json:
+pages of blocks, and the pictures in images/), so that pdfdoc stores them as it stores the engine's.
 
 When the engine is installed, these files go to it instead (it reads slides with formulas, OpenDocument and old Office
 files more completely); this is the reader for everyone else, and for a file the engine cannot read."""
@@ -15,8 +14,6 @@ import json
 import posixpath
 import re
 import shutil
-import subprocess
-import sys
 import tempfile
 import urllib.parse
 import zipfile
@@ -39,7 +36,6 @@ DCT = "{http://purl.org/dc/terms/}"
 OPF = "{http://www.idpf.org/2007/opf}"
 # a formula inside a run of text, until the HTML is read back: inline ($...$) and on a line of its own ($$...$$)
 IN, OUT, DIN, DOUT = chr(0xE000), chr(0xE001), chr(0xE002), chr(0xE003)
-TEXTUTIL = {"doc", "rtf", "odt"}   # read through macOS's textutil, which writes them as .docx
 MAX_ROWS, MAX_COLS = 1000, 50      # of a sheet: a table longer than this is not read as a text
 PICTURES = {"png": "png", "jpeg": "jpg", "jpg": "jpg", "gif": "gif", "webp": "webp", "svg+xml": "svg", "svg": "svg"}
 # names an Office file gives as its author that are no one's: the account, the program that wrote it
@@ -64,8 +60,7 @@ STYLE_MAP = "\n".join([   # Word's paragraph styles that say what a paragraph is
 
 def reads(ext):
     """Whether TextFold reads a file of this extension (engine.kind_of's) by itself."""
-    return ext in {"docx", "pptx", "xlsx", "csv", "tsv", "html", "htm", "mhtml", "mht", "epub"} or \
-        (ext in TEXTUTIL and sys.platform == "darwin" and bool(shutil.which("textutil")))
+    return ext in {"docx", "pptx", "xlsx", "csv", "tsv", "html", "htm", "mhtml", "mht", "epub"}
 
 
 def _xml(data):
@@ -405,7 +400,7 @@ class Flow:
                 if v and (IN in v or DIN in v):
                     setattr(x, side, re.sub(f"[{IN}{DIN}](.*?)[{OUT}{DOUT}]", r"$\1$", v, flags=re.S))
         for x in [x for x in t.iter("p") if not x.text_content().strip() and x.find(".//img") is None]:
-            x.drop_tree()   # an empty paragraph in a cell (textutil writes one under each)
+            x.drop_tree()   # an empty paragraph in a cell (the converter writes one under each)
         return re.sub(r">\s+<", "><", lhtml.tostring(t, encoding="unicode", method="html")).strip()
 
 
@@ -808,26 +803,6 @@ def _epub(path, doc):
         doc.page()
 
 
-def _textutil(path, doc):
-    """A .doc, .rtf or .odt as macOS's textutil writes it in HTML: its text, its tables, its bold and italics (not its
-    pictures or formulas). Its headings have no tags there, only larger type: a short paragraph set larger than the
-    text's own size is a heading, the largest the top one."""
-    page = subprocess.run(["textutil", "-convert", "html", "-stdout", str(path)], check=True, capture_output=True, timeout=120).stdout
-    root = lhtml.fromstring(page)
-    size = {m.group(1): float(m.group(2)) for m in re.finditer(r"p\.(p\d+)\s*\{[^}]*?font:[^};]*?([\d.]+)px", page.decode("utf-8", "replace"))}
-    used = {}
-    for p in root.iter("p"):
-        used[p.get("class")] = used.get(p.get("class"), 0) + len(p.text_content())
-    body = size.get(max(used, key=used.get)) if used else None
-    bigger = sorted({v for v in size.values() if body and v > body + 0.5}, reverse=True)
-    for p in root.iter("p"):
-        v = size.get(p.get("class"))
-        if v in bigger and 0 < len(p.text_content().split()) <= 20 and p.find(".//table") is None:
-            p.tag = f"h{min(3, bigger.index(v) + 1)}"
-    body_el = root.find(".//body")
-    Flow(doc, lambda src: None).walk(body_el if body_el is not None else root)
-
-
 def save(pid, file, name):
     """A file read by TextFold itself and stored as a document (pdfdoc.store_pdf, as the engine's are), the file kept
     beside it. ValueError("bad-file") when it cannot be read."""
@@ -865,8 +840,6 @@ def convert(file, out, ext=None):
             _mhtml(file, doc)
         elif ext == "epub":
             _epub(file, doc)
-        elif ext in TEXTUTIL and reads(ext):
-            _textutil(file, doc)
         else:
             raise ValueError("bad-file")
     except ValueError:

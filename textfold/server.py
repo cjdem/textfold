@@ -787,8 +787,7 @@ def _quiet_children():
 
 
 def serve(port=3017):
-    if os.name == "nt":
-        _quiet_children()
+    _quiet_children()
     jobs = Jobs()
     # look for the agents on this computer while the server comes up
     threading.Thread(target=agents.scan, kwargs={"log": print}, daemon=True).start()

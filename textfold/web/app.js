@@ -1170,7 +1170,7 @@
       const act = job ? '' : e.installed ? `<button type="button" class="st-btn danger st-engine-rm">${esc(t.engine_remove)}</button>`
         : `<button type="button" class="st-btn st-engine-in">${esc(t.engine_install)}</button>`;
       const state = job ? `<div class="st-item"><i class="st-dot busy"></i><div class="st-main"><b>${esc(t.engine)}</b><span class="st-meta">${esc(stageOf(job, t))}</span></div></div>`
-        : e.installed ? `<div class="st-item"><i class="st-dot"></i><div class="st-main"><b>MinerU ${esc(e.version)}</b><span class="st-meta">${esc(t.engine_on.replace('{size}', gb(e.bytes)))} · <code title="${esc(e.path)}">${esc(e.path.split('/').slice(-3).join('/'))}</code></span></div>${act}</div>`
+        : e.installed ? `<div class="st-item"><i class="st-dot"></i><div class="st-main"><b>MinerU ${esc(e.version)}</b><span class="st-meta">${esc(t.engine_on.replace('{size}', gb(e.bytes)))} · <code title="${esc(e.path)}">${esc(e.path.split(/[\\/]/).slice(-3).join('/'))}</code></span></div>${act}</div>`
         : `<div class="st-item"><div class="st-main st-meta st-desc">${esc(t.engine_off)}</div>${act}</div>`;
       const tier = `<div class="st-item"><label class="st-main" for="st-tier"><b>${esc(t.tier)}</b></label><select class="st-tiersel" id="st-tier">${['fast', 'accurate'].map((k) =>
         `<option value="${k}"${(data.pdfTier || 'fast') === k ? ' selected' : ''}>${esc(t['tier_' + k])}</option>`).join('')}</select></div>`;

@@ -13,7 +13,6 @@ A translation whose English base has since been regenerated is reported as stale
 import json
 import os
 import re
-import sys
 import time
 from pathlib import Path
 
@@ -26,12 +25,11 @@ SOURCE = (ROOT / "pyproject.toml").exists()     # run from a clone (else install
 
 
 def app_data():
-    """The system's place for an application's own data (the desktop app's too, so both read one library)."""
-    if sys.platform == "darwin":
-        return Path.home() / "Library" / "Application Support" / "TextFold"
-    if sys.platform == "win32":
-        return Path(os.environ.get("LOCALAPPDATA") or Path.home() / "AppData" / "Local") / "TextFold"
-    return Path(os.environ.get("XDG_DATA_HOME") or Path.home() / ".local" / "share") / "textfold"
+    """The system's place for an application's own data (the desktop app's too, so both read one library).
+
+    Windows only: this fork dropped the macOS and Linux locations, so on those the server is not
+    expected to run and its data folder is not where a user of the system would look for it."""
+    return Path(os.environ.get("LOCALAPPDATA") or Path.home() / "AppData" / "Local") / "TextFold"
 
 
 # the reader's papers and exports: the project folder when run from it, the system's data folder when installed with
