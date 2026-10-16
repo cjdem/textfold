@@ -1,15 +1,10 @@
-# The app: macOS for Apple silicon and for Intel (signed and notarized, with the certificate and the Apple account
-# ThoughtDAG's desktop build uses), and Windows (not signed yet: SmartScreen asks once, More info › Run anyway).
-# Each is built on its own system, since the Python it ships and its packages are that system's, and that Python runs
+# The app: Windows (not signed yet: SmartScreen asks once, More info › Run anyway).
+# It is built on its own system, since the Python it ships and its packages are that system's, and that Python runs
 # TextFold's tests and reads files before anything is packed (desktop/scripts/smoke.py).
-# A version tag (v0.10.2) builds the three into a draft release, published only when every one has succeeded; run by
-# hand (Actions › desktop › Run workflow) they are kept as the run's artifacts. Without the signing secrets a build by
-# hand is unsigned (electron-builder skips signing when there is no CSC_LINK); a tag's is refused.
-# On a Mac the icon is in macOS 26's own format, so that the system draws it as its own and not small on a grey plate:
-# desktop/build/Assets.car (with CFBundleIconName) and icon.icns for earlier systems, both compiled from
-# desktop/build/icon.icon on macOS 26 (icon.yml), the one system whose actool can draw it.
-# The release also carries what the installed apps update from (desktop/main.js): latest.yml for Windows, one
-# latest-mac.yml for both Macs (desktop/scripts/latest-mac.py), and each file's blockmap, for a download of what changed.
+# A version tag (v0.10.2) builds it into a draft release, published once it has succeeded; run by hand
+# (Actions › desktop › Run workflow) it is kept as the run's artifacts.
+# The release also carries what the installed app updates from (desktop/main.js): latest.yml, and its blockmap,
+# for a download of what changed.
 name: desktop
 on:
   push:
@@ -37,7 +32,7 @@ jobs:
           if [[ "$GITHUB_REF" == refs/tags/* ]]; then
             test "${GITHUB_REF_NAME#v}" = "$code" || { echo "tag $GITHUB_REF_NAME, code $code"; exit 1; }
           fi
-      - name: A draft release, filled by the builds
+      - name: A draft release, filled by the build
         if: startsWith(github.ref, 'refs/tags/')
         run: |
           gh release view "$TAG" -R "$REPO" >/dev/null 2>&1 || \
@@ -53,11 +48,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # macos-15, not macos-latest: the macos-26 image breaks electron-builder's temporary signing keychain
-          # (ThoughtDAG's finding, 2026-09-06)
-          - { name: mac-arm64, os: macos-15, script: 'dist:mac' }
-          # the last Intel image GitHub publishes, kept until August 2027
-          - { name: mac-x64, os: macos-15-intel, script: 'dist:mac:x64' }
           - { name: win-x64, os: windows-latest, script: 'dist:win' }
     name: ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
@@ -66,43 +56,23 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: A tag's Mac app is signed
-        if: runner.os == 'macOS' && startsWith(github.ref, 'refs/tags/')
-        run: test -n "$P12" && test -n "$PW" && test -n "$APPLE_ID" || { echo "a signing secret is missing"; exit 1; }
-        env:
-          P12: ${{ secrets.MAC_CERT_P12_BASE64 }}
-          PW: ${{ secrets.MAC_CERT_PASSWORD }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
       - run: npm ci
         working-directory: desktop
       - name: npm run ${{ matrix.script }}
         working-directory: desktop
         shell: bash
-        run: |
-          # an empty CSC_LINK is read as a file's name (the folder's): without the secrets, nothing to sign with
-          [ -n "$CSC_LINK" ] || unset CSC_LINK CSC_KEY_PASSWORD
-          npm run ${{ matrix.script }} ${VERSION:+-- -c.extraMetadata.version=$VERSION}
+        run: npm run ${{ matrix.script }} ${VERSION:+-- -c.extraMetadata.version=$VERSION}
         env:
           VERSION: ${{ inputs.version }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}   # the payload script asks GitHub for the newest CPython build
-          CSC_LINK: ${{ runner.os == 'macOS' && secrets.MAC_CERT_PASSWORD && secrets.MAC_CERT_P12_BASE64 || '' }}
-          CSC_KEY_PASSWORD: ${{ runner.os == 'macOS' && secrets.MAC_CERT_PASSWORD || '' }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
       - name: The bundled Python runs the tests, reads files and serves the reader
         working-directory: desktop
         shell: bash
-        run: |
-          py=payload/python/bin/python3
-          [ -x "$py" ] || py=payload/python/python.exe
-          "$py" scripts/smoke.py
+        run: payload/python/python.exe scripts/smoke.py
       - uses: actions/upload-artifact@v4
         with:
           name: textfold-${{ matrix.name }}
           path: |
-            desktop/out/*.dmg
-            desktop/out/*.zip
             desktop/out/*.exe
             desktop/out/*.blockmap
             desktop/out/latest*.yml
@@ -112,8 +82,8 @@ jobs:
         shell: bash
         run: |
           shopt -s nullglob
-          files=(desktop/out/*.dmg desktop/out/*.zip desktop/out/*.exe desktop/out/*.blockmap)
-          [ -f desktop/out/latest.yml ] && files+=(desktop/out/latest.yml)   # (a Mac's latest-mac.yml waits for the other's, below)
+          files=(desktop/out/*.exe desktop/out/*.blockmap)
+          [ -f desktop/out/latest.yml ] && files+=(desktop/out/latest.yml)
           gh release upload "$TAG" "${files[@]}" -R "$REPO" --clobber
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -124,24 +94,9 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
-        with:
-          pattern: textfold-mac-*
-          path: macs
-      - name: One update file for both Macs
-        run: |
-          python3 desktop/scripts/latest-mac.py macs/textfold-mac-arm64/latest-mac.yml macs/textfold-mac-x64/latest-mac.yml > latest-mac.yml
-          cat latest-mac.yml
-      - uses: actions/upload-artifact@v4
-        with:
-          name: textfold-mac-update
-          path: latest-mac.yml
-      - name: The release, once every system's app is in it
+      - name: The release, once the app is in it
         if: startsWith(github.ref, 'refs/tags/')
-        run: |
-          gh release upload "$TAG" latest-mac.yml -R "$REPO" --clobber
-          gh release edit "$TAG" -R "$REPO" --draft=false --latest
+        run: gh release edit "$TAG" -R "$REPO" --draft=false --latest
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ github.ref_name }}
