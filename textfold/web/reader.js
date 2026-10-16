@@ -2470,7 +2470,7 @@
   }
   // PDF of the paper as it stands: the level being read (with the paragraphs opened in place), the highlights, and
   // the notes and conversations under their paragraphs; a line naming the level on top, the TextFold mark at the
-  // end. ⌘P prints the same. Every paragraph is drawn at this level first (far ones are otherwise drawn later).
+  // end. Ctrl+P prints the same. Every paragraph is drawn at this level first (far ones are otherwise drawn later).
   let unprint = null;
   function preparePaperPrint() {
     const m = D.meta, t = T[ui], root = document.documentElement, title = document.title;
@@ -3360,7 +3360,7 @@ math { font-size: 1.05em; }
   });
 
   // ── input ────────────────────────────────────────────────────────────
-  // ⌘/Ctrl + wheel and a trackpad pinch zoom around the pointer; over the slider, the plain wheel zooms
+  // Ctrl + wheel and a trackpad pinch zoom around the pointer; over the slider, the plain wheel zooms
   addEventListener('wheel', (e) => {
     const overBar = !!(e.target.closest && e.target.closest('#zoombar'));
     if (!e.ctrlKey && !e.metaKey && !overBar) { snapNow(); return; }

@@ -653,7 +653,7 @@ html.morphing .chatbtn { pointer-events: none; }
 .nl-del:hover { color: var(--ink); background: var(--line-2); }
 .nl-del.sure { font: 600 11.5px var(--sans); color: #fff; background: var(--r-gap); white-space: nowrap; }
 .nl-x { flex: none; border-top: 1px solid var(--line-2); margin-top: 4px; padding-top: 4px; }
-/* the paper as it stands, printed (Export PDF of the paper, or ⌘P): the column alone, the margins under their
+/* the paper as it stands, printed (Export PDF of the paper, or Ctrl+P): the column alone, the margins under their
    paragraphs, the argument links left out, a line naming the level on top and the TextFold mark at the end */
 .print-head, .print-mark { display: none; }
 @media print {

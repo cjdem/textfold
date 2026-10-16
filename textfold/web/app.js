@@ -267,7 +267,7 @@
     const q = side.querySelector('.sb-q');
     if (q) { q.focus(); q.select(); }
   }
-  // ⌘K (Ctrl+K), or / outside a field: the search
+  // Ctrl+K, or / outside a field: the search
   addEventListener('keydown', (e) => {
     const typing = e.target.closest && e.target.closest('input, textarea, select, [contenteditable]');
     const k = e.key === 'k' && (e.metaKey || e.ctrlKey) && !e.altKey && !e.shiftKey;
