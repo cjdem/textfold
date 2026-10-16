@@ -19,7 +19,7 @@ desktop/out/
 # the maintainer's working log, kept on this computer
 STATUS.md
 
-# a pip build from the clone (desktop/build/ is the app's icon and entitlements)
+# a pip build from the clone (desktop/build/ is the app's icon)
 /build/
 /dist/
 *.egg-info/
