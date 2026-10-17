@@ -56,7 +56,9 @@ The app (`desktop/`, see its README): an Electron window around the same server,
 `.github/workflows/desktop.yml` when a version is tagged, beside the package for PyPI; both workflows are parked in
 `.github/workflows-disabled/` until builds are wanted again (GitHub runs only `.github/workflows/`).
 
-Models (⚙ Model & API), ported from ThoughtDAG's model access:
+Models (⚙ Settings): the current connection, the default model and its test, plus the ChatGPT bridge and the
+OpenRouter one-click entry. Agents, API providers, the questions' model and reasoning, and the PDF engine are under
+**Advanced**. Ported from ThoughtDAG's model access:
 
 - **Agents on this computer**, found at startup (and on Rescan) on PATH, the usual install
   directories and the node version managers. Claude Code, Codex and Pi run generations, each listing its own models
@@ -67,7 +69,7 @@ Models (⚙ Model & API), ported from ThoughtDAG's model access:
 - **Two easy ways in** (`textfold/bridges.py`, as in ThoughtDAG):
   - **ChatGPT plan, local bridge**: openai-oauth (npm) serves the plan as an OpenAI-compatible endpoint on
     127.0.0.1:10531, signed in with Codex's login (or a browser sign-in). Running, it joins the providers on its own
-    (as a running Ollama does), with its text models; not running, the providers list has a row to start it (`npx -y openai-oauth@2 --detach`; `npx openai-oauth stop` stops it). On the test
+    (as a running Ollama does), with its text models; not running, the settings' main view has a row to start it (`npx -y openai-oauth@2 --detach`; `npx openai-oauth stop` stops it). On the test
     paper: 174 s with gpt-5.5 at the recommended levels, nothing failed, no cost beyond the plan; a section takes about
     8 s against 13 s through `codex exec`.
   - **OpenRouter in one click**: OAuth with PKCE. The server makes the verifier, OpenRouter's consent page sends the

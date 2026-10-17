@@ -1052,37 +1052,61 @@
     let data = await api('/api/models');
     const app = window.desktop && window.desktop.checkForUpdates ? await window.desktop.version() : null;   // in the app: its version
     let form = null;          // the provider being added or edited: {key?, preset, name, base, api_key, found, picked}
+    let advancedOpen = !!(opts && (opts.add || opts.minted));   // (adding a provider or back from OpenRouter: its form is in Advanced)
     const tests = {};         // the last connection test of each model: the levels' (gen), the questions' (ask)
     let bridgeStarting = false;
     const dlg = h('dialog', 'settings prefs'); document.body.append(dlg);
     const T = () => t();
     const host = (u) => { try { return new URL(u).host; } catch { return u; } };
     const groupName = (g) => (data.agents.find((a) => a.runtime === g) || {}).label || (data.providers.find((p) => p.key === g) || {}).name || g;
-
-    function modelSection() {
-      const t = T();
-      if (!data.models.length) return `<div class="st-list"><p class="st-empty">${esc(t.st_none)}</p></div>`;
+    const modelOptions = (chosen) => {
       const groups = [];
       for (const m of data.models) {
         let g = groups.find((x) => x.key === m.group);
         if (!g) groups.push(g = { key: m.group, agent: m.kind === 'agent', items: [] });
         g.items.push(m);
       }
-      const opts = (chosen) => groups.map((g) => `<optgroup label="${esc(groupName(g.key))}${g.agent ? ' · agent' : ''}">${g.items.map((m) =>
+      return groups.map((g) => `<optgroup label="${esc(groupName(g.key))}${g.agent ? ' · agent' : ''}">${g.items.map((m) =>
         `<option value="${esc(m.id)}"${m.id === chosen ? ' selected' : ''}>${esc(m.name)}</option>`).join('')}</optgroup>`).join('');
+    };
+    const testBtn = (k) => {
+      const t = T(), r = tests[k];
+      return `<button type="button" class="st-btn st-testbtn${r ? (r.ok ? ' ok' : ' bad') : ''}" data-test="${k}">${r ? (r.ok ? `✓ ${r.seconds} s` : `✕ ${esc(t.test_bad)}`) : esc(t.test)}</button>`;
+    };
+
+    function connectionSection() {
+      const t = T(), cur = data.models.find((m) => m.id === data.selected), br = data.bridge || {};
+      const shown = cur ? (data.selectedName || cur.name) : '', group = cur ? groupName(cur.group) : '';
+      const name = !cur ? t.st_none : shown.toLowerCase().includes(group.toLowerCase()) ? shown : `${group} · ${shown}`;
+      const or = form && form.minted ? '' : `<button type="button" class="st-btn st-or">${esc(t.st_or)}</button>`;   // (a key is waiting for its models)
+      return `<div class="st-list">
+        <div class="st-item"><i class="st-dot${cur ? '' : ' off'}"></i><div class="st-main"><b>${esc(t.st_current)}</b>
+          <span class="st-meta">${esc(name)}</span></div>${or}</div>
+        <div class="st-item"><i class="st-dot${br.running ? '' : ' off'}"></i><div class="st-main"><b>${esc(t.bridge_name)}</b>
+          <span class="st-meta">${esc(br.running ? t.bridge_on.replace('{n}', (br.models || []).length) : bridgeStarting ? t.bridge_starting : t.bridge_off)}</span></div>
+          ${br.running || !br.node || bridgeStarting || (form && form.preset === 'chatgpt-bridge') ? '' : `<button type="button" class="st-btn st-bridgego">${esc(t.bridge_start)}</button>`}</div>
+      </div>`;
+    }
+
+    function modelSection() {
+      const t = T();
+      if (!data.models.length) return '';
+      const failed = tests.gen && !tests.gen.ok ? `<p class="st-models-err">${esc(t.st_gen)}: ${esc(tests.gen.error || '')}</p>` : '';
+      return `<div class="st-models">` +
+        `<label for="st-gen">${esc(t.st_gen)}</label><select name="model" id="st-gen" class="st-model wide">${modelOptions(data.selected)}</select>${testBtn('gen')}` +
+        `</div>${failed}`;
+    }
+
+    function askSection() {
+      const t = T();
+      if (!data.models.length) return '';
       // questions: the levels' model unless another is chosen; its reasoning, where it has levels of it (Auto: the default)
       const asked = data.models.find((m) => m.id === (data.askModel || data.selected)), efforts = (asked && asked.efforts) || [];
       const effort = efforts.length ? `<select class="st-effort" aria-label="${esc(t.st_effort)}" title="${esc(t.st_effort)}"><option value="">${esc(t.eff_auto)}</option>${efforts.map((e) =>
         `<option value="${esc(e)}"${e === data.askEffort ? ' selected' : ''}>${esc(t[`eff_${e}`] || e)}</option>`).join('')}</select>` : '';
-      const testBtn = (k) => {
-        const r = tests[k];
-        return `<button type="button" class="st-btn st-testbtn${r ? (r.ok ? ' ok' : ' bad') : ''}" data-test="${k}">${r ? (r.ok ? `✓ ${r.seconds} s` : `✕ ${esc(t.test_bad)}`) : esc(t.test)}</button>`;
-      };
-      const failed = ['gen', 'ask'].filter((k) => tests[k] && !tests[k].ok)
-        .map((k) => `<p class="st-models-err">${esc(k === 'gen' ? t.st_gen : t.st_ask)}: ${esc(tests[k].error || '')}</p>`).join('');
+      const failed = tests.ask && !tests.ask.ok ? `<p class="st-models-err">${esc(t.st_ask)}: ${esc(tests.ask.error || '')}</p>` : '';
       return `<div class="st-models">` +
-        `<label for="st-gen">${esc(t.st_gen)}</label><select name="model" id="st-gen" class="st-model wide">${opts(data.selected)}</select>${testBtn('gen')}` +
-        `<label for="st-ask">${esc(t.st_ask)}</label><select id="st-ask" class="st-askmodel${effort ? '' : ' wide'}"><option value="">${esc(t.st_same)}</option>${opts(data.askModel)}</select>${effort}${testBtn('ask')}` +
+        `<label for="st-ask">${esc(t.st_ask)}</label><select id="st-ask" class="st-askmodel${effort ? '' : ' wide'}"><option value="">${esc(t.st_same)}</option>${modelOptions(data.askModel)}</select>${effort}${testBtn('ask')}` +
         `</div>${failed}`;
     }
 
@@ -1104,11 +1128,7 @@
         <span class="st-meta">${esc(host(p.base))}</span></div><span class="st-aside">${esc(t.st_models.replace('{n}', p.models.length))}</span>
         ${p.source === 'ui' ? `<span class="st-acts"><button type="button" class="st-btn st-edit" data-key="${esc(p.key)}">${esc(t.st_edit)}</button><button type="button" class="st-btn danger st-del" data-key="${esc(p.key)}">${esc(t.st_remove)}</button></span>` : ''}</div>`).join('');
       const td = '';   // (ThoughtDAG's .env is no longer read: its providers were copied into these settings once, v0.8.3)
-      const br = data.bridge || {};
-      const bridgeRow = br.running || data.providers.some((p) => p.preset === 'chatgpt-bridge') ? '' : `<div class="st-item"><i class="st-dot off"></i><div class="st-main"><b>${esc(t.bridge_name)}</b>
-        <span class="st-meta">127.0.0.1:10531 · ${esc(bridgeStarting ? t.bridge_starting : t.bridge_off)}</span></div>
-        ${br.node && !bridgeStarting ? `<button type="button" class="st-btn st-bridgego">${esc(t.bridge_start)}</button>` : ''}</div>`;
-      return `<div class="st-list">${rows}${bridgeRow}${td}${form ? providerForm() : `<button type="button" class="st-addrow st-add"><span aria-hidden="true">＋</span>${esc(t.st_add)}</button>`}</div>`;
+      return `<div class="st-list">${rows}${td}${form ? providerForm() : `<button type="button" class="st-addrow st-add"><span aria-hidden="true">＋</span>${esc(t.st_add)}</button>`}</div>`;
     }
 
     function providerForm() {
@@ -1152,14 +1172,19 @@
           <div class="st-item"><label class="st-main" for="st-ui"><b>${esc(t.language)}</b></label><select class="st-ui" id="st-ui">${I18N.CODES.map((c) => `<option value="${c}"${c === uiLang ? ' selected' : ''}>${esc(I18N.NATIVE[c])}</option>`).join('')}</select></div>
           ${app ? `<div class="st-item st-app"><div class="st-main"><b>TextFold ${esc(app)}</b><span class="st-meta">${esc(t.up_note)} <a href="https://github.com/chenxiachan/textfold" target="_blank" rel="noopener">★ ${esc(t.up_star)}</a></span><span class="st-upd-msg" aria-live="polite"></span></div><button type="button" class="st-btn st-upd">${esc(t.up_check)}</button></div>` : ''}
         </div></section>
-        <section><h3>${esc(t.st_models_h)}</h3>${modelSection()}</section>
-        <section><h3>${esc(t.st_agents)}</h3>${agentSection()}</section>
-        <section><h3>${esc(t.st_providers)}</h3>${providerSection()}</section>
-        <section class="st-engine"></section>
+        <section><h3>${esc(t.st_models_h)}</h3>${connectionSection()}${modelSection()}</section>
+        <details class="st-adv"><summary>${esc(t.st_advanced)}</summary>
+          <section>${askSection()}</section>
+          <section><h3>${esc(t.st_agents)}</h3>${agentSection()}</section>
+          <section><h3>${esc(t.st_providers)}</h3>${providerSection()}</section>
+          <section class="st-engine"></section>
+        </details>
         </div>
         <footer class="stp-foot"><p>${esc(t.key_note)}</p><button type="button" class="primary st-close">${esc(t.st_close)}</button></footer></div>`;
       wire();
       renderEngine();
+      const adv = q('.st-adv');
+      if (adv) { adv.open = advancedOpen; adv.addEventListener('toggle', () => { advancedOpen = adv.open; }); }
       q('.stp-body').scrollTop = y;   // (after the engine's part, which makes the sections their full height)
       if (form && !formShown) q('.st-form').scrollIntoView({ block: 'nearest' });   // adding or editing a provider: the form in view
       formShown = !!form;
@@ -1212,6 +1237,8 @@
           : r.kind === 'ready' ? t.up_ready.replace('{v}', r.version) : t.up_new.replace('{v}', r.version || '');
       };
       q('.st-ui').onchange = (e) => { setUiLang(e.target.value); render(); };
+      const or = q('.st-or');
+      if (or) or.onclick = async () => { or.disabled = true; if (window.desktop) dlg.close(); await connectOpenRouter(location.pathname + location.search); };
       const sel = q('.st-model');
       if (sel) sel.onchange = async () => { delete tests.gen; if (!data.askModel) delete tests.ask; update(await api('/api/models/select', { model: sel.value })); };
       const askSel = q('.st-askmodel'), effSel = q('.st-effort');
@@ -1230,7 +1257,7 @@
       if (td) td.onchange = async () => update(await api('/api/settings', { use_thoughtdag_env: td.checked }));
       dlg.querySelectorAll('.st-del').forEach((b) => { b.onclick = async () => update(await api('/api/providers/remove', { key: b.dataset.key })); });
       dlg.querySelectorAll('.st-edit').forEach((b) => {
-        b.onclick = () => { const p = data.providers.find((x) => x.key === b.dataset.key); form = { key: p.key, preset: p.preset || 'custom', name: p.name, base: p.base }; render(); };
+        b.onclick = () => { advancedOpen = true; const p = data.providers.find((x) => x.key === b.dataset.key); form = { key: p.key, preset: p.preset || 'custom', name: p.name, base: p.base }; render(); };
       });
       const bg = q('.st-bridgego');
       if (bg) bg.onclick = async () => {   // start the bridge; its models join the list once it answers
@@ -1292,17 +1319,20 @@
       try {
         const r = await api('/api/providers/probe', { base: form.base, api_key: form.api_key, key: form.key, preset: form.preset, minted: !!form.minted });
         form.found = r.models; form.picked = r.picked; render();
+        q('.pf-save')?.scrollIntoView({ block: 'nearest' });   // (the list and Save are what the fetch was for)
       } catch (x) { const e2 = q('.pf-err'); if (e2) e2.textContent = x.message; }
     }
 
     dlg.addEventListener('close', () => dlg.remove());
-    if (opts && opts.add) form = { preset: data.presets[0].id, name: '', base: data.presets[0].base };   // straight to adding one
+    if (opts && opts.add) { advancedOpen = true; form = { preset: data.presets[0].id, name: '', base: data.presets[0].base }; }   // straight to adding one
     if (opts && opts.minted) {   // back from OpenRouter with a key: the models to pick, free ones first
+      advancedOpen = true;
       const p = data.presets.find((x) => x.id === 'openrouter');
       form = { preset: 'openrouter', name: '', base: p.base, minted: true };
     }
     render();
     dlg.showModal();
+    if (form) q('.st-form')?.scrollIntoView({ block: 'nearest' });   // (the render's call runs before the dialog is shown)
     if (opts && opts.minted) fetchModels();
     if (jobs.some((j) => j.kind === 'install' && live(j))) follow();   // an install started on the landing
     // the startup scan may still be running: show what it finds as it lands

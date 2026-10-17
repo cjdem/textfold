@@ -135,9 +135,9 @@ TextFold uses a model you already have, and there is no account to create. It lo
 | Claude Code, Codex or Pi | Nothing. TextFold finds it and uses it. |
 | A ChatGPT plan | Click **Use my ChatGPT plan**. A small bridge starts on your computer and signs in with your account (needs Node.js). |
 | Nothing yet | Click **OpenRouter in one click**. Authorize once, and free models are ready. |
-| An API key | **Settings › Add provider**: Anthropic, OpenAI, DeepSeek, Qwen, Zhipu GLM, Kimi, MiniMax, Google, Ollama, or any OpenAI-compatible endpoint. |
+| An API key | **Settings › Advanced › Add provider**: Anthropic, OpenAI, DeepSeek, Qwen, Zhipu GLM, Kimi, MiniMax, Google, Ollama, or any OpenAI-compatible endpoint. |
 
-Your questions can go to a stronger model than the one that writes the levels: **Settings › Models › Answering questions**, with how hard it reasons.
+Your questions can go to a stronger model than the one that writes the levels: **Settings › Advanced › Answering questions**, with how hard it reasons.
 
 ## In the reader
 
