@@ -5,7 +5,7 @@
   </a>
   <nav aria-label="{{nav_download}}">
     <a class="opt" href="#download">{{nav_download}}</a>
-    <a class="opt" href="#pipeline">{{nav_pipe}}</a>
+    <a class="opt" href="#python">{{nav_python}}</a>
     <a class="opt" href="{{readme}}" rel="noopener">{{nav_docs}}</a>
     <a href="{{repo}}" rel="noopener">★ GitHub</a>
     <a class="lang" href="{{lang_href}}" hreflang="{{lang_other_code}}" data-lang-switch>{{lang_other}}</a>
@@ -28,18 +28,16 @@
   <section id="download" class="band">
     <div class="wrap wide">
       <h2>{{dl_h}}</h2>
-      <article id="pipeline" class="card wide" data-os="py">
+      <article id="python" class="card wide" data-os="py">
         <div class="py-text">
           <p class="you">{{for_you}}</p>
-          <h3>{{pipe_h}}</h3>
-          <p class="for">{{pipe_p}}</p>
-          <p class="pl-links">{{pipe_links}}</p>
+          <h3>{{py_h}}</h3>
+          <p class="for">{{py_p}}</p>
+          <p class="pl-links">{{py_links}}</p>
         </div>
         <div class="py-code">
           <pre><code>python3 -m pip install textfold
-python3 -m textfold get https://arxiv.org/abs/2512.23916 --level topic
-python3 -m textfold get 2512.23916 --level key --section 3
-python3 -m textfold get report.pdf --json</code></pre>
+python3 -m textfold serve</code></pre>
           <button type="button" class="copy" data-copy="python3 -m pip install textfold" data-done="{{copied}}">{{copy}}</button>
         </div>
       </article>

@@ -14,11 +14,6 @@
 
 **English** · [简体中文](https://github.com/chenxiachan/textfold/blob/main/README.zh-CN.md)
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/chenxiachan/textfold/main/docs/assets/sources-dark.webp">
-  <img src="https://raw.githubusercontent.com/chenxiachan/textfold/main/docs/assets/sources.webp" width="880" alt="What TextFold reads: arXiv, PubMed Central, bioRxiv, medRxiv, Wikipedia, GitHub READMEs, any web page, PDF, Word, PowerPoint, Excel, EPUB, HTML, pictures, Markdown, text, CSV and an agent's replies, folded from the full text down to a few words">
-</picture>
-
 **Paste a link:** any web page · arXiv · PubMed Central · bioRxiv · medRxiv · Wikipedia · GitHub<br>
 **Drop a file:** PDF · Word · PowerPoint · Excel · EPUB · HTML · CSV · pictures · Markdown · text
 
@@ -41,11 +36,6 @@ Choose the level of detail you need, and lower your cognitive load.
 | **3** | **Key** | its point and the reason for it | AI, resting on the Brief sentences |
 | **4** | **Takeaway** | one line on the spine of its section | AI |
 | **5** | **Topic** | a few words; the text becomes a map of section cards | AI |
-
-## One fold, two places
-
-- **Read.** Paste a link or drop a file; it opens as a map of its sections that you zoom into. [Get started ↓](#get-started)
-- **Plug it into your workflow.** `python -m textfold get` hands your agent or script a document one level at a time, and an open format lets any program read and write folded text. [For agents ↓](#for-agents-and-scripts)
 
 ## What you get
 
@@ -86,7 +76,7 @@ To turn it on, in Zotero 7: **Settings › Advanced › Allow other applications
 
 **[Download the app](https://chenxiachan.github.io/textfold/#download)** for Windows. Everything it needs is inside, Python included.
 
-Or install the Python package, on any system and for your own pipeline:
+Or install the Python package, on any system:
 
 ```bash
 python -m pip install textfold
@@ -155,25 +145,9 @@ Your questions can go to a stronger model than the one that writes the levels: *
 | `L` | next language |
 | `Ctrl+K` or `/` | search your library |
 
-## For agents and scripts
-
-`python -m textfold get` gives a document one level at a time, coarsest first, so an agent reads the map before it spends its context on the whole text:
-
-```bash
-python -m textfold get https://arxiv.org/abs/2512.23916        # the map: every section's topic
-python -m textfold get 2512.23916 --level key --section 3      # one section: its points, each with its reason
-python -m textfold get report.pdf --json                       # the whole document, in the TextFold format
-```
-
-A document not folded yet is folded first, with the model you connected. Every line a model wrote is marked as such and anchored to the author's sentences it rests on: [docs/format.md](https://github.com/chenxiachan/textfold/blob/main/docs/format.md) describes the format, for any program that reads or writes folded text.
-
 ## Export
 
-**Export**, at the top of the reader, opens the two everyday files directly: your notes as Markdown, and the reading card as Markdown. **More export options…** opens the save dialog: the page as one HTML file that opens anywhere without a server (its levels, the notes you choose and, if you like, its original PDF to read beside it), or only your notes as a page, a PDF, Markdown for Obsidian or JSON. From the command line, the page without your notes:
-
-```bash
-python -m textfold export 2512.23916
-```
+**Export**, at the top of the reader, opens the two everyday files directly: your notes as Markdown, and the reading card as Markdown. **More export options…** opens the save dialog: the page as one HTML file that opens anywhere without a server (its levels, the notes you choose and, if you like, its original PDF to read beside it), or only your notes as a page, a PDF, Markdown for Obsidian or JSON.
 
 TextFold is a tool, and its license covers its code. When you share a file, follow the terms of the original text, shown under its title.
 
@@ -196,7 +170,6 @@ TextFold is a tool, and its license covers its code. When you share a file, foll
 - **October 13, 2026: whole figures, and a guide.** A figure the PDF engine cut into pieces now comes out whole, cut from its page. A short guide opens on your first visit, and again from **How it works**.
 - **October 9, 2026: PaperFold is now TextFold.** The same reader, named for everything it folds: papers, web pages, PDFs and READMEs. Links to the old repository lead here, and your settings move over by themselves.
 - **October 9, 2026: any web page, and PDFs.** Paste any web page's link and read its article at five levels, without the text the page hides from its readers. Drop a PDF: when it names a paper that can be read online, that version opens with your PDF beside it; any other PDF is converted on your computer.
-- **October 9, 2026: for agents.** `python3 -m textfold get <link> --level topic` prints a document's map, and `--section` unfolds the part that matters. [More ↓](#for-agents-and-scripts)
 - **October 8, 2026: any GitHub README.** Paste a repository's link and read its README at five levels, with its logo, badges and GIFs as on GitHub.
 - **October 8, 2026: read beside the original.** **Original**, at the top of a paper, opens its PDF at the left and shows each paragraph on its page as you read. A new paper opens as soon as it can be read, while its levels are written.
 - **October 6, 2026: more than arXiv.** PubMed Central, bioRxiv, medRxiv, Wikipedia in any language, and your own Markdown files.

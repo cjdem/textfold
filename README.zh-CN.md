@@ -14,11 +14,6 @@
 
 [English](https://github.com/chenxiachan/textfold/blob/main/README.md) · **简体中文**
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/chenxiachan/textfold/main/docs/assets/sources-dark.webp">
-  <img src="https://raw.githubusercontent.com/chenxiachan/textfold/main/docs/assets/sources.webp" width="880" alt="TextFold 能读的：arXiv、PubMed Central、bioRxiv、medRxiv、维基百科、GitHub README、任意网页、PDF、Word、PowerPoint、Excel、EPUB、HTML、图片、Markdown、纯文本、CSV，以及 agent 的回答，从全文一路折到几个词">
-</picture>
-
 **粘贴链接：** 任意网页 · arXiv · PubMed Central · bioRxiv · medRxiv · 维基百科 · GitHub<br>
 **拖入文件：** PDF · Word · PowerPoint · Excel · EPUB · HTML · CSV · 图片 · Markdown · 纯文本
 
@@ -41,11 +36,6 @@
 | **3** | **关键句** | 这一段的要点和理由 | AI，依据是简述里那几句 |
 | **4** | **要点** | 一行，挂在本节的主线上 | AI |
 | **5** | **主题** | 几个词；整篇变成一张章节卡片地图 | AI |
-
-## 一种折叠，两个地方
-
-- **读。** 粘贴链接或拖入文件，打开就是一张章节地图，再往里缩放。[开始使用 ↓](#开始使用)
-- **接入你的工作流。** `python -m textfold get` 把文档一层一层地交给你的 agent 或脚本；开放的格式让任何程序都能读写折叠后的文字。[给 agent 用 ↓](#给-agent-和脚本用)
 
 ## 你会得到
 
@@ -86,7 +76,7 @@
 
 **[下载软件](https://chenxiachan.github.io/textfold/zh.html#download)**，只有 Windows 版。需要的东西都在里面，包括 Python。
 
-也可以装 Python 包，任何系统都能用，也能接进你自己的流程：
+也可以装 Python 包，任何系统都能用：
 
 ```bash
 python -m pip install textfold
@@ -155,25 +145,9 @@ TextFold 用你已有的模型，不需要注册账号。启动时它会自己�
 | `L` | 切换到下一种语言 |
 | `Ctrl+K` 或 `/` | 搜索文献库 |
 
-## 给 agent 和脚本用
-
-`python -m textfold get` 一次给出一份文档的一个层级，从最概括的开始。agent 可以先读地图，再决定把上下文花在哪一节：
-
-```bash
-python -m textfold get https://arxiv.org/abs/2512.23916        # 地图：每一节的主题
-python -m textfold get 2512.23916 --level key --section 3      # 某一节：每个要点和它的理由
-python -m textfold get report.pdf --json                       # 整份文档，TextFold 格式
-```
-
-还没折叠过的文档会先用你连接的模型折叠。模型写的每一行都标明是模型写的，并且指回它依据的作者原句：[docs/format.md](https://github.com/chenxiachan/textfold/blob/main/docs/format.md) 说明了这个格式，任何读写折叠文本的程序都可以用。
-
 ## 导出
 
-阅读页顶部的 **导出** 直接给出两样最常用的文件：笔记的 Markdown，和阅读卡的 Markdown。**更多导出选项…** 打开保存对话框：把一页存成一个 HTML 文件，不需要服务器，在哪里都能打开（各个层级、你选的标注，还可以带上原文 PDF 在左边对照）；也可以只存你的标注，存成网页、PDF、Obsidian 用的 Markdown 或 JSON。命令行也能导出这一页，只是不带你的标注：
-
-```bash
-python -m textfold export 2512.23916
-```
+阅读页顶部的 **导出** 直接给出两样最常用的文件：笔记的 Markdown，和阅读卡的 Markdown。**更多导出选项…** 打开保存对话框：把一页存成一个 HTML 文件，不需要服务器，在哪里都能打开（各个层级、你选的标注，还可以带上原文 PDF 在左边对照）；也可以只存你的标注，存成网页、PDF、Obsidian 用的 Markdown 或 JSON。
 
 TextFold 只是一个工具，它的许可证只管代码。分享文件时，请遵守原文的许可条款，它标在每篇的标题下方。
 
@@ -196,7 +170,6 @@ TextFold 只是一个工具，它的许可证只管代码。分享文件时，�
 - **2026 年 10 月 13 日：完整的图，和使用说明。** PDF 引擎拆成碎块的图，现在从原页上整幅裁出来。第一次打开会弹出一份简短的使用说明，之后可以从 **使用说明** 再打开。
 - **2026 年 10 月 9 日：PaperFold 改名为 TextFold。** 还是同一个阅读器，新名字涵盖它能折叠的一切：论文、网页、PDF、README。旧仓库的链接会自动跳到这里，设置也会自动搬过来。
 - **2026 年 10 月 9 日：任意网页和 PDF。** 粘贴任何网页的链接，就能在五个层级上读它的正文，网页对读者隐藏的文字会被去掉。拖入一个 PDF：如果它是一篇网上能读到的论文，就打开网上的版本，你的 PDF 放在旁边对照；其他 PDF 在你的电脑上转换。
-- **2026 年 10 月 9 日：给 agent 用。** `python3 -m textfold get <链接> --level topic` 输出一份文档的地图，`--section` 再展开需要的那一节。[了解更多 ↓](#给-agent-和脚本用)
 - **2026 年 10 月 8 日：读任何 GitHub README。** 粘贴仓库链接，就能在五个层级上读它的 README，logo、徽章和动图都和 GitHub 上一样。
 - **2026 年 10 月 8 日：对照原文读。** 论文页顶部的 **原文** 会在左边打开它的 PDF，读到哪一段，就标出它在原页上的位置。新论文解析完就能打开，缩放层级在后台生成。
 - **2026 年 10 月 6 日：不只读 arXiv。** PubMed Central、bioRxiv、medRxiv、任何语言的维基百科，以及你自己的 Markdown 文件。

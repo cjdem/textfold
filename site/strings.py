@@ -13,23 +13,23 @@ S = {
     # the head (search engines, AI answers, shared links)
     "title": ("TextFold · Fold any text, from a map to every word",
               "TextFold · 任何文字，从地图折到每一个字"),
-    "description": ("TextFold is a free, open-source reader and toolkit that folds papers, web pages, documents and AI output into five levels, "
-                    "from a one-screen map to every word. A Python package for your pipeline and agents, and an app for Windows.",
-                    "TextFold 是免费开源的阅读器和工具包，把论文、网页、文档和 AI 的输出折成五层，从一屏地图到每一个字。"
-                    "既是给流程和 Agent 用的 Python 包，也有 Windows 软件。"),
+    "description": ("TextFold is a free, open-source reader that folds papers, web pages and project material into five levels, "
+                    "from a one-screen map to every word. A Python package, and an app for Windows.",
+                    "TextFold 是免费开源的阅读器，把论文、网页和项目材料折成五层，从一屏地图到每一个字。"
+                    "既是 Python 包，也有 Windows 软件。"),
 
     "nav_download": ('Download',
         '下载'),
-    "nav_pipe": ('Pipeline',
-        '接入流程'),
+    "nav_python": ('Python',
+        'Python'),
     "nav_docs": ('Docs',
         '文档'),
     "lang_other": ('中文',
         'English'),
 
     "h1": ("Fold any text, from a one‑screen map to every word.", "任何文字，从一屏地图折到每一个字。"),
-    "sub": ("Papers, web pages, documents, and your agent's output. On your computer.",
-            "论文、网页、文档，还有 Agent 的输出。都在你自己的电脑上。"),
+    "sub": ("Papers, web pages, and project material. On your computer.",
+            "论文、网页和项目材料。都在你自己的电脑上。"),
     "cta_win": ('Download for Windows',
         '下载 Windows 版'),
     "copy": ('Copy',
@@ -37,12 +37,12 @@ S = {
     "copied": ('Copied',
         '已复制'),
 
-    "pipe_h": ('Embed it in your pipeline',
-        '嵌进你的流程'),
-    "pipe_p": ("A Python package and a command: any document, one level at a time, coarsest first, in an open format. Any system with Python 3.9+.",
-               "一个 Python 包和一条命令：任何文档都能按层取，从最粗的一层开始，用公开的格式。任何装有 Python 3.9+ 的系统都能用。"),
-    "pipe_links": ('<a href="https://github.com/chenxiachan/textfold/blob/main/docs/format.md">The TextFold format</a> · <a href="https://github.com/chenxiachan/textfold#for-agents-and-scripts">For agents and scripts</a>',
-        '<a href="https://github.com/chenxiachan/textfold/blob/main/docs/format.md">TextFold 格式</a> · <a href="https://github.com/chenxiachan/textfold/blob/main/README.zh-CN.md">给 Agent 和脚本</a>'),
+    "py_h": ('Run it with Python',
+        '用 Python 运行'),
+    "py_p": ("The same reader as a Python package, on any system with Python 3.9 or newer.",
+             "同样的阅读器也有 Python 包，任何装有 Python 3.9 或更新版本的系统都能用。"),
+    "py_links": ('<a href="https://github.com/chenxiachan/textfold/blob/main/docs/format.md">The TextFold format</a>',
+        '<a href="https://github.com/chenxiachan/textfold/blob/main/docs/format.md">TextFold 格式</a>'),
     "app_p": ('Nothing else to install. It finds Claude Code, Codex or Pi on your computer, or connects a free model in one click.',
         '不用再装别的。它会找到你电脑上的 Claude Code、Codex 或 Pi，也能一键连上免费模型。'),
 
@@ -65,10 +65,6 @@ S = {
     "q4": ("Does it upload my files?", "会上传我的文件吗？"),
     "a4": ("No. Your library stays on your computer, and text goes only to the model you connect.",
            "不会。文献库留在你自己的电脑上，文字只发给你连接的模型。"),
-    "q5": ("Can AI agents use it?", "AI Agent 能用吗？"),
-    "a5": ("Yes. <code>textfold get</code> gives an agent a document one level at a time, coarsest first, and an open format lets any program "
-           "read and write folded text.",
-           "能。<code>textfold get</code> 按层把文档交给 Agent，从最粗的一层开始；公开的格式让任何程序都能读写折好的文字。"),
 
     "foot_readme": ('README',
         'README'),
@@ -78,8 +74,8 @@ S = {
         '所有版本'),
     "notes": ('Release notes',
         '更新说明'),
-    "cta_py": ('Embed it in your pipeline',
-        '嵌进你的流程'),
+    "cta_py": ('Run it with Python',
+        '用 Python 运行'),
     "foot_license": ('Apache 2.0 © 2026 Xia Chen',
         'Apache 2.0 © 2026 Xia Chen'),
 
@@ -110,6 +106,6 @@ S = {
         "三段文字折到各自的要点（fold any text、keep the point、unfold），其余收进 TextFold 标志的三条横条，再展开回来"),
 }
 
-FAQ = [(f"q{i}", f"a{i}") for i in range(1, 6)]
-TYPED = {"en": ["a paper.", "a web page.", "a PDF.", "a Word file.", "your agent's output."],
-         "zh": ["一篇论文。", "一个网页。", "一份 PDF。", "一份 Word 文档。", "Agent 的输出。"]}
+FAQ = [(f"q{i}", f"a{i}") for i in range(1, 5)]
+TYPED = {"en": ["a paper.", "a web page.", "a PDF.", "a Word file.", "project material."],
+         "zh": ["一篇论文。", "一个网页。", "一份 PDF。", "一份 Word 文档。", "一份项目材料。"]}

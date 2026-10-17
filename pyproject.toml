@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "textfold"
 dynamic = ["version"]
-description = "Zoom any text from every word to a one-screen map: papers, READMEs, Wikipedia and your agent's replies"
+description = "Zoom any text from every word to a one-screen map: papers, READMEs, Wikipedia and project material"
 readme = "README.md"
 requires-python = ">=3.9"
 license = { text = "Apache-2.0" }
