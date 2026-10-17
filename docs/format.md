@@ -105,5 +105,5 @@ points at a figure, a table or another unit).
 
 The levels can also be written by the author instead of drawn out afterwards: when every paragraph opens with a
 sentence that states its point and reads on its own, the first sentence is the takeaway and the rest is the reason,
-and no model call is needed to fold it. TextFold's Claude Code mod asks Claude to write its replies that way
-(plugins/textfold). A later version of this format will describe that writing as a convention of its own.
+and no model call is needed to fold it. A later version of this format will describe that writing as a convention of
+its own.

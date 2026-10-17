@@ -4,20 +4,6 @@ Rules this project has already written down. Phase 5 walks this list and gives
 each one an answer — holding, failing, or **not judgeable from here**. The third
 answer is allowed and must be used honestly; there is no fourth.
 
-## The two fold engines stay identical
-
-`plugins/pi-textfold/extension/fold.ts` and `plugins/textfold/hooks/fold.ts` are
-kept byte-for-byte the same — the Pi extension and the Claude Code mod fold a
-reply the same way or not at all.
-
-*Check:* `python .claude/hooks/verify.py` runs `tests/test_pi_textfold_same_fold.py`,
-which fails on any drift — this one is wired up, so use it.
-
-The plugins' own TypeScript suites are **not** wired up here: neither has its
-dependencies installed, and `plugins/textfold/` has no `package.json` at all
-(its tests want `claude plugin test plugins/textfold`, Claude Code 2.1.287+).
-If you changed a `.ts` file, say plainly that its suite did not run.
-
 ## Parsed HTML passes through one sanitizing boundary
 
 `textfold/semantic.py` normalizes parsed HTML as it comes in. Nothing renders

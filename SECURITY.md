@@ -30,6 +30,5 @@ and sizes must survive them) are in progress.
 
 ## In scope
 
-The local server and its API, the reader, the import of every source, the PDF engine's install and its runs, and the
-Claude Code mod in `plugins/textfold`. Problems in the models TextFold calls, or in the sites it reads from, belong to
-them.
+The local server and its API, the reader, the import of every source, and the PDF engine's install and its runs.
+Problems in the models TextFold calls, or in the sites it reads from, belong to them.

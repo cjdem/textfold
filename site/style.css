@@ -87,7 +87,6 @@ main > section.wrap { padding-block: 80px 0; }
 .py-code { position: relative; min-width: 0; }
 .py-code pre { margin: 0; padding: 14px 16px; padding-right: 76px; border-radius: 10px; background: var(--line-2); border: 1px solid var(--line); overflow-x: auto; font-size: 13px; line-height: 1.7; }
 .py-code > .copy { position: absolute; top: 9px; right: 9px; }
-.py-code .agent { margin: 14px 0 8px; font-size: 14px; color: var(--ink-2); }
 .sub { margin: 44px 0 4px; font-size: 20px; }
 .sub-lead { margin: 0 0 18px; color: var(--ink-2); }
 .which { margin: 22px 0 0; font-size: 14.5px; color: var(--ink-2); }

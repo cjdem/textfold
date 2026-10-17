@@ -43,11 +43,6 @@ S = {
                "一个 Python 包和一条命令：任何文档都能按层取，从最粗的一层开始，用公开的格式。任何装有 Python 3.9+ 的系统都能用。"),
     "pipe_links": ('<a href="https://github.com/chenxiachan/textfold/blob/main/docs/format.md">The TextFold format</a> · <a href="https://github.com/chenxiachan/textfold#for-agents-and-scripts">For agents and scripts</a>',
         '<a href="https://github.com/chenxiachan/textfold/blob/main/docs/format.md">TextFold 格式</a> · <a href="https://github.com/chenxiachan/textfold/blob/main/README.zh-CN.md">给 Agent 和脚本</a>'),
-    "agent_h": ('In your agent',
-        '放进你的 Agent'),
-    "agent_p": ('In Claude Code, every reply gets five levels, one key each, with no second model.',
-        '在 Claude Code 里，每条回复都有五层，一个键一层，不用第二个模型。'),
-
     "app_p": ('Nothing else to install. It finds Claude Code, Codex or Pi on your computer, or connects a free model in one click.',
         '不用再装别的。它会找到你电脑上的 Claude Code、Codex 或 Pi，也能一键连上免费模型。'),
 

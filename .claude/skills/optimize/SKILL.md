@@ -89,15 +89,14 @@ Do not commit yet. The commit comes once the change is verified and recorded, so
 
 ## 5 · Verify
 
-Seven checks, in this order. A failure sends you back to phase 4; if it cannot be made to pass, abandon the work instead of merging it — `ExitWorktree` with `remove`, and write down why in phase 6.
+Six checks, in this order. A failure sends you back to phase 4; if it cannot be made to pass, abandon the work instead of merging it — `ExitWorktree` with `remove`, and write down why in phase 6.
 
 1. **The suite.** `python .claude/hooks/verify.py` — green, with the numbers recorded. `git diff --check` alongside it, for whitespace and conflict markers the tests do not see.
-2. **The plugins, if you touched `plugins/`.** Their tests are not among the gate's suite, and neither runner is set up on this machine as it stands — `plugins/textfold/` has no `package.json` (its tests want `claude plugin test plugins/textfold`, from Claude Code 2.1.287+), and `plugins/pi-textfold/` has a `package.json` but no `node_modules` (`npm install` first, which needs the network). **Run what is available and say plainly what was not.** If you changed the fold engine, both copies must still be byte-identical, and `tests/test_pi_textfold_same_fold.py` is the check that is actually wired up — so run it even when the TypeScript suites cannot run.
-3. **Persistence and interleavings.** If the change writes files or shared state, it needs at least one regression test with two writers interleaving: a save during a generation or candidate write, a save during a PDF re-conversion, a save crossing the move to the trash. A green suite that never runs two writers has not tested this; tell the verifier (check 4) to construct those interleavings too.
-4. **An independent adversary.** Send `textfold-verifier` the branch and the claim. It cannot edit code, so it can only report. Act on what it finds, or say why it is wrong.
-5. **The invariants.** Walk `references/invariants.md`. Each one is either holding, failing, or unjudgeable from here — there is no fourth answer.
-6. **Text on a Chinese Windows.** If the change reads or writes text or runs a subprocess, run a Chinese title and Chinese card or notes content through import, parse, save, export and the static page build; look for `UnicodeDecodeError` and `UnicodeEncodeError`. Files are read as UTF-8, stored caches and settings are ASCII-escaped, and pipes are UTF-8 both ways.
-7. **Smoothness, honestly.** If the change touches the reader, zoom or rendering, it stays **unmeasured on this machine**. Write that. "No impact on performance" is a claim nobody made.
+2. **Persistence and interleavings.** If the change writes files or shared state, it needs at least one regression test with two writers interleaving: a save during a generation or candidate write, a save during a PDF re-conversion, a save crossing the move to the trash. A green suite that never runs two writers has not tested this; tell the verifier (check 3) to construct those interleavings too.
+3. **An independent adversary.** Send `textfold-verifier` the branch and the claim. It cannot edit code, so it can only report. Act on what it finds, or say why it is wrong.
+4. **The invariants.** Walk `references/invariants.md`. Each one is either holding, failing, or unjudgeable from here — there is no fourth answer.
+5. **Text on a Chinese Windows.** If the change reads or writes text or runs a subprocess, run a Chinese title and Chinese card or notes content through import, parse, save, export and the static page build; look for `UnicodeDecodeError` and `UnicodeEncodeError`. Files are read as UTF-8, stored caches and settings are ASCII-escaped, and pipes are UTF-8 both ways.
+6. **Smoothness, honestly.** If the change touches the reader, zoom or rendering, it stays **unmeasured on this machine**. Write that. "No impact on performance" is a claim nobody made.
 
 ## 6 · Record
 

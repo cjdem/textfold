@@ -42,16 +42,9 @@
 | **4** | **要点** | 一行，挂在本节的主线上 | AI |
 | **5** | **主题** | 几个词；整篇变成一张章节卡片地图 | AI |
 
-## 也可以用在 Agent 输出上
-
-Agent 写的，总比你有空读的多。一个 [Claude Code mod](https://code.claude.com/docs/en/plugins/mods/overview) 用同样的方式折叠每条回答，一个键一个层级；Pi 里也有一个扩展做同样的事。[了解更多 ↓](#在-claude-code-和-pi-里)
-
-<img src="https://raw.githubusercontent.com/chenxiachan/textfold/main/docs/assets/textfold.gif" width="880" alt="Claude Code 里的一条回答从全文折到每段两句，再折到一句，然后展开回来，每次按一个键">
-
-## 一种折叠，三个地方
+## 一种折叠，两个地方
 
 - **读。** 粘贴链接或拖入文件，打开就是一张章节地图，再往里缩放。[开始使用 ↓](#开始使用)
-- **折叠 agent 的回答。** 在 Claude Code 和 Pi 里一个键一个层级，不用第二个模型。[在 Claude Code 和 Pi 里 ↓](#在-claude-code-和-pi-里)
 - **接入你的工作流。** `python -m textfold get` 把文档一层一层地交给你的 agent 或脚本；开放的格式让任何程序都能读写折叠后的文字。[给 agent 用 ↓](#给-agent-和脚本用)
 
 ## 你会得到
@@ -182,68 +175,11 @@ python -m textfold export 2512.23916
 
 TextFold 只是一个工具，它的许可证只管代码。分享文件时，请遵守原文的许可条款，它标在每篇的标题下方。
 
-## 在 Claude Code 和 Pi 里
-
-TextFold 把五个层级放到 Claude Code 和 Pi 的每条回答上。按 5 看一句话的答案，按 3 看每段的要点，按 1 看每一个字（在 Pi 里要按住 Alt）。不做任何改写，所以无论在哪一级，你读到的都是模型的原话。
-
-<details>
-<summary><b>在 Claude Code 里：安装，以及每一级能看到什么</b></summary>
-
-<br>
-
-<img src="https://raw.githubusercontent.com/chenxiachan/textfold/main/docs/assets/textfold.gif" width="880" alt="Claude Code 里的一条回答从全文折到每段两句，再折到一句，然后展开回来，每次按一个键">
-
-需要 Claude Code 2.1.287 或更新的版本，在终端里或桌面应用的 Code 标签页里都能用。
-
-```bash
-claude plugin marketplace add chenxiachan/textfold
-claude plugin install textfold@textfold
-```
-
-| 键 | 层级 | 你看到的 |
-|:-:|---|---|
-| **1** | **Full** | Claude 写的每一个字 |
-| **2** | **Brief** | 每个要点，连同背后的理由 |
-| **3** | **Points** | 只看要点，一眼扫完 |
-| **4** | **Outline** | 长回答的地图：有哪几节，每节讲了什么 |
-| **5** | **Gist** | 一句话的答案 |
-
-在提示框为空时输入数字，或者在提示框上方那一行里选一个层级。短回答保持原样：不到大约 80 个词（中文约 130 字），或者折叠后几乎不会变短的回答，总是原样显示。
-
-**默认层级。** 每个会话默认从 Full 开始。想换成别的层级，运行 `/config`，设置 **Starting level**；会话里照样可以用提示框上方那一行或数字键 1 到 5 切换。
-
-**为什么折叠可信。** TextFold 请 Claude 把要点放在前面：每条回答先给答案，每段先写关键句。折叠保留的就是 Claude 放在最前面的内容。没有第二个模型，也不做摘要，所以折叠不花钱、不用等。
-
-详见 [plugins/textfold](https://github.com/chenxiachan/textfold/blob/main/plugins/textfold/README.md)。
-
-</details>
-
-<details>
-<summary><b>在 Pi 里：安装，看它怎么折叠</b></summary>
-
-<br>
-
-<img src="https://raw.githubusercontent.com/chenxiachan/textfold/main/docs/assets/pi.gif" width="880" alt="Pi 里的一条回答逐级折叠，从全文一直折到一句话的答案，每级一个键">
-
-一个扩展把同样的五个层级放到 [Pi](https://pi.dev) 的每条回答上。需要 Pi 1.2.0 或更新的版本，Node 22.15 或更新。
-
-```bash
-git clone https://github.com/chenxiachan/textfold.git
-pi install ./textfold/plugins/pi-textfold
-```
-
-按住 Alt 再按数字，或者输入 `/fold` 加层级：`/fold 3`、`/fold points`、`/fold off`。每条回答都在原处折叠，之前的回答也一样；提示框上方那一行标出你正在读的层级。它用的就是 mod 的折叠引擎，所以同一条回答在 Claude Code 和 Pi 里每一级读到的都一样。
-
-详见 [plugins/pi-textfold](https://github.com/chenxiachan/textfold/blob/main/plugins/pi-textfold/README.md)。由 [@jlamweil](https://github.com/jlamweil) 贡献。
-
-</details>
-
 ## 最新
 
 - **2026 年 10 月 18 日：每篇论文一张阅读卡。** 阅读页顶部的 **阅读卡** 把研究问题与贡献、方法与前提、数据与实验设置、结果与局限放在一起，条目都能改，也都回到原文；重新生成先存为候选，卡片可导出 Markdown。
 - **2026 年 10 月 17 日：MinerU 的服务器读你的文件。** 在 `~/.textfold/settings.json` 里写上 `mineru_api_key`，PDF、Word/PowerPoint/Excel 文件、HTML 和图片就交给 MinerU 的云 API 读：不用装 3.4 GB 的引擎，文件会离开你的电脑。
 - **2026 年 10 月 17 日：英文文档默认带上简体中文版。** App 里打开一篇英文文档，会在同一次生成的最后顺便做出简体中文版，不用再请求一次就能读中文。
-- **2026 年 10 月 15 日：Pi 的回答也能折叠了。** [Pi 扩展](https://github.com/chenxiachan/textfold/blob/main/plugins/pi-textfold/README.md) 把五个层级放到每条回答上，折法和 Claude Code 里一样。感谢 [@jlamweil](https://github.com/jlamweil)。
 - **2026 年 10 月 15 日：不装 PDF 引擎也能读 PDF。** 自带文字的 PDF（大多数论文都是）直接打开，图从原页上裁出来；只有扫描件还需要 PDF 引擎。没有 HTML 版本的 arXiv 论文改读它的 PDF。感谢 [@sylvainHellin](https://github.com/sylvainHellin)。
 - **2026 年 10 月 15 日：你的文献库和你的提问。** 文献库可以搜索、建文件夹，按添加时间或最近打开排序。提问有了发送和停止键，对话里任何一轮都可以删掉，回答问题还可以用比生成层级更强的模型。感谢 [@suhyungJang](https://github.com/suhyungJang)。
 - **2026 年 10 月 14 日：Mac 和 Windows 软件。** 下载 TextFold 的 macOS 版（Apple 芯片或 Intel，已签名并经苹果公证）或 Windows 版，需要的东西都在里面。它会找到你电脑上的 Claude Code、Codex 或 Pi，有新版本时经你同意自己更新。[下载 ↓](#开始使用)
@@ -256,12 +192,11 @@ pi install ./textfold/plugins/pi-textfold
 - **2026 年 10 月 13 日：把一页存成一个文件。** 阅读页顶部的 **保存** 把整页存成一个 HTML 文件，可以带上标注和原文 PDF；也可以只存标注。[保存一页 ↓](#保存一页)
 - **2026 年 10 月 13 日：Word、PowerPoint、Excel、电子书等文件。** 拖入 Word、PowerPoint、Excel 文件，或 CSV、EPUB、保存的网页，马上就能打开，公式也在，不用另装任何东西。
 - **2026 年 10 月 13 日：完整的图，和使用说明。** PDF 引擎拆成碎块的图，现在从原页上整幅裁出来。第一次打开会弹出一份简短的使用说明，之后可以从 **使用说明** 再打开。
-- **2026 年 10 月 9 日：PaperFold 改名为 TextFold。** 还是同一个阅读器，新名字涵盖它能折叠的一切：论文、网页、PDF、README，以及 agent 的回答。旧仓库的链接会自动跳到这里，设置也会自动搬过来。
+- **2026 年 10 月 9 日：PaperFold 改名为 TextFold。** 还是同一个阅读器，新名字涵盖它能折叠的一切：论文、网页、PDF、README。旧仓库的链接会自动跳到这里，设置也会自动搬过来。
 - **2026 年 10 月 9 日：任意网页和 PDF。** 粘贴任何网页的链接，就能在五个层级上读它的正文，网页对读者隐藏的文字会被去掉。拖入一个 PDF：如果它是一篇网上能读到的论文，就打开网上的版本，你的 PDF 放在旁边对照；其他 PDF 在你的电脑上转换。
 - **2026 年 10 月 9 日：给 agent 用。** `python3 -m textfold get <链接> --level topic` 输出一份文档的地图，`--section` 再展开需要的那一节。[了解更多 ↓](#给-agent-和脚本用)
 - **2026 年 10 月 8 日：读任何 GitHub README。** 粘贴仓库链接，就能在五个层级上读它的 README，logo、徽章和动图都和 GitHub 上一样。
 - **2026 年 10 月 8 日：对照原文读。** 论文页顶部的 **原文** 会在左边打开它的 PDF，读到哪一段，就标出它在原页上的位置。新论文解析完就能打开，缩放层级在后台生成。
-- **2026 年 10 月 7 日：Agent 的回答也能折叠了。** [Claude Code mod](#在-claude-code-和-pi-里) 把五个层级放到每条回答上。按 5 看一句话的答案，按 1 看每一个字。
 - **2026 年 10 月 6 日：不只读 arXiv。** PubMed Central、bioRxiv、medRxiv、任何语言的维基百科，以及你自己的 Markdown 文件。
 
 </details>

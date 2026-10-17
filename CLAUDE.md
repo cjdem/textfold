@@ -58,8 +58,6 @@ feature starts from its document under `docs/requirements/`. The rules that are
 easiest to get wrong live in
 `.claude/skills/optimize/references/invariants.md`; the short version:
 
-- The two fold engines (`plugins/pi-textfold/extension/fold.ts` and
-  `plugins/textfold/hooks/fold.ts`) must stay byte-identical.
 - Parsed HTML passes through `textfold/semantic.py`, and nothing renders around it.
 - A parser change renumbers atoms, so previously generated layers go stale.
 - A save, a generation, a re-conversion and a move to the trash must not

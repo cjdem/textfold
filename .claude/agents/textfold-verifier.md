@@ -16,7 +16,6 @@ Work in this order:
 2. **Run the suite.** `python .claude/hooks/verify.py` from the tree under test runs it and prints the outcome, whichever Python holds the dependencies. Report the actual numbers.
 3. **Try to break it.** For each behaviour the change claims, construct the case that would make it wrong: the empty input, the boundary, the second call, the concurrent one, the one that goes through a different caller. Read the callers — a change is only as safe as its least careful one. For a change that persists data, construct interleavings explicitly: two writers, a save during a generation or candidate write, a save during a PDF re-conversion, a save crossing the move to the trash. A green suite that never runs two writers has not tested this.
 4. **Check the invariants** that this repository states about itself, and say for each whether it holds, fails, or cannot be judged from here:
-   - `plugins/pi-textfold/extension/fold.ts` must stay identical to `plugins/textfold/hooks/fold.ts`; `tests/test_pi_textfold_same_fold.py` enforces it.
    - Parsed HTML passes through `textfold/semantic.py`; nothing renders around it.
    - A parser change renumbers atoms, so layers generated before it are stale — `docs/DEVELOPMENT.md` says how.
    - Persistent writes (the card, the notes, the document folder) are serialized per document: a save, a generation, a re-conversion and a move to the trash cannot interleave.
