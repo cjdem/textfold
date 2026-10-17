@@ -11,8 +11,8 @@ To bring one back, move it into place:
 - `desktop.yml` and `publish.yml` run on a `v*` tag (or by hand, Actions ›
   desktop › Run workflow): the Windows app into a draft release, and the
   package to PyPI.
-- `site.yml` runs on a push to `main` that touches `site/**`,
-  `docs/assets/**` or the workflow itself, and deploys the website.
+- `site.yml` runs on a push to `main` that touches `site/**` or the
+  workflow itself, and deploys the website.
 
 The files are kept rather than deleted so the build and release steps do not
 have to be reconstructed when they are wanted again.

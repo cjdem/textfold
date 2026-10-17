@@ -36,8 +36,8 @@
   `tools/readme_assets.py` 的截图、动画素材生产；站点里的 gallery 部分移除。
 - 官网压缩成简单的下载、安装、使用说明一页；README 的 demo 链接、已暂停的 `site.yml`
   注释、`docs/DEVELOPMENT.md` 的 gallery 段同步修改。
-- 失去：公开演示、跨论文示例、自动制作宣传素材。若以后仍想“试一试”，放一个静态样例，
-  不恢复生成管线。
+- 失去：公开演示、跨论文示例、自动制作宣传素材、PyPI 项目页的 Gallery 链接。若以后仍想
+  “试一试”，放一个静态样例，不恢复生成管线。
 
 ### 2.3 Claude Code / Pi 折叠插件
 
@@ -97,7 +97,7 @@
 每一项单独 worktree、单独提交、单独记录，完成后 ff-only 合回本地 main；不推送。
 
 - [x] 1. 移除只检测不能调用的 Agent 展示（保留 Claude Code/Codex/Pi）。
-- [ ] 2. 移除画廊/宣传素材管线，官网压缩为一页（含 README demo 链接与文档同步）。
+- [x] 2. 移除画廊/宣传素材管线，官网压缩为一页（含 README demo 链接与文档同步）。
 - [ ] 3. 移除 Claude Code / Pi 折叠插件（含 fold-engine 不变式与测试）。
 - [ ] 4. 停止默认生成段落论证关系（界面暂时保留旧数据）。
 - [ ] 5. 格式第一批收窄：RTF / OpenDocument / 旧版 DOC/PPT/XLS。

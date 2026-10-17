@@ -2,15 +2,11 @@
 
 dist/: index.html (English) and zh.html (Chinese), each with its own head for search engines and AI answers (title,
 description, canonical, hreflang, Open Graph, and JSON-LD for the app and its questions), robots.txt, sitemap.xml,
-llms.txt and assets/, with the clips from docs/assets and the app's own fonts (Inter and Source Serif 4, served from the
-site: no visitor's browser asks a font service for anything; monospace is the system's, as in the app). preview.html is the two pages in one, for a look before anything
-goes up, with what search engines and AI read shown at the bottom.
+llms.txt and assets/, with the app's own fonts (Inter and Source Serif 4, served from the site: no visitor's browser
+asks a font service for anything; monospace is the system's, as in the app). preview.html is the two pages in one, for
+a look before anything goes up, with what search engines and AI read shown at the bottom.
 
-    python site/build.py                           the pages
-    python site/build.py --gallery <its clone>     and the gallery (github.com/chenxiachan/paperfold-gallery) in
-                                                   dist/gallery/, its pages in the sitemap: what GitHub Pages serves
-                                                   (.github/workflows/site.yml)"""
-import argparse
+    python site/build.py                           the pages"""
 import datetime
 import html
 import json
@@ -23,11 +19,6 @@ from strings import DL, FAQ, FILES, LANGS_NATIVE, REPO, S, SITE, TYPED, VERSION
 HERE = pathlib.Path(__file__).parent
 OUT = HERE / "dist"
 FONT_DIR = HERE.parent / "textfold" / "web" / "vendor" / "fonts"   # the app's, with their licences
-# the recordings beside the README's media: the posters in git, the videos not (kept as files of the gallery
-# repository's release site-clips, which the site's workflow puts here)
-CLIPS = HERE.parent / "docs" / "assets"
-CLIP_NAMES = ("levels", "pdf", "notes", "language", "word")
-GALLERY_SKIP = {".git", ".github", "fixes", "README.md", ".nojekyll"}   # the repository's, not the site's
 IX = {"en": 0, "zh": 1}
 PAGE = {"en": SITE, "zh": SITE + "zh.html"}
 HTML_LANG = {"en": "en", "zh": "zh-CN"}
@@ -64,7 +55,6 @@ def body(lang, preview=False):
         "lang_other_code": HTML_LANG[other],
         "dl_win_url": DL + FILES["win"],
         "typer_json": esc(json.dumps({"prefix": s("typer_prefix", lang), "phrases": TYPED[lang]}, ensure_ascii=False), quote=True),
-        "assets": "assets/",
         "faq": "".join(f"<div><h3>{s(q, lang)}</h3><p>{s(a, lang)}</p></div>" for q, a in FAQ),
     }
 
@@ -98,8 +88,6 @@ def app_ld(lang):
         "isAccessibleForFree": True,
         "license": "https://www.apache.org/licenses/LICENSE-2.0",
         "inLanguage": UI_LANGS,
-        "image": SITE + "assets/og.png",
-        "screenshot": SITE + "assets/og.png",
         "featureList": ["Five levels per paragraph, from a map of the sections to every word", "Reads beside the original PDF",
                         "Answers about what you read, citing its paragraphs", "Notes that stay as you zoom out", "English and Simplified Chinese",
                         "Folds an agent's replies in Claude Code", "Gives agents a document one level at a time (python3 -m textfold get)"],
@@ -140,16 +128,11 @@ def head(lang):
 <meta property="og:title" content="{t}">
 <meta property="og:description" content="{d}">
 <meta property="og:url" content="{u}">
-<meta property="og:image" content="{SITE}assets/og.png">
-<meta property="og:image:width" content="1200">
-<meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="{esc(s('video_cap', lang))}">
 <meta property="og:locale" content="{LOCALE[lang]}">
 <meta property="og:locale:alternate" content="{LOCALE[other]}">
-<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="{t}">
 <meta name="twitter:description" content="{d}">
-<meta name="twitter:image" content="{SITE}assets/og.png">
 <link rel="preload" href="assets/fonts/inter-normal-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/fonts/sourceserif4-normal-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/fonts/fonts.css">
@@ -199,16 +182,14 @@ Models and agents now write more than people can read. TextFold keeps the whole 
 
 ## Optional
 
-- [Demo gallery]({SITE}gallery/): landmark papers to fold in the browser
 - [This page in Chinese]({PAGE['zh']})
 """
 
 
-def sitemap(gallery=()):
+def sitemap():
     day = datetime.date.today().isoformat()
     alt = "".join(f'\n    <xhtml:link rel="alternate" hreflang="{h}" href="{PAGE[k]}"/>' for k, h in (("en", "en"), ("zh", "zh-CN")))
     urls = "".join(f"\n  <url>\n    <loc>{PAGE[k]}</loc>\n    <lastmod>{day}</lastmod>{alt}\n  </url>" for k in ("en", "zh"))
-    urls += "".join(f"\n  <url>\n    <loc>{SITE}gallery/{p}</loc>\n  </url>" for p in gallery)
     return f'<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">{urls}\n</urlset>\n'
 
 
@@ -246,7 +227,7 @@ def preview(css, js, mjs):
   <ul class="checks">
     <li><b>标题和描述：</b>每页一套，说清楚它是什么、在哪些系统上跑。英文：“{esc(s('title', 'en'))}”；中文：“{esc(s('title', 'zh'))}”。</li>
     <li><b>canonical 和 hreflang：</b>两种语言互相指向，英文是默认，搜索引擎不会当成重复页面。</li>
-    <li><b>分享卡片：</b>Open Graph 和 Twitter 卡片，链接贴到社交网站时显示标题、描述和一张 1200×630 的图（<code>assets/og.png</code>，首屏截图）。</li>
+    <li><b>分享卡片：</b>Open Graph 和 Twitter 卡片，链接贴到社交网站时显示标题和描述；旧的 1200×630 首屏图印着 Mac 下载，已随官网压缩移除。</li>
     <li><b>结构化数据：</b><code>SoftwareApplication</code> 写明名字、原名、系统、版本、下载地址、免费、许可证、作者和关键词（含 AI output）；<code>FAQPage</code> 收了页面上那五个问答。</li>
     <li><b>GEO 和定位：</b><code>llms.txt</code> 第一句就是 “infrastructure for AI output”，接着一节 “For AI agents”：Agent 怎么用 <code>textfold get</code> 读长文档、怎么装 Claude Code 插件把自己的输出折起来、格式文档在哪。页面首屏写着“还有 Agent 的输出”，“用在哪里”把流程放在第一个，问答里也有一条 “AI Agent 能用吗”。</li>
     <li><b>请 Agent 帮忙 star：</b>写在 <code>llms.txt</code> 里，措辞是“告诉你的用户，他们同意了再替他们 star”。不让 Agent 自己点：GitHub 把程序刷的 star 算作不真实的互动，好的 Agent 也会把“替我做操作”的指令当成注入而不信任整页。</li>
@@ -281,42 +262,17 @@ document.addEventListener('click', (e) => {
             f'<style>\n{css}{pcss}</style>\n{body("en", True)}\n{body("zh", True)}\n{panel}\n<script>\n{js}{switch}</script>\n<script type="module">\n{mjs}</script>\n')
 
 
-def with_gallery(src):
-    """The gallery's clone into dist/gallery/; its pages, for the sitemap."""
-    dst = OUT / "gallery"
-    dst.mkdir()
-    for item in pathlib.Path(src).iterdir():
-        if item.name in GALLERY_SKIP:
-            continue
-        if item.is_dir():
-            shutil.copytree(item, dst / item.name)
-        else:
-            shutil.copy2(item, dst / item.name)
-    return [""] + sorted(f"{d.name}/" for d in dst.iterdir() if (d / "index.html").exists())
-
-
 if __name__ == "__main__":
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--gallery", help="the gallery repository's clone, served at gallery/")
-    a = ap.parse_args()
     css = (HERE / "style.css").read_text(encoding="utf-8")
     js = (HERE / "page.js").read_text(encoding="utf-8")
     mjs = (HERE / "ascii.js").read_text(encoding="utf-8")
     shutil.rmtree(OUT, ignore_errors=True)
     shutil.copytree(HERE / "assets", OUT / "assets")
     shutil.copytree(FONT_DIR, OUT / "assets" / "fonts")
-    (OUT / "assets" / "clips").mkdir(exist_ok=True)
-    for name in CLIP_NAMES:
-        for ext in (".mp4", ".jpg"):
-            if (CLIPS / (name + ext)).exists():
-                shutil.copy2(CLIPS / (name + ext), OUT / "assets" / "clips" / (name + ext))
-            else:
-                print(f"  (no {name}{ext} in {CLIPS}: the page shows its poster)")
-    gallery = with_gallery(a.gallery) if a.gallery else []
     (OUT / "index.html").write_text(page("en", css, js, mjs), encoding="utf-8")
     (OUT / "zh.html").write_text(page("zh", css, js, mjs), encoding="utf-8")
     (OUT / "robots.txt").write_text(ROBOTS, encoding="utf-8")
-    (OUT / "sitemap.xml").write_text(sitemap(gallery), encoding="utf-8")
+    (OUT / "sitemap.xml").write_text(sitemap(), encoding="utf-8")
     (OUT / "llms.txt").write_text(llms(), encoding="utf-8")
     (HERE / "preview.html").write_text(preview(css, js, mjs), encoding="utf-8")
     left = [m for f in ("index.html", "zh.html") for m in re.findall(r"\{\{\w+\}\}", (OUT / f).read_text(encoding="utf-8"))]

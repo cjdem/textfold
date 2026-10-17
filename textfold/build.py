@@ -3,7 +3,7 @@
   static  one self-contained file (python -m textfold export): CSS, JS, data and images all inside
 
 A page asks no other server for anything. Its fonts (Inter, Source Serif 4) and KaTeX are kept in textfold/web/vendor: the app
-serves them, a gallery keeps them beside its pages (assets), and a single file carries them inside.
+serves them, and a single file carries them inside.
 """
 import base64
 import io
@@ -28,8 +28,8 @@ def _data(f, kind):
 
 
 def fonts_head(base=None):
-    """The fonts, from base (the app's /static/vendor/, a gallery's assets/) or, with none, inside the page: there the
-    Latin faces only, the rest falling back to the system's."""
+    """The fonts, from base (the app's /static/vendor/) or, with none, inside the page: there the Latin faces only, the
+    rest falling back to the system's."""
     if base:
         return f'<link rel="stylesheet" href="{base}fonts/fonts.css">'
     css = (VENDOR / "fonts" / "fonts.css").read_text(encoding="utf-8")
@@ -84,21 +84,18 @@ def inline_images(doc, app=False):
                 b["html"] = b["html"].replace(f'src="{src}"', f'src="{uri}"')
 
 
-def payload(doc, app, katex=None, saved=None, pdf=None):
+def payload(doc, app, katex=None, saved=None):
     data = {k: doc[k] for k in ("meta", "atoms", "units", "chunks", "blocks", "bib", "edges", "alias")}
     data["app"] = app
     data["katex"] = katex   # where the reader finds KaTeX: a folder, "inside" the page, or nowhere (math stays as written)
-    if pdf:   # a gallery's page: its PDF and PDF.js beside it ({"file", "pdfjs"}, relative to the page)
-        data["pdfAt"] = pdf
     if saved:   # saved from the reader: its notes (kept apart from any other page's in the viewer's browser), its language
         data.update(saved)
     return json.dumps(data, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/")
 
 
-def page(doc, app=False, assets=None, saved=None, pdf=None):
-    """assets: for a static page published beside a folder holding web/vendor's fonts/ and katex/ (a gallery). saved:
-    a page the reader saved for themself ({"notes", "saved", "lang"}: the notes chosen, an id of the file, its language).
-    pdf: the paper's PDF beside a gallery's page, for the original pages next to the text ({"file", "pdfjs"})."""
+def page(doc, app=False, saved=None):
+    """saved: a page the reader saved for themself ({"notes", "saved", "lang"}: the notes chosen, an id of the file, its
+    language)."""
     inline_images(doc, app)
     t = (WEB / "template.html").read_text(encoding="utf-8")
     if app:
@@ -108,14 +105,14 @@ def page(doc, app=False, assets=None, saved=None, pdf=None):
                    '<script src="/static/card.js"></script><script src="/static/app.js"></script>')
         side, cls, katex = '<aside id="sidebar" class="collapsed"></aside>', "app", APP_ASSETS + "katex/"
     else:
-        head = fonts_head(assets) + f"<style>{(WEB / 'reader.css').read_text(encoding='utf-8')}</style>"
+        head = fonts_head() + f"<style>{(WEB / 'reader.css').read_text(encoding='utf-8')}</style>"
         scripts = f"<script>{(WEB / 'i18n.js').read_text(encoding='utf-8')}</script><script>{(WEB / 'reader.js').read_text(encoding='utf-8')}</script>"
-        side, cls, katex = "", "static", (assets + "katex/") if assets else None
-        if not assets and (_has_tex(doc) or (saved and saved.get("notes"))):   # (an answer's formulas need it too)
+        side, cls, katex = "", "static", None
+        if _has_tex(doc) or (saved and saved.get("notes")):   # (an answer's formulas need it too)
             head += _katex_inside()
             katex = "inside"
     return (t.replace("{{TITLE}}", escape(doc["meta"]["title"])).replace("{{HEAD}}", head).replace("{{CLASS}}", cls)
-             .replace("{{SIDEBAR}}", side).replace("{{SCRIPTS}}", scripts).replace("{{DATA}}", payload(doc, app, katex, saved, pdf)))
+             .replace("{{SIDEBAR}}", side).replace("{{SCRIPTS}}", scripts).replace("{{DATA}}", payload(doc, app, katex, saved)))
 
 
 def export(pid):

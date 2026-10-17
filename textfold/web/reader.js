@@ -210,7 +210,7 @@
   }
 
   // ── math the model wrote that matches no formula of the unit: KaTeX, from where the page keeps it (D.katex: the
-  //    app's or a gallery's folder, or "inside" the page), never from another server; without it, the source stays ──
+  //    app's folder, or "inside" the page), never from another server; without it, the source stays ──
   let katexReady = null, katexLib = window.katex || null;
   function loadKatex() {
     if (katexLib) return Promise.resolve(katexLib);
@@ -2778,8 +2778,7 @@ math { font-size: 1.05em; }
   //    on a paragraph shows where it is on its page; reading on carries the pages along; a click on a page goes to its
   //    paragraph ──
   const PDF_OK = (!!D.app && /^(\d{4}\.\d{4,5}|pmc\d+|ppr\d+|(biorxiv|medrxiv)-[0-9.]+|pdf-[0-9a-f]{16})$/.test(D.meta.id))   // (pdf.has_source)
-    || !!(D.pdf && D.pdfjs)   // a saved page that carries its PDF, and PDF.js to show it
-    || !!D.pdfAt;   // a gallery's page: the PDF and PDF.js beside it, on the same host
+    || !!(D.pdf && D.pdfjs);   // a saved page that carries its PDF, and PDF.js to show it
   const CMP_KEY = 'pf-compare';
   // the pane's width: dragged at its right edge (or with the arrow keys there) and kept for next time, the reader's place
   // held while the text reflows beside it; a double-click goes back to the default (46% of the window, at most 860 px)
@@ -2912,13 +2911,6 @@ math { font-size: 1.05em; }
         lib = await import(js(D.pdfjs.lib));
         lib.GlobalWorkerOptions.workerSrc = js(D.pdfjs.worker);
         data = Uint8Array.from(atob(D.pdf), (c) => c.charCodeAt(0));
-      } else if (D.pdfAt) {   // a gallery's page: the file and PDF.js next to it
-        const at = (p) => new URL(p, location.href).href;
-        lib = await import(at(`${D.pdfAt.pdfjs}pdf.min.mjs`));
-        lib.GlobalWorkerOptions.workerSrc = at(`${D.pdfAt.pdfjs}pdf.worker.min.mjs`);
-        const r = await fetch(at(D.pdfAt.file));
-        if (!r.ok) throw Object.assign(new Error('no pdf'), { open: D.meta.abs_url });
-        data = new Uint8Array(await r.arrayBuffer());
       } else {
         lib = await import('/static/vendor/pdfjs/pdf.min.mjs');
         lib.GlobalWorkerOptions.workerSrc = '/static/vendor/pdfjs/pdf.worker.min.mjs';

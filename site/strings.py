@@ -20,8 +20,6 @@ S = {
 
     "nav_download": ('Download',
         '下载'),
-    "nav_gallery": ('Gallery',
-        '在线试用'),
     "nav_pipe": ('Pipeline',
         '接入流程'),
     "nav_docs": ('Docs',
@@ -38,11 +36,6 @@ S = {
         '复制'),
     "copied": ('Copied',
         '已复制'),
-
-    # the paragraph that folds (demo.json: a real paper, its real levels)
-
-
-
 
     "pipe_h": ('Embed it in your pipeline',
         '嵌进你的流程'),
@@ -88,8 +81,6 @@ S = {
         '格式'),
     "foot_releases": ('Releases',
         '所有版本'),
-    "foot_demo": ('Demo gallery',
-        '在线试用'),
     "notes": ('Release notes',
         '更新说明'),
     "cta_py": ('Embed it in your pipeline',
@@ -104,9 +95,6 @@ S = {
     "cta_py_sub": ('python3 -m pip install textfold',
         'python3 -m pip install textfold'),
 
-    "video_cap": ('Five levels of one paper, in the app.',
-        '一篇论文的五个层级，在软件里切换。'),
-
     "dl_h": ('Get TextFold',
         '获取 TextFold'),
     "apps_h": ('Or read in the app',
@@ -119,18 +107,6 @@ S = {
         '暂未签名：第一次打开时点“更多信息”，再点“仍要运行”。'),
     "dl_btn_exe": ('Download installer',
         '下载安装程序'),
-    "see_h": ('See it work',
-        '看它怎么用'),
-    "clip02": ('Read beside the original PDF',
-        '原文 PDF 就在旁边'),
-    "clip04": ('Keep the passages you marked',
-        '标过的地方，折起来也在'),
-    "clip03": ('Your text and interface, in your language',
-        '正文和界面，一起换语言'),
-    "clip06": ('Read a Word document at different levels',
-        'Word 文档也能分层读'),
-    "credit": ('The recordings read <a href="https://arxiv.org/abs/2512.23916">Constraint Breeds Generalization</a> (Xia Chen, arXiv:2512.23916); the Word document was written for the demo.',
-        '录屏读的是 <a href="https://arxiv.org/abs/2512.23916">Constraint Breeds Generalization</a>（Xia Chen，arXiv:2512.23916）；Word 文档是专为演示写的。'),
     "readme_line": ('The <a href="https://github.com/chenxiachan/textfold#readme">README</a> has the rest: every source it reads, every key, every model.',
         '其余的都在 <a href="https://github.com/chenxiachan/textfold/blob/main/README.zh-CN.md">README</a> 里：能读的所有来源、所有快捷键、所有模型。'),
     # the opening's typed line (ascii.rest's typewriter): what can be folded

@@ -1,2 +1,0 @@
-# For tools/gallery.py, besides requirements.txt: pikepdf makes a large PDF smaller before it goes online
-pikepdf>=9

@@ -22,7 +22,7 @@
 **Paste a link:** any web page · arXiv · PubMed Central · bioRxiv · medRxiv · Wikipedia · GitHub<br>
 **Drop a file:** PDF · Word · PowerPoint · Excel · EPUB · HTML · CSV · pictures · Markdown · text
 
-**[Try the demo →](https://chenxiachan.github.io/textfold/gallery/)** or **[download the app ↓](#get-started)** · [What's new ↓](#whats-new)
+**[Download the app ↓](#get-started)** · [What's new ↓](#whats-new)
 
 <br>
 

@@ -1,13 +1,11 @@
-# The website, https://chenxiachan.github.io/textfold/: the download page in English and Chinese (site/build.py), and
-# the gallery at gallery/, taken from its own repository (github.com/chenxiachan/paperfold-gallery), which keeps the
-# papers' text and their proofreading apart from the code. The clips' videos stay out of git: they are the files of that
-# repository's release site-clips, their posters in docs/assets. Built and served by GitHub Pages when the site, the
-# posters or this file change on main; after the gallery or the clips change, run it by hand (Actions › site › Run workflow).
+# The website, https://chenxiachan.github.io/textfold/: the download, install and usage page in English and Chinese
+# (site/build.py). Built and served by GitHub Pages when the site or this file changes on main; run it by hand
+# (Actions › site › Run workflow) after other changes.
 name: site
 on:
   push:
     branches: [main]
-    paths: ['site/**', 'docs/assets/**', '.github/workflows/site.yml']
+    paths: ['site/**', '.github/workflows/site.yml']
   workflow_dispatch:
 
 permissions:
@@ -24,18 +22,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/checkout@v4
-        with:
-          repository: chenxiachan/paperfold-gallery
-          path: gallery
-      - name: The clips
-        run: gh release download site-clips -R chenxiachan/paperfold-gallery -p '*.mp4' -D docs/assets --clobber
-        env:
-          GH_TOKEN: ${{ github.token }}
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - run: python3 site/build.py --gallery gallery
+      - run: python3 site/build.py
       - uses: actions/upload-pages-artifact@v3
         with:
           path: site/dist

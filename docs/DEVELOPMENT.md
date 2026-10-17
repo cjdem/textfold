@@ -56,25 +56,6 @@ The app (`desktop/`, see its README): an Electron window around the same server,
 `.github/workflows/desktop.yml` when a version is tagged, beside the package for PyPI; both workflows are parked in
 `.github/workflows-disabled/` until builds are wanted again (GitHub runs only `.github/workflows/`).
 
-A gallery for a free static host: `tools/gallery.json` lists one paper per field, each with its field and a line on
-why it is worth reading in every gallery language (en, zh). `python tools/gallery.py --make <model>` generates
-what the list lacks in a folder of its own (`out/gallery/papers`; a paper already in the library starts from there,
-without its notes), and `python tools/gallery.py` writes `out/gallery/site/`: an index in both languages and
-each paper's static reader, opened at the Topic level. A paper with a PDF (an arXiv paper) gets it beside its page, with
-PDF.js in `assets/`, so Original shows its typeset pages there as in the app; a PDF over 4 MB has its large pictures
-made smaller with pikepdf (`pip install -r tools/requirements-gallery.txt`; fonts and text untouched), and without it
-the build stops rather than put the whole PDF online. Only
-papers whose license lets anyone share a derivative go in
-(CC BY, BY-SA, BY-NC, BY-NC-SA, CC0); `"consent": true` adds a paper whose authors agree. Before a paper goes public its text is proofread:
-`--review` writes each paper's sentences and levels in every language to `out/gallery/review/`, and the corrections go
-in `out/gallery/fixes/<id>.json`, which the build puts through the same assembly as the model's replies (only the
-corrected fields change; the generated layers stay as they are). The corrections hold the papers' text, so they live in
-the gallery's own repository, github.com/chenxiachan/paperfold-gallery (`fixes/`), not here; the build stops when a
-paper's corrections are missing (`--unproofread` builds without them, for a look only). The gallery is served with the
-website, at https://chenxiachan.github.io/textfold/gallery/: copy `out/gallery/site` and `out/gallery/fixes` into that
-repository's clone (`out/gallery/deploy`) and push, then run the website's workflow (Actions › site › Run workflow,
-after `site.yml` is moved back from `.github/workflows-disabled/`), which takes the gallery from there. The repository's own Pages keeps its old address, each page sending on to its new one.
-
 Models (⚙ Model & API), ported from ThoughtDAG's model access:
 
 - **Agents on this computer**, found at startup (and on Rescan) on PATH, the usual install
@@ -346,8 +327,8 @@ so that nothing calls a model by accident. Without a model a document is still f
 ## No other server
 
 A page asks no other server for anything: no font service, no CDN. The fonts (Inter, Source Serif 4, as woff2 subsets)
-and KaTeX live in `textfold/web/vendor/`. The app serves them from `/static/vendor/`; a gallery copies them into its `assets/`
-beside the pages; a single exported file carries the Latin faces inside, and KaTeX too when the model wrote math that
+and KaTeX live in `textfold/web/vendor/`. The app serves them from `/static/vendor/`; a single exported file carries the
+Latin faces inside, and KaTeX too when the model wrote math that
 matches no formula of the paper. (Loading Google Fonts sends a visitor's IP address to Google, which a German court
 found unlawful without consent in 2022.)
 
@@ -415,7 +396,6 @@ desktop/       the app (its README): Electron around the same server, with its o
                 checks that Python before it ships (.github/workflows/desktop.yml)
 tools/zoombench.py  zoom smoothness as the screen sees it (Windows' d3d11 GPU backend, 2x, Chrome's frame trace), on
                 out/compare/<id>/ pages; needs playwright and an exported page
-tools/readme_assets.py  the README's pictures, made from a real paper in the reader
 ```
 
 Atoms (formulas, citations, cross-references, footnotes) are numbered in reading order, and the stored layers name

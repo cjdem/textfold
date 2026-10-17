@@ -1,4 +1,4 @@
-/* A reading column for the words, wider bands for what moves: the name in block letters, the app in the demo, the
+/* A reading column for the words, wider bands for what moves: the name in block letters, the app, the
    downloads. Everything is TextFold's own: its paper ground, its violet, the mark's orange stroke, its three faces
    (Inter for the interface, Source Serif for what is read, JetBrains Mono for code), as textfold/web/reader.css sets them. */
 :root {
@@ -69,12 +69,6 @@ main > section.wrap { padding-block: 80px 0; }
 .copy { font: 600 12.5px var(--sans); padding: 5px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; }
 .copy:hover { border-color: var(--accent); }
 
-.demo { max-width: calc(var(--wide) + 2 * var(--gutter)); margin: 8px auto 0; padding-inline: var(--gutter); }
-.frame { border: 1px solid var(--line); border-radius: 16px; overflow: hidden; background: var(--card); box-shadow: var(--shadow); }
-.frame video { width: 100%; }
-.demo figcaption { margin-top: 12px; font-size: 14px; color: var(--muted); }
-.demo figcaption a { color: var(--muted); }
-
 /* ── downloads ───────────────────────────── */
 .band { margin-top: 88px; padding-block: 64px; background: var(--card); border-block: 1px solid var(--line-2); }
 .cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
@@ -100,14 +94,6 @@ main > section.wrap { padding-block: 80px 0; }
 .which em { font-style: normal; font-family: var(--mono); font-size: .9em; color: var(--ink); }
 .meta { margin: 8px 0 0; font-size: 13.5px; color: var(--muted); }
 
-/* ── see it work ─────────────────────────── */
-.clips { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px 20px; }
-.clips figure { margin: 0; }
-.clips video { width: 100%; border: 1px solid var(--line); border-radius: 12px; background: var(--card); }
-.clips figcaption { margin-top: 8px; font-size: 15px; font-weight: 550; color: var(--ink); }
-#credit { margin-top: 18px; }
-#credit a { color: var(--muted); }
-
 /* ── questions ───────────────────────────── */
 .faq { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 26px 36px; }
 .faq h3 { font-family: var(--serif); font-size: 19px; font-weight: 600; }
@@ -122,14 +108,14 @@ main > section.wrap { padding-block: 80px 0; }
   .logo-fig { display: none; }
   }
 @media (max-width: 860px) {
-  .cards, .card.wide, .clips, .faq { grid-template-columns: minmax(0, 1fr); }
+  .cards, .card.wide, .faq { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 620px) {
   :root { --gutter: 16px; }
   .nav { gap: 10px; }
   .nav nav { gap: 2px; }
   .nav nav a { font-size: 13.5px; padding: 6px 7px; }
-  .nav nav .opt { display: none; }   /* a phone keeps the gallery: the downloads open the page */
+  .nav nav .opt { display: none; }   /* a phone keeps the brand, GitHub and the language switch */
   .hero { padding-top: 40px; }
   }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .cta { transition: none; } }
