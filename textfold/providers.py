@@ -11,6 +11,8 @@ Every provider except Anthropic is spoken to through the OpenAI-compatible proto
 import json
 import os
 import re
+import threading
+import time
 import urllib.error
 import urllib.request
 from pathlib import Path
@@ -133,13 +135,33 @@ def ui_providers(settings):
     return out
 
 
-def ollama_models(base="http://localhost:11434"):
-    """What a running Ollama has pulled ([] when it is not running)."""
+_OLLAMA = {"at": 0.0, "ids": []}
+_OLLAMA_PROBING = threading.Lock()
+
+
+def _ollama_probe(base):
     try:
-        with urllib.request.urlopen(f"{base.rstrip('/')}/api/tags", timeout=1.5) as r:
-            return [m["name"] for m in json.loads(r.read()).get("models", [])]
-    except Exception:
-        return []
+        try:
+            with urllib.request.urlopen(f"{base.rstrip('/')}/api/tags", timeout=1.5) as r:
+                ids = [m["name"] for m in json.loads(r.read()).get("models", [])]
+        except Exception:
+            ids = []
+        _OLLAMA.update(at=time.time(), ids=ids)
+    finally:
+        _OLLAMA_PROBING.release()
+
+
+def ollama_models(base="http://localhost:11434"):
+    """What a running Ollama has pulled ([] when it is not running, and [] until the first background probe answers).
+    A probe to a closed local port is not instant on every computer (a firewall may drop it rather than refuse it), so
+    a page gets the last answer at once and the probe is made in the background; `localhost` finds a daemon on either
+    loopback address, and 1.5 s is long enough for one that is busy."""
+    if time.time() - _OLLAMA["at"] >= 10 and _OLLAMA_PROBING.acquire(blocking=False):
+        try:
+            threading.Thread(target=_ollama_probe, args=(base,), daemon=True).start()
+        except Exception:
+            _OLLAMA_PROBING.release()   # (no thread: the last answer stands, and the next call tries again)
+    return list(_OLLAMA["ids"])
 
 
 def probe(base, api_key, timeout=15):

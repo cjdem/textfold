@@ -422,10 +422,12 @@ def listed():
 
 def landing_page(jobs):
     s = models.load_settings()
-    chosen = models.default_model(s)
-    ask = models.ask_choice(s)[0]
-    boot = {"papers": listed(), "folders": library.folders(), "jobs": jobs.list(), "model": models.label(chosen, s) if chosen else "",
-            "askName": models.label(ask, s) if ask and ask != chosen else "",
+    cat, _ = models.catalog(s)   # once: building it probes the computer's own model servers, and four builds made the page take seconds
+    chosen = models.default_model(s, cat)
+    ask = models.ask_choice(s, cat)[0]
+    name = lambda mid: next((m["name"] for m in cat if m["id"] == mid), mid or "")
+    boot = {"papers": listed(), "folders": library.folders(), "jobs": jobs.list(), "model": name(chosen) if chosen else "",
+            "askName": name(ask) if ask and ask != chosen else "",
             "bridge": bridges.bridge_status(), "langs": [[code, v[1]] for code, v in langs.LANGS.items()]}
     t = (build.WEB / "app.html").read_text()
     return t.replace("{{HEAD}}", build.fonts_head(build.APP_ASSETS)).replace("{{BOOT}}", json.dumps(boot, ensure_ascii=False).replace("</", "<\\/"))

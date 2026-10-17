@@ -17,6 +17,7 @@ import secrets
 import shutil
 import subprocess
 import tempfile
+import threading
 import time
 import urllib.parse
 import urllib.request
@@ -31,20 +32,44 @@ AUTH_URL = "https://openrouter.ai/auth"
 EXCHANGE_URL = "https://openrouter.ai/api/v1/auth/keys"
 _OR = {}   # the authorisation under way: verifier, back (where to return), minted (the key, until saved)
 _SEEN = {"at": 0.0, "status": None}   # the bridge's last status, asked for again after a few seconds
+_PROBING = threading.Lock()           # one probe at a time, in the background
 
 
-def bridge_status(fresh=False):
-    if not fresh and _SEEN["status"] is not None and time.time() - _SEEN["at"] < 5:
-        return _SEEN["status"]
+def _probe():
     try:
         with urllib.request.urlopen(f"{BRIDGE}/models", timeout=2) as r:
             ids = [m.get("id") for m in json.loads(r.read()).get("data", []) if m.get("id")]
-        st = {"running": True, "models": ids}
+        return {"running": True, "models": ids}
     except Exception:
         npx = shutil.which("npx", path=agents.child_env()["PATH"])
-        st = {"running": False, "node": bool(npx), "codexLogin": (Path.home() / ".codex" / "auth.json").exists()}
-    _SEEN.update({"at": time.time(), "status": st})
-    return st
+        return {"running": False, "node": bool(npx), "codexLogin": (Path.home() / ".codex" / "auth.json").exists()}
+
+
+def _refresh(started):
+    try:
+        status = _probe()
+        if started >= _SEEN["at"]:   # (a fresh check that finished meanwhile is newer: keep its answer)
+            _SEEN.update({"at": time.time(), "status": status})
+    finally:
+        _PROBING.release()
+
+
+def bridge_status(fresh=False):
+    """Whether the bridge is running and what it serves. An answer a few seconds old is returned at once and the probe
+    is made in the background: a probe to a closed local port waits for its whole timeout on some computers (the
+    landing page must not wait with it). `fresh` asks now — the settings dialog and a start button need the truth;
+    its answer stands even if a slower probe was already on its way."""
+    if fresh:
+        _SEEN.update({"at": time.time(), "status": _probe()})
+        return _SEEN["status"]
+    if time.time() - _SEEN["at"] >= 5 and _PROBING.acquire(blocking=False):
+        started = time.time()
+        try:
+            threading.Thread(target=_refresh, args=(started,), daemon=True).start()
+        except Exception:
+            _PROBING.release()   # (no thread: the last answer stands, and the next call tries again)
+    return _SEEN["status"] or {"running": False, "node": bool(shutil.which("npx", path=agents.child_env()["PATH"])),
+                               "codexLogin": (Path.home() / ".codex" / "auth.json").exists()}
 
 
 def bridge_provider(text_only):

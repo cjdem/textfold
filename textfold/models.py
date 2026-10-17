@@ -9,6 +9,7 @@ reader's choice, else Claude Code's sonnet when Claude Code is here, else the fi
 import json
 import os
 import shutil
+import time
 
 from . import agents, bridges, providers
 from .store import HOME, OLD_HOMES
@@ -62,11 +63,24 @@ def save_settings(s):
     # ASCII-escaped, UTF-8: a provider's name may hold a character GBK lacks, and ensure_ascii=False failed the save
     SETTINGS.write_text(json.dumps(s, indent=1), encoding="utf-8")
     os.chmod(SETTINGS, 0o600)
+    _clear_provider_cache()   # (a provider that was just added or removed is in the next list, not ten seconds later)
+
+
+_PROVIDERS = {"key": None, "at": 0.0, "rows": []}   # (a page asks more than once; the probes below are not free)
+
+
+def _clear_provider_cache():
+    _PROVIDERS.update(key=None, at=0.0, rows=[])
 
 
 def provider_list(s):
     if os.environ.get("TEXTFOLD_NO_MODELS"):   # (agents.scan): no provider, no bridge
         return []
+    key = json.dumps([s.get("providers"), s.get("use_thoughtdag_env", True),
+                      providers.environment(s.get("use_thoughtdag_env", True)), providers.ollama_models(), bridges.bridge_status()],
+                     sort_keys=True, default=str)
+    if _PROVIDERS["key"] == key and time.time() - _PROVIDERS["at"] < 10:
+        return _PROVIDERS["rows"]   # (the same rows for a moment; the key carries the env and the local servers' answers)
     env = providers.env_providers(s.get("use_thoughtdag_env", True), providers.ollama_models())
     ui = []
     for p in providers.ui_providers(s):
@@ -78,7 +92,9 @@ def provider_list(s):
     bridge = bridges.bridge_provider(providers.NOT_TEXT)
     if bridge and not any(p["base"].rstrip("/") == bridges.BRIDGE for p in ui):
         env.append(bridge)
-    return env + ui
+    rows = env + ui
+    _PROVIDERS.update(key=key, at=time.time(), rows=rows)
+    return rows
 
 
 def catalog(s=None):
@@ -159,8 +175,3 @@ def ask_spec(s=None):
     model_id, effort = ask_choice(s)
     spec = resolve(model_id, s)
     return {**spec, "effort": effort} if effort else for_task(spec, "ask", s)
-
-
-def label(model_id, s=None):
-    cat, _ = catalog(s)
-    return next((m["name"] for m in cat if m["id"] == model_id), model_id or "")
