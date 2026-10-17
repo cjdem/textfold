@@ -305,13 +305,6 @@ UI = {
            "foot": "论文属于原作者，沿用作者的许可协议，标在每篇标题下方。TextFold 与作者没有隶属关系；各层级、链接和译文由 AI 生成。",
            "takedown": "作者如希望撤下论文，请{issue}。", "issue": "提交 issue",
            "made": "由 {me} 用 {pf} 制作。"},
-    "de": {"name": "DE", "lede": "Wegweisende Arbeiten aus {n} Fachgebieten{extra} zum Auf- und Zufalten. Jede öffnet als Karte ihrer Abschnitte auf einem Bildschirm. Mit zwei Fingern zoomen oder 1 bis 5 drücken, und es geht von der Karte bis zu jedem Wort.",
-           "extra": ", dazu ein Wikipedia-Artikel und ein GitHub-README,",
-           "own": "Jede Arbeit, jeden Artikel und jedes README selbst mit TextFold auffalten", "consent": "mit Zustimmung des Autors geteilt",
-           "open": "Karte öffnen", "orig": "Originaltitel: ",
-           "foot": "Die Arbeiten gehören ihren Autorinnen und Autoren und behalten deren Lizenz, genannt unter jedem Titel. TextFold ist mit ihnen nicht verbunden; Ebenen, Verweise und Übersetzungen hat KI erstellt.",
-           "takedown": "Autorinnen und Autoren, die eine Arbeit entfernen lassen möchten: {issue}.", "issue": "Issue eröffnen",
-           "made": "Erstellt von {me} mit {pf}."},
 }
 
 
@@ -368,7 +361,7 @@ def index(cards, want):
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>TextFold Gallery</title>
 <link rel="canonical" href="{SITE}gallery/">
-<meta name="description" content="Landmark papers from {n} fields in TextFold: fold any paper from every word to a one-screen map, in English, Chinese and German.">
+<meta name="description" content="Landmark papers from {n} fields in TextFold: fold any paper from every word to a one-screen map, in English and Chinese.">
 <style>
 :root {{ --bg: #FAF9F7; --card: #ffffff; --ink: #1f1d1a; --muted: #6b6558; --line: #e6e1d8; --accent: #6B5CE7; --soft: #efedfd; --warm: #E08A3C; }}
 @media (prefers-color-scheme: dark) {{ :root {{ --bg: #17161a; --card: #1f1e23; --ink: #ece9f1; --muted: #a29fae; --line: #34323a; --accent: #a99ffb; --soft: #2a2740; --warm: #e8a35f; color-scheme: dark; }} }}

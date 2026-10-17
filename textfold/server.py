@@ -113,7 +113,8 @@ class Jobs:
                 w = json.loads(side.read_text())
                 f = side.parent / Path(w.get("file") or side.stem + ".pdf").name
                 if f.exists() and not (store.pdir(f.stem) / "meta.json").exists():
-                    self.pending[f.stem] = (str(f), w["name"], w["lang"])
+                    lang = w["lang"] if w["lang"] in langs.LANGS else "en"   # (a sidecar written before a language was removed)
+                    self.pending[f.stem] = (str(f), w["name"], lang)
             except (OSError, ValueError, KeyError, AttributeError):
                 pass
         threading.Thread(target=self.work, daemon=True).start()
@@ -622,7 +623,8 @@ def make_handler(jobs):
                     if not engine.readable(engine.kind_of(src) or "pdf"):
                         return self.json({"error": "needs-engine"}, 409)
                     name = json.loads((store.pdir(pid) / "meta.json").read_text()).get("source", {}).get("name") or "document.pdf"
-                    return self.json(jobs.convert(pid, src, name, body.get("lang") or "en", tier, replace=True))
+                    lang = body.get("lang") if body.get("lang") in langs.LANGS else "en"
+                    return self.json(jobs.convert(pid, src, name, lang, tier, replace=True))
                 if u.path == "/api/jobs/stop":
                     job = jobs.stop(body.get("id", ""))
                     return self.json(job) if job else self.json({"error": "no such job"}, 404)

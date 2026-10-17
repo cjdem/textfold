@@ -35,7 +35,7 @@ platform code should say what functionality goes with it.
 
 ## Working here
 
-- **Tests:** `python -m unittest discover tests` — 118 tests, about seven
+- **Tests:** `python -m unittest discover tests` — 123 tests, about seven
   seconds, needing nothing beyond `requirements.txt` and touching none of your
   papers. `python .claude/hooks/verify.py` runs the same suite, finding the right
   interpreter (this machine keeps its dependencies in `.venv`, not in the system

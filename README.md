@@ -63,7 +63,7 @@ Your agent writes more than you have time to read. A [Claude Code mod](https://c
 - **Ask AI about exactly what you read.** Select a passage, or ask about the whole text. The answer comes structured: the short answer first, then the evidence, each point citing the paragraph it rests on, one click away.
 - **Notes that zoom with the text.** Highlight and write in the margin; what you marked stays as you zoom out, and is saved with the page.
 
-- **Your language.** Twelve languages, translated sentence by sentence, with every formula as typeset.
+- **Your language.** English and Simplified Chinese, translated sentence by sentence, with every formula as typeset.
 
 - **Your library, in order.** Search it with Ctrl+K, keep documents in folders (drag one in, or right-click it), and list it by kind, by when each came in, or by when you last opened it.
 

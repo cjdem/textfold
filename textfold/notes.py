@@ -143,6 +143,8 @@ def prompt(doc, note, question, lang, earlier=(), ui=None):
     far, and the paragraphs it may cite. Paragraphs go by short numbers ([12]), which the answer cites inline and
     ask() turns back into paragraph ids: a number is copied right far more often than an id like S3.SS2.p4.1.
     Returns the prompt and the numbers: {"12": "S3.SS2.p4.1", ...}."""
+    if lang not in langs.LANGS:   # (a note written before a language was removed)
+        lang = "en"
     nums = {}
     tag = lambda uid: nums.setdefault(uid, str(len(nums) + 1))  # noqa: E731
     a = note["anchor"]
@@ -295,6 +297,7 @@ def ask(pid, nid, question, spec, timeout=300, ui=None, req=None):
         raise ValueError("no such note")
     done = [t for t in turns(note) if t.get("a")]   # answered turns (a pending or failed one is being asked again)
     lang = next((t.get("lang") for t in turns(note) if t.get("lang")), None) or note["anchor"].get("lang") or "en"
+    lang = lang if lang in langs.LANGS else "en"   # (a note written before a language was removed)
     text, nums = prompt(doc, note, question, lang, done[-6:], ui if ui in langs.LANGS else None)
     rec, _ = llm.call(text, ASK_SCHEMA, spec, store.pdir(pid) / "llm-cache", timeout=timeout, system=kinds.adapt(SYSTEM_ASK, doc["meta"]))
     out = rec["out"]

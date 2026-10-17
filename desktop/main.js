@@ -203,12 +203,10 @@ function setupUpdates() {
 
 // The menu: the system's own, with Check for Updates (in Help) and the project on GitHub. Its words follow the
 // system's language, as the rest of the menu does.
-const CHECK = { en: 'Check for Updates…', zh: '检查更新…', 'zh-Hant': '檢查更新…', ja: 'アップデートを確認…', ko: '업데이트 확인…',
-  es: 'Buscar actualizaciones…', fr: 'Rechercher des mises à jour…', de: 'Nach Updates suchen …', pt: 'Procurar atualizações…',
-  it: 'Cerca aggiornamenti…', ru: 'Проверить обновления…', hi: 'अपडेट देखें…' };
+const CHECK = { en: 'Check for Updates…', zh: '检查更新…' };
 function menu(byHand) {
   const loc = app.getLocale();
-  const label = CHECK[/^zh-(TW|HK|MO)|Hant/i.test(loc) ? 'zh-Hant' : loc.split('-')[0]] || CHECK.en;
+  const label = CHECK[/^zh/i.test(loc) ? 'zh' : loc.split('-')[0]] || CHECK.en;
   const check = { label, click: async () => { const r = await byHand(); if (r && r.kind !== 'available' && r.kind !== 'downloading' && r.kind !== 'ready') answer(r); } };
   const github = { label: 'TextFold on GitHub', click: () => shell.openExternal(REPO) };
   Menu.setApplicationMenu(Menu.buildFromTemplate([

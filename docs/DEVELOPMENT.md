@@ -33,8 +33,8 @@ The landing takes a link or ID (arXiv, PubMed Central, Europe PMC, bioRxiv, medR
 file (the dashed box under the bar, or dropped anywhere on the page), and a language; a line under the bar names
 the sources it reads; the sidebar lists every paper generated so far. In a paper,
 the language menu switches between generated languages, generates a new one, or regenerates the current one.
-One language, the reader's (12 languages: English, 简体中文, 繁體中文, 日本語, 한국어, Español, Français, Deutsch,
-Português, Italiano, Русский, हिन्दी): the browser's, or the one last chosen (kept in the browser, `pf-ui-lang`). The
+One language, the reader's (two languages: English, 简体中文 — `langs.LANGS` is the list): the browser's, or the
+one last chosen (kept in the browser, `pf-ui-lang`). The
 interface speaks it, and a paper is read in it: its text, and the names of its own parts (figures, tables, theorems,
 references, equations). A switch of either is a switch of both: the paper's menu at the top right, a language
 generated there, Settings, or the two menus of the landing. A paper that has not that language yet opens in one it
@@ -42,6 +42,9 @@ has, and the interface stays; nothing is generated unasked but one: an English d
 Chinese version by default, at the end of the generation of whichever language was asked for (`pipeline.generate`'s
 `also_zh`, which the app passes and the command line does not), so an English paper is readable in Chinese without a
 second request. A question is answered in the language it is asked in, the interface's when that is unclear.
+A translation of any other language, stored before the reader offered only these two, stays on disk but is neither
+listed nor read (`store.languages` filters by `langs.LANGS`, and `pipeline.generate` refuses such a language); nothing
+deletes it.
 
 Where things are kept: the code in the project (`textfold/`, with the reader's pages in `textfold/web/`); papers and exports in `papers/` and `out/` of the
 project, or wherever `TEXTFOLD_DATA` points (`PAPERFOLD_DATA`, its earlier name, is read too); settings and keys in
@@ -52,9 +55,9 @@ The app (`desktop/`, see its README): an Electron window around the same server,
 `.github/workflows/desktop.yml` when a version is tagged, beside the package for PyPI.
 
 A gallery for a free static host: `tools/gallery.json` lists one paper per field, each with its field and a line on
-why it is worth reading in every gallery language (en, zh, de). `python tools/gallery.py --make <model>` generates
+why it is worth reading in every gallery language (en, zh). `python tools/gallery.py --make <model>` generates
 what the list lacks in a folder of its own (`out/gallery/papers`; a paper already in the library starts from there,
-without its notes), and `python tools/gallery.py` writes `out/gallery/site/`: an index in the three languages and
+without its notes), and `python tools/gallery.py` writes `out/gallery/site/`: an index in both languages and
 each paper's static reader, opened at the Topic level. A paper with a PDF (an arXiv paper) gets it beside its page, with
 PDF.js in `assets/`, so Original shows its typeset pages there as in the app; a PDF over 4 MB has its large pictures
 made smaller with pikepdf (`pip install -r tools/requirements-gallery.txt`; fonts and text untouched), and without it
@@ -122,7 +125,7 @@ Models (⚙ Model & API), ported from ThoughtDAG's model access:
 Command line, without the server:
 
 ```bash
-python -m textfold 2512.23916 --lang zh --lang ja   # generate English + translations, then export
+python -m textfold 2512.23916 --lang zh              # generate English + Simplified Chinese, then export
 python -m textfold export 2512.23916                # one self-contained HTML file in out/<id>/
 ```
 
@@ -366,7 +369,7 @@ textfold/zotero.py   a Zotero library through Zotero Desktop's local API; an ite
 textfold/tokens.py   tokenizer, sentence splitter, LCS alignment
 textfold/ladder.py   one model call per section; validation; written words aligned to source words for the morph
 textfold/links.py    argument links, one call over the whole paper
-textfold/translate.py  any language: sentence-aligned translation + short levels, one call per section (langs.py: the 12 languages)
+textfold/translate.py  a language the reader offers: sentence-aligned translation + short levels, one call per section (langs.py: English and Simplified Chinese)
 textfold/store.py    versioned layers per paper; assembling a reader from them
 textfold/pipeline.py fetch → parse → English ladder + links (once) → translation, with progress
 textfold/server.py   local server: pages, /api/papers, /api/jobs (and /api/jobs/stop), /api/generate, /api/settings

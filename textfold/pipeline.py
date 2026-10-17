@@ -6,7 +6,7 @@ so the same generation started again goes on from there.
 """
 import urllib.error
 
-from . import biorxiv, epmc, github, ladder, links, llm, models, store, translate, webpage, wiki
+from . import biorxiv, epmc, github, ladder, langs, links, llm, models, store, translate, webpage, wiki
 from .fetch import fetch
 
 
@@ -22,6 +22,9 @@ def _wants_zh(en, tr):
 
 
 def generate(ref, lang, cfg, force=False, jobs=4, progress=lambda *a: None, log=lambda *a: None, stop=None, also_zh=False):
+    if lang not in langs.LANGS:
+        raise RuntimeError(f"unknown language {lang}: " + ", ".join(langs.LANGS))
+
     def check():
         if stop is not None and stop.is_set():
             raise llm.Stopped()

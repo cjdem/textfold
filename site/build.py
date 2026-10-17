@@ -32,7 +32,7 @@ IX = {"en": 0, "zh": 1}
 PAGE = {"en": SITE, "zh": SITE + "zh.html"}
 HTML_LANG = {"en": "en", "zh": "zh-CN"}
 LOCALE = {"en": "en_US", "zh": "zh_CN"}
-UI_LANGS = ["en", "zh-CN", "zh-TW", "ja", "ko", "es", "fr", "de", "pt", "it", "ru", "hi"]
+UI_LANGS = ["en", "zh-CN"]
 # the preview's only: an artifact may load fonts from Google Fonts alone, so it takes the same two faces from there
 FONTS = "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600&display=swap"
 esc = html.escape
@@ -101,7 +101,7 @@ def app_ld(lang):
         "image": SITE + "assets/og.png",
         "screenshot": SITE + "assets/og.png",
         "featureList": ["Five levels per paragraph, from a map of the sections to every word", "Reads beside the original PDF",
-                        "Answers about what you read, citing its paragraphs", "Notes that stay as you zoom out", "Twelve languages",
+                        "Answers about what you read, citing its paragraphs", "Notes that stay as you zoom out", "English and Simplified Chinese",
                         "Folds an agent's replies in Claude Code", "Gives agents a document one level at a time (python3 -m textfold get)"],
         "keywords": "AI output, agent output, AI infrastructure, reading, research papers, PDF reader, sources, Claude Code, Codex, Zotero",
         "author": {"@type": "Person", "name": "Xia Chen", "url": "https://github.com/chenxiachan"},
@@ -180,7 +180,7 @@ Models and agents now write more than people can read. TextFold keeps the whole 
 - Five levels per paragraph. Full and Brief keep the author's own words; Key, Takeaway and Topic are written by a model, each line anchored to the author's sentences it rests on.
 - Reads arXiv, PubMed Central, bioRxiv, medRxiv, DOIs whose full text is open in Europe PMC, Wikipedia, GitHub READMEs, any web page, PDF, Word, PowerPoint, Excel, EPUB, HTML, CSV, pictures, Markdown, text, and a Zotero 7 library.
 - Uses a model the reader already has: Claude Code, Codex or Pi on the computer, a ChatGPT plan, free models on OpenRouter, or an API key (Anthropic, OpenAI, DeepSeek, Qwen, Zhipu GLM, Kimi, MiniMax, Google, Ollama, any OpenAI-compatible endpoint).
-- Twelve languages, translated sentence by sentence: {LANGS_NATIVE}.
+- Two languages, translated sentence by sentence: {LANGS_NATIVE}.
 - The library stays on the reader's computer, and there is no account.
 - Systems: Windows 10 and 11 (64-bit), and any system with Python 3.9 or newer (the Python package). Current version: {VERSION}.
 

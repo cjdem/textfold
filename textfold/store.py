@@ -17,7 +17,7 @@ import re
 import time
 from pathlib import Path
 
-from . import ladder
+from . import ladder, langs
 from .fetch import paper_id
 from .parse import parse
 
@@ -164,8 +164,10 @@ def apply_tr(doc, lang, tr):
 
 
 def languages(pid):
+    """The translations a paper has, in the languages the reader offers: a translation of a language it no longer
+    offers stays on disk, but is neither listed nor read (langs.LANGS says which are offered)."""
     d = pdir(pid) / "layers"
-    return sorted(f.stem[3:] for f in d.glob("tr-*.json")) if d.exists() else []
+    return sorted(f.stem[3:] for f in d.glob("tr-*.json") if f.stem[3:] in langs.LANGS) if d.exists() else []
 
 
 def parsed(pid):

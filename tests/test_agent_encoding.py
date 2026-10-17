@@ -184,7 +184,7 @@ class Saved(unittest.TestCase):
         store.DATA = self.old
 
     def test_a_layer_in_a_language_gbk_lacks_is_saved(self):
-        # Korean and Hindi are offered languages (langs.py) and are not in GBK at all
+        # Korean and Hindi are characters GBK has none of: a layer or a setting holding them must still save
         data = {"version": "t", "model": "m", "translation": {"units": {"u1": "한국어 ⟦a1⟧"}}}
         store.write("web-ko", "ko", data)
         self.assertEqual(store.read("web-ko", "ko"), data)

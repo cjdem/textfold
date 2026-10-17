@@ -7,7 +7,7 @@ SITE = "https://chenxiachan.github.io/textfold/"
 REPO = "https://github.com/chenxiachan/textfold"
 DL = REPO + "/releases/latest/download/"
 FILES = {"win": "TextFold-win-x64-setup.exe"}
-LANGS_NATIVE = "English, 简体中文, 繁體中文, 日本語, 한국어, Español, Français, Deutsch, Português, Italiano, Русский, हिन्दी"
+LANGS_NATIVE = "English, 简体中文"
 
 S = {
     # the head (search engines, AI answers, shared links)

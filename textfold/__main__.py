@@ -24,7 +24,10 @@ def get(a):
     """A document at one level, on stdout: written first when it has no levels yet (a model is called), unless
     --no-generate. A PDF (or a Word, PowerPoint, Excel, EPUB or HTML file, a picture) goes through the PDF engine; a
     Markdown or text file is read as it is."""
-    from . import agents, engine, fold, models, office, pdfdoc, pdftext, store
+    from . import agents, engine, fold, langs, models, office, pdfdoc, pdftext, store
+    if a.lang not in langs.LANGS:
+        _say(f"unknown language {a.lang}: " + ", ".join(langs.LANGS))
+        return 2
     f = Path(a.ref).expanduser()
     ext = engine.kind_of(f.name) if f.is_file() else None
     if ext:
@@ -114,7 +117,7 @@ def main():
         ap.add_argument("ref", help="a link (any web page, arXiv, PubMed Central, bioRxiv, Wikipedia, GitHub), an arXiv id, a DOI, or a file (.pdf, .docx, .pptx, .xlsx, .epub, .html, a picture, .md, .txt)")
         ap.add_argument("--level", default="topic", choices=LEVELS, help="topic (a map of the sections) ... full (every word); default topic")
         ap.add_argument("--section", help="one section: its number (3.2), its id (S3), or its place in the list (1 is the first)")
-        ap.add_argument("--lang", default="en", help="the language to read it in (en, zh, de, ...); default en")
+        ap.add_argument("--lang", default="en", help="the language to read it in (en, zh); default en")
         ap.add_argument("--json", action="store_true", help="the whole document in the TextFold format (docs/format.md)")
         ap.add_argument("--no-generate", action="store_true", help="call no model: the levels already written, or the local ones")
         return sys.exit(get(ap.parse_args(sys.argv[2:])))
@@ -125,11 +128,15 @@ def main():
         return
     ap = argparse.ArgumentParser(prog="textfold", description="Generate a zoomable reader for an arXiv paper or a Markdown file.")
     ap.add_argument("paper", help="arXiv id or URL, e.g. 2512.23916, or a Markdown file")
-    ap.add_argument("--lang", action="append", default=[], help="also generate this language (zh, ja, es, ...); repeatable")
+    ap.add_argument("--lang", action="append", default=[], help="also generate this language (zh); repeatable")
     ap.add_argument("--model", default="sonnet", help="model alias for `claude -p` (default: sonnet)")
     ap.add_argument("--jobs", type=int, default=4, help="parallel model calls")
     ap.add_argument("--force", action="store_true", help="regenerate (ignore what is stored and cached)")
     a = ap.parse_args()
+    from . import langs
+    unknown = [l for l in a.lang if l not in langs.LANGS]
+    if unknown:
+        ap.error(f"unknown language {unknown[0]}: " + ", ".join(langs.LANGS))
     t0 = time.time()
     ref = local.import_file(a.paper) if Path(a.paper).suffix.lower() in local.KINDS and Path(a.paper).is_file() else a.paper
     pid = None
