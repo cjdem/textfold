@@ -112,6 +112,8 @@ python -m textfold serve
 | Zotero 文献库里的条目 | 有 arXiv 版本就读 arXiv，否则读它的 PDF 或其他附件，再没有就按 DOI 读。[直接读你的 Zotero ↑](#直接读你的-zotero) |
 | Markdown 或纯文本文件 | 原样的文件 |
 
+在 `~/.textfold/settings.json` 里写上 MinerU API 密钥（`mineru_api_key`），PDF、Word/PowerPoint/Excel 文件、HTML 和图片就改在 MinerU 的服务器上读：本机什么都不用装，文件会离开你的电脑。RTF、OpenDocument、EPUB 和 CSV 仍由 TextFold 自己或引擎读取。
+
 读过的文档保存在系统存放应用数据的文件夹里，和桌面 App 共用。
 
 <details>
@@ -236,6 +238,8 @@ pi install ./textfold/plugins/pi-textfold
 
 ## 最新
 
+- **2026 年 10 月 17 日：MinerU 的服务器读你的文件。** 在 `~/.textfold/settings.json` 里写上 `mineru_api_key`，PDF、Word/PowerPoint/Excel 文件、HTML 和图片就交给 MinerU 的云 API 读：不用装 3.4 GB 的引擎，文件会离开你的电脑。
+- **2026 年 10 月 17 日：英文文档默认带上简体中文版。** App 里打开一篇英文文档，会在同一次生成的最后顺便做出简体中文版，不用再请求一次就能读中文。
 - **2026 年 10 月 15 日：Pi 的回答也能折叠了。** [Pi 扩展](https://github.com/chenxiachan/textfold/blob/main/plugins/pi-textfold/README.md) 把五个层级放到每条回答上，折法和 Claude Code 里一样。感谢 [@jlamweil](https://github.com/jlamweil)。
 - **2026 年 10 月 15 日：不装 PDF 引擎也能读 PDF。** 自带文字的 PDF（大多数论文都是）直接打开，图从原页上裁出来；只有扫描件还需要 PDF 引擎。没有 HTML 版本的 arXiv 论文改读它的 PDF。感谢 [@sylvainHellin](https://github.com/sylvainHellin)。
 - **2026 年 10 月 15 日：你的文献库和你的提问。** 文献库可以搜索、建文件夹，按添加时间或最近打开排序。提问有了发送和停止键，对话里任何一轮都可以删掉，回答问题还可以用比生成层级更强的模型。感谢 [@suhyungJang](https://github.com/suhyungJang)。

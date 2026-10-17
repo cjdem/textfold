@@ -65,9 +65,9 @@ def skipped(command: str) -> bool:
     return os.environ.get(SKIP) == "1" or "--no-verify" in command or f"{SKIP}=1" in command
 
 
-def run(args, cwd=None):
+def run(args, cwd=None, env=None):
     return subprocess.run(
-        args, cwd=cwd, capture_output=True, text=True, timeout=TIMEOUT,
+        args, cwd=cwd, env=env, capture_output=True, text=True, timeout=TIMEOUT,
     )
 
 
@@ -167,7 +167,7 @@ def main() -> int:
 
     env = dict(os.environ, TEXTFOLD_NO_MODELS="1")
     try:
-        done = run(interpreter(root) + ["-m", "unittest", "discover", "tests"], cwd=root)
+        done = run(interpreter(root) + ["-m", "unittest", "discover", "tests"], cwd=root, env=env)
     except subprocess.TimeoutExpired:
         print(f"the tests did not finish in {TIMEOUT}s", file=sys.stderr)
         return 2

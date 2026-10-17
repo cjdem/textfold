@@ -45,8 +45,9 @@ platform code should say what functionality goes with it.
   request: what it changes, why, and how you checked it.
 - **Commits** are single-line, capitalized, prose — no `feat:` prefixes. A long
   sentence that says what changed and why it matters is the house style.
-- **Papers and keys stay out of commits.** `papers/`, `out/` and `~/.textfold/`
-  are git-ignored; if one of them shows up in `git status`, something is wrong.
+- **Papers and keys stay out of commits.** `papers/`, `out/`, `library.json` (the
+  sidebar's state when the server runs from the clone) and `~/.textfold/` are
+  git-ignored; if one of them shows up in `git status`, something is wrong.
 
 ## Optimizing
 

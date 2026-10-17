@@ -44,8 +44,9 @@ payload\python\python.exe scripts\smoke.py
 
 ## Releases
 
-`.github/workflows/desktop.yml` builds the app on windows-latest when a version is tagged, as `publish.yml` sends the
-package to PyPI. It goes into a draft release, published once it has succeeded, with the file the app updates from:
+The release workflows are parked in `.github/workflows-disabled/` for now (see its README); GitHub runs only what is in
+`.github/workflows/`. Once they are moved back: `desktop.yml` builds the app on windows-latest when a version is
+tagged, as `publish.yml` sends the package to PyPI. It goes into a draft release, published once it has succeeded, with the file the app updates from:
 `latest.yml`. The tag, `textfold/__init__.py` and this folder's `package.json` name the same version, or nothing is
 built. Run by hand (Actions › desktop › Run workflow), the files are the run's artifacts, and a version may be given
 to the app alone: two such builds, an older and a newer, try an update from one to the other.

@@ -52,7 +52,8 @@ project, or wherever `TEXTFOLD_DATA` points (`PAPERFOLD_DATA`, its earlier name,
 
 The app (`desktop/`, see its README): an Electron window around the same server, with its own CPython
 (python-build-standalone) and packages, so a reader installs nothing. For Windows, built on its own system by
-`.github/workflows/desktop.yml` when a version is tagged, beside the package for PyPI.
+`.github/workflows/desktop.yml` when a version is tagged, beside the package for PyPI; both workflows are parked in
+`.github/workflows-disabled/` until builds are wanted again (GitHub runs only `.github/workflows/`).
 
 A gallery for a free static host: `tools/gallery.json` lists one paper per field, each with its field and a line on
 why it is worth reading in every gallery language (en, zh). `python tools/gallery.py --make <model>` generates
@@ -70,8 +71,8 @@ corrected fields change; the generated layers stay as they are). The corrections
 the gallery's own repository, github.com/chenxiachan/paperfold-gallery (`fixes/`), not here; the build stops when a
 paper's corrections are missing (`--unproofread` builds without them, for a look only). The gallery is served with the
 website, at https://chenxiachan.github.io/textfold/gallery/: copy `out/gallery/site` and `out/gallery/fixes` into that
-repository's clone (`out/gallery/deploy`) and push, then run the website's workflow (Actions › site › Run workflow), which
-takes the gallery from there. The repository's own Pages keeps its old address, each page sending on to its new one.
+repository's clone (`out/gallery/deploy`) and push, then run the website's workflow (Actions › site › Run workflow,
+after `site.yml` is moved back from `.github/workflows-disabled/`), which takes the gallery from there. The repository's own Pages keeps its old address, each page sending on to its new one.
 
 Models (⚙ Model & API), ported from ThoughtDAG's model access:
 
@@ -121,6 +122,11 @@ Models (⚙ Model & API), ported from ThoughtDAG's model access:
   Moonshot, Ollama, a ChatGPT bridge, Anthropic, custom): the endpoint's `/models` is fetched and you pick which to offer.
   Keys added here stay in `~/.textfold/settings.json` (mode 600), outside the project folder. (Under earlier
   names they were in `~/.paperfold/` (PaperFold) or `~/.dynamic-reader/`: copied from there once, and left in place.)
+- **The home page does not wait on a local port.** `landing_page` builds the model catalog once, and the Ollama and
+  bridge probes answer from their last result at once while a background thread refreshes them; `provider_list`
+  caches the rows for ten seconds, keyed by the settings, the environment and the probes' answers, and
+  `save_settings` clears them. A synchronous probe is for the settings dialog (`bridge_status(fresh=True)`). On a
+  computer that drops a closed local port rather than refusing it, four catalog builds made the landing take 16 s.
 
 Command line, without the server:
 

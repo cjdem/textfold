@@ -2,6 +2,10 @@
 papers/
 # exported pages (they hold the papers' text and figures)
 out/
+# the sidebar's state when the server runs from the source checkout (store.DATA is the clone there)
+/library.json
+# a sample PDF dropped in tests/ for a manual check; the suite makes its own
+tests/*.pdf
 __pycache__/
 *.pyc
 *.tmp
@@ -18,6 +22,7 @@ desktop/payload/
 desktop/out/
 # the maintainer's working log, kept on this computer
 STATUS.md
+WINDOWS-ONLY.md
 
 # a pip build from the clone (desktop/build/ is the app's icon)
 /build/

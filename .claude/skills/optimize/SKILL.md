@@ -16,7 +16,7 @@ Say back in one sentence what is being optimized and what "better" will mean —
 
 Check the ground:
 - `git branch --show-current` is `main`, and `git status --short` is empty. If not, stop and ask — an optimization that starts on top of someone's half-finished work cannot be told apart from it. **An empty status is also what puts this workflow's own files into the worktree**: `.claude/`, `CLAUDE.md` and `docs/changes/` have to be committed before the first run, since a worktree is cut from a commit and uncommitted files are not in it.
-- Run the suite and keep the numbers: `python .claude/hooks/verify.py`. Expect 85 tests. Record the time.
+- Run the suite and keep the numbers: `python .claude/hooks/verify.py`. Expect 130 tests. Record the time.
 - Note the version: `python -m textfold --version`.
 
 ## 1 · Survey

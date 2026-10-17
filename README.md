@@ -112,6 +112,8 @@ Open `http://localhost:3017`. The first time, [connect a model](#connect-a-model
 | An item of your Zotero library | its arXiv paper, else its PDF or other file, else its DOI. [Works on your Zotero ↑](#works-on-your-zotero) |
 | A Markdown or text file | the file as written |
 
+With a MinerU API key (`mineru_api_key` in `~/.textfold/settings.json`), PDFs, Word/PowerPoint/Excel files, HTML and pictures are read on MinerU's servers instead: nothing to install, and the file leaves your computer. RTF, OpenDocument, EPUB and CSV still use TextFold's own reader or the engine.
+
 What you read is kept in your system's folder for app data, shared with the desktop app.
 
 <details>
@@ -236,6 +238,8 @@ More in [plugins/pi-textfold](https://github.com/chenxiachan/textfold/blob/main/
 
 ## What's new
 
+- **October 17, 2026: MinerU's servers read your files.** Put `mineru_api_key` in `~/.textfold/settings.json` and PDFs, Word/PowerPoint/Excel files, HTML and pictures are read by MinerU's cloud API: no 3.4 GB engine to install, and the file leaves your computer.
+- **October 17, 2026: English documents come with their Simplified Chinese.** An English document opened in the app is made with its Simplified Chinese version at the end of the same generation, so it reads in Chinese without a second request.
 - **October 15, 2026: Pi's replies fold too.** [An extension for Pi](https://github.com/chenxiachan/textfold/blob/main/plugins/pi-textfold/README.md) puts the five levels on every reply, with the same fold as in Claude Code. Thanks to [@jlamweil](https://github.com/jlamweil).
 - **October 15, 2026: PDFs open without the engine.** A PDF with its own text, as most papers have, opens at once, its figures cut from the page; only a scan still needs the PDF engine. An arXiv paper with no HTML version is read from its PDF. Thanks to [@sylvainHellin](https://github.com/sylvainHellin).
 - **October 15, 2026: your library, and your questions.** Search the library, keep documents in folders, and list them by when they came in or were last opened. A question has its own send and stop, any turn of a conversation can be deleted, and questions can go to a stronger model than the one that writes the levels. Thanks to [@suhyungJang](https://github.com/suhyungJang).

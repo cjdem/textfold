@@ -36,7 +36,7 @@ reader can go straight to the right place:
 The commands that were run, and what they said. Not "tests pass" — the actual
 result:
 
-- `python .claude/hooks/verify.py` — 85 tests, OK
+- `python .claude/hooks/verify.py` — 130 tests, OK
 - <any other check, and its outcome>
 
 ## Measured
