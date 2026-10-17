@@ -258,7 +258,7 @@ class Jobs:
         if (store.pdir(pid) / "meta.json").exists():   # read before
             f.unlink()
             job.update(status="moved", next=self.submit(pid, job["lang"], False)["id"])
-        elif engine.where():
+        elif engine.available():
             job.update(status="moved", next=self.convert(pid, f, name, job["lang"])["id"])
         elif nxt := self.read_pdf(pid, f, name, job["lang"]):
             job.update(status="moved", next=nxt["id"])
@@ -270,7 +270,7 @@ class Jobs:
         file = Path(job["attach"])
         pid = file.stem
         job.update(finished=time.time())
-        if engine.where():
+        if engine.available():
             nxt = self.convert(pid, file, job.get("name") or file.name, job["lang"])
             job.update(status="moved", next=nxt["id"])
         elif nxt := self.read_pdf(pid, file, job.get("name") or file.name, job["lang"]):
@@ -348,7 +348,7 @@ def take_file(jobs, data, headers):
         return {"job": jobs.submit(pid, lang, False), "via": "file"}, 200
     if not f.exists():
         f.write_bytes(data)
-    if engine.where():
+    if engine.readable(ext):   # (this kind: not every kind is the API's, and the office reader has its own)
         return {"job": jobs.convert(pid, f, name, lang), "via": "file"}, 200
     if office.reads(ext):
         try:
@@ -389,7 +389,7 @@ def take_pdf(jobs, data, headers):
             continue
         job.setdefault("name", name)
         return {"job": job, "via": "online", "ref": ref}, 200
-    if engine.where():
+    if engine.available():
         return {"job": jobs.convert(pid, f, name, lang), "via": "pdf"}, 200
     job = jobs.read_pdf(pid, f, name, lang)
     if job:   # read: it opens now, as a converted PDF does, while its levels are written
@@ -608,7 +608,7 @@ def make_handler(jobs):
                     src = pdfdoc.source_of(pid) if pid.startswith(("pdf-", "doc-")) and store.valid_id(pid) else None
                     if not src or tier not in engine.TIERS or engine.tier_for(src, tier) != tier:
                         return self.json({"error": "no such PDF"}, 404)
-                    if not engine.where():
+                    if not engine.readable(engine.kind_of(src) or "pdf"):
                         return self.json({"error": "needs-engine"}, 409)
                     name = json.loads((store.pdir(pid) / "meta.json").read_text()).get("source", {}).get("name") or "document.pdf"
                     return self.json(jobs.convert(pid, src, name, body.get("lang") or "en", tier, replace=True))

@@ -429,8 +429,9 @@ def store_pdf(pid, folder, sc, name, tier, replace=False):
         local.store_doc(pid, html, meta, "source.md", text, lambda f: local.Images(f, Path(folder)).resolve, sizes=True)
         from . import zotero
         zotero.apply(pid)   # read from a Zotero item's file: the item's own title, authors and citekey
-        (d / "layout.json").write_text(json.dumps(layout_of(sc), ensure_ascii=False))
-        (d / "structured_content.json").write_text(json.dumps(sc, ensure_ascii=False))
+        # ASCII-escaped, as MinerU's own zip is: these are read with the system's encoding (place, read_output)
+        (d / "layout.json").write_text(json.dumps(layout_of(sc)))
+        (d / "structured_content.json").write_text(json.dumps(sc))
     finally:
         if keep.exists():
             for f in keep.iterdir():
@@ -507,11 +508,11 @@ def relayout(pid):
         return True
     if (meta.get("source") or {}).get("tier") != "fast":   # the accurate tier takes minutes: not on a page's request
         return False
-    if not engine.where() or not (d / "source.pdf").exists():
+    if not engine.available() or not (d / "source.pdf").exists():
         return False
     with tempfile.TemporaryDirectory() as tmp:
         out = engine.convert(d / "source.pdf", Path(tmp) / "out", "fast")
-        (d / "layout.json").write_text(json.dumps(layout_of(read_output(out)), ensure_ascii=False))
+        (d / "layout.json").write_text(json.dumps(layout_of(read_output(out))))
     return True
 
 

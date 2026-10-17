@@ -470,7 +470,7 @@ def convert(file, out):
     shutil.rmtree(out, ignore_errors=True)
     out.mkdir(parents=True)
     add_figures(file, sc, out)
-    (out / "structured_content.json").write_text(json.dumps(sc, ensure_ascii=False))
+    (out / "structured_content.json").write_text(json.dumps(sc))   # ASCII-escaped: read with the system's encoding
     return out
 
 

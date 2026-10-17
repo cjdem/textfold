@@ -258,14 +258,20 @@ A PDF dropped on the landing is read in the browser first (pdf.js, `refsOf` in a
 stamp, a DOI from its metadata or its first page (only the first: the second is often the references). `POST /api/pdfs`
 takes the file with what was found (`X-Refs`): a paper that resolves is generated from its online version, the file
 kept as its `source.pdf` once it is fetched; an arXiv paper without HTML falls back to the file (or, with none, to
-arXiv's PDF). While the engine is not installed, a PDF that has its words in it is read by TextFold itself
-(`pdftext.py`): pdf-inspector's Markdown, page by page, into the engine's blocks, and each figure found by its caption
-(the drawings and pictures above or below it, up to the prose around them) and cut from its page with pypdfium2
-(`engine.crop_here`). A scanned PDF, and every PDF once the engine is there, goes to
+arXiv's PDF). While neither a MinerU API key nor the engine is there, a PDF that has its words in it is read by
+TextFold itself (`pdftext.py`): pdf-inspector's Markdown, page by page, into the engine's blocks, and each figure found
+by its caption (the drawings and pictures above or below it, up to the prose around them) and cut from its page with
+pypdfium2 (`engine.crop_here`). A scanned PDF, and every PDF once one of them is there, goes to
 the PDF engine (`engine.py`): MinerU 4, pinned, in `<app data>/engine` (a PaperFold install in its old place is used
 there), installed from the landing, the settings or `python -m textfold engine install`. Its command line only (`mineru-kit
 parse --format zip`), never the `mineru` document library. Fast is MinerU's flash tier (seconds, no model; formulas as
-pictures); accurate is advanced (a vision model, several seconds a page), with `--disable-image-analysis`.
+pictures); accurate is advanced (a vision model, several seconds a page), with `--disable-image-analysis`. With
+`mineru_api_key` in `~/.textfold/settings.json`, the files MinerU's cloud API reads (PDFs, the Office files, HTML,
+pictures) go to `mineru.net/api/v4` instead: uploaded there and read on its servers, its zip (`*_content_list_v2.json`,
+`images/`) written into the same `structured_content.json` (boxes from 0-1000 to 0-1), the tiers mapped to
+`pipeline`/`vlm`, and a PDF that comes back with no text read once more with OCR. No 3.4 GB, and the document leaves
+this computer; RTF, OpenDocument and the kinds TextFold does not read itself still need the engine installed, and a
+kind the API does not read (EPUB, CSV) keeps TextFold's own reader.
 `pdfdoc.py` turns `structured_content.json` into the document: running heads and page numbers out, the title from the
 page or the file, heading depth from numbering, a figure's panels grouped under the caption that names it, figures from
 after the references put before them, short front matter dropped. A file that waits for the engine is kept in

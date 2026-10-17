@@ -11,6 +11,7 @@ from them without any model call, and "regenerate" replaces one layer with a new
 A translation whose English base has since been regenerated is reported as stale.
 """
 import json
+import locale
 import os
 import re
 import time
@@ -167,7 +168,18 @@ def languages(pid):
 
 def parsed(pid):
     d = pdir(pid)
-    return parse((d / "source.html").read_text(), json.loads((d / "meta.json").read_text()))
+    return parse(_read_html(d / "source.html"), json.loads((d / "meta.json").read_text()))
+
+
+def _read_html(path):
+    """A stored page as text: UTF-8 (arXiv's own bytes, and what local.py writes), else the system's encoding — a page
+    stored by this reader before it wrote UTF-8, on a computer whose language is not UTF-8 (GBK Windows), has its
+    text in that encoding."""
+    data = path.read_bytes()
+    try:
+        return data.decode("utf-8")
+    except UnicodeDecodeError:
+        return data.decode(locale.getpreferredencoding(False) or "utf-8", "replace")
 
 
 def assemble(pid, only=None):

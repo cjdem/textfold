@@ -30,14 +30,16 @@ def get(a):
     if ext:
         data = f.read_bytes()
         pid = pdfdoc.pid_of(data, ext)
-        if not (store.pdir(pid) / "meta.json").exists() and not engine.where() and ext != "pdf" and office.reads(ext):
+        if not (store.pdir(pid) / "meta.json").exists() and not engine.readable(ext) and ext != "pdf" and office.reads(ext):
             office.save(pid, f, f.name)   # (the engine reads it more completely, when it is installed)
-        elif not (store.pdir(pid) / "meta.json").exists() and not engine.where() and ext == "pdf" and pdftext.save(pid, f, f.name):
+        elif not (store.pdir(pid) / "meta.json").exists() and not engine.readable(ext) and ext == "pdf" and pdftext.save(pid, f, f.name):
             pass   # a PDF with its words in it, read by TextFold itself (a scan still needs the engine)
         elif not (store.pdir(pid) / "meta.json").exists():
-            if not engine.where():
+            if not engine.readable(ext):
                 what = "PDF" if ext == "pdf" else "picture" if ext in engine.PICTURES else f"{engine.FILES[ext]} file"
-                _say(f"This {what} needs the PDF engine: python -m textfold engine install")
+                how = "python -m textfold engine install" + (
+                    ", or a MinerU API key (mineru_api_key in ~/.textfold/settings.json)" if ext in engine.API_FILES else "")
+                _say(f"This {what} needs the PDF engine: {how}")
                 return 2
             tier = engine.tier_for(f"x.{ext}", models.load_settings().get("pdf_tier") or "fast")
             out = store.DATA / "uploads" / f"{pid}-{tier}"
@@ -91,7 +93,8 @@ def engine_cmd(args):
         return 2
     st = engine.status()
     print(f"PDF engine: {'installed' if st['installed'] else 'not installed'} (MinerU {st['version']})"
-          + (f", {st['bytes'] / 1e9:.1f} GB in {st['path']}" if st["installed"] else ""))
+          + (f", {st['bytes'] / 1e9:.1f} GB in {st['path']}" if st["installed"] else "")
+          + (", MinerU API key set" if st["api"] else ""))
     return 0
 
 

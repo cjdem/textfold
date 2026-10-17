@@ -28,7 +28,7 @@ ANTHROPIC_PRESET = {"id": "anthropic", "name": "Anthropic", "base": "https://api
 
 def load_settings():
     s = {"model": None, "ask_model": None, "ask_effort": None, "efforts": {}, "providers": [], "use_thoughtdag_env": False,
-         "pdf_tier": "fast", "zotero": {}}
+         "pdf_tier": "fast", "mineru_api_key": "", "zotero": {}}
     old_home = next((h for h in OLD_HOMES if (h / "settings.json").exists()), None)
     if not SETTINGS.exists() and old_home:   # from before the name TextFold: copied, kept
         SETTINGS.parent.mkdir(parents=True, exist_ok=True)

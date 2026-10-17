@@ -128,8 +128,11 @@ def store_doc(pid, html, meta, raw_name, raw, resolver, sizes=False):
     shutil.rmtree(tmp, ignore_errors=True)
     tmp.mkdir(parents=True)
     try:
-        (tmp / "source.html").write_text(semantic.normalize(html, resolve_img=resolver(tmp / "img"), sizes=sizes))
-        (tmp / raw_name).write_text(raw)
+        # UTF-8, whatever this computer's language: the page (and the file beside it) may hold a character the
+        # system's encoding has none for (a minus sign U+2212 in a formula, measured on a GBK Windows machine)
+        (tmp / "source.html").write_text(semantic.normalize(html, resolve_img=resolver(tmp / "img"), sizes=sizes),
+                                         encoding="utf-8")
+        (tmp / raw_name).write_text(raw, encoding="utf-8")
         (tmp / "meta.json").write_text(json.dumps(meta, indent=2, ensure_ascii=False))
         shutil.rmtree(d, ignore_errors=True)
         tmp.rename(d)
