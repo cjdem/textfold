@@ -12,7 +12,9 @@ With a key for MinerU's cloud API in the reader's settings (mineru_api_key in se
 (PDFs, the Office files, HTML and pictures) are read there instead: the file is uploaded to mineru.net and converted on
 its servers, and its zip is written into the same structured_content.json, so nothing after this file changes. That is
 the engine without the 3.4 GB install, and without reading offline or in private: the document leaves this computer.
-RTF, OpenDocument and the kinds TextFold does not read itself still need the engine installed."""
+A stored RTF or OpenDocument document still needs the local engine for a re-conversion; a stored old Word, PowerPoint
+or Excel file can use the engine or its API. New imports of RTF, OpenDocument and old Office files are refused
+(LEGACY)."""
 import http.client
 import json
 import os
@@ -39,13 +41,16 @@ PICTURES = {"png", "jpg", "jpeg", "webp", "gif", "bmp", "tiff", "jp2"}
 FILES = {"docx": "Word", "doc": "Word", "rtf": "RTF", "pptx": "PowerPoint", "ppt": "PowerPoint", "xlsx": "Excel", "xls": "Excel",
          "odt": "OpenDocument", "ods": "OpenDocument", "odp": "OpenDocument", "epub": "EPUB", "html": "HTML", "htm": "HTML",
          "mhtml": "MHTML", "mht": "MHTML", "csv": "CSV", "tsv": "TSV", "ofd": "OFD"} | {x: "Image" for x in PICTURES}
+# Kinds no longer taken as new imports (2026-10-18): old Office, RTF and OpenDocument. They stay in FILES so a document
+# converted before the rule still opens, and can be converted again where the engine reads it.
+LEGACY = {"doc", "ppt", "xls", "rtf", "odt", "ods", "odp"}
 
 # MinerU's cloud API: the same engine on its servers, for a reader who sets a key (settings.json) instead of installing
 # 3.4 GB. Its zip (full.md, *_content_list_v2.json, images/) becomes the same structured_content.json below.
 API = "https://mineru.net/api/v4"
 API_TIERS = {"fast": "pipeline", "accurate": "vlm"}
 # what the API reads (its docs' list): PDFs, Office files, HTML, and these pictures — TIFF is not one of them. RTF,
-# OpenDocument and the like still need the engine on this computer.
+# OpenDocument and the like still need the engine on this computer for a stored document; they are no new imports.
 API_PICTURES = {"png", "jpg", "jpeg", "jp2", "webp", "gif", "bmp"}
 API_FILES = {"pdf", "doc", "docx", "ppt", "pptx", "xls", "xlsx", "html", "htm"} | API_PICTURES
 

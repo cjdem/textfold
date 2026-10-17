@@ -23,7 +23,7 @@ def _say(*a):
 def get(a):
     """A document at one level, on stdout: written first when it has no levels yet (a model is called), unless
     --no-generate. A PDF (or a Word, PowerPoint, Excel, EPUB or HTML file, a picture) goes through the PDF engine; a
-    Markdown or text file is read as it is."""
+    Markdown or text file is read as it is. New RTF, OpenDocument and old Office files are refused."""
     from . import agents, engine, fold, langs, models, office, pdfdoc, pdftext, store
     if a.lang not in langs.LANGS:
         _say(f"unknown language {a.lang}: " + ", ".join(langs.LANGS))
@@ -32,7 +32,13 @@ def get(a):
     ext = engine.kind_of(f.name) if f.is_file() else None
     if ext:
         data = f.read_bytes()
+        if data[:5] == b"%PDF-" and ext != "pdf":   # a PDF under another name: read as the PDF it is
+            ext = "pdf"
         pid = pdfdoc.pid_of(data, ext)
+        if ext in engine.LEGACY and not (store.pdir(pid) / "meta.json").exists():
+            _say("TextFold no longer opens new RTF, OpenDocument or old Word, PowerPoint or Excel files: "
+                 "save it as DOCX, PPTX, XLSX or PDF first.")
+            return 2
         if not (store.pdir(pid) / "meta.json").exists() and not engine.readable(ext) and ext != "pdf" and office.reads(ext):
             office.save(pid, f, f.name)   # (the engine reads it more completely, when it is installed)
         elif not (store.pdir(pid) / "meta.json").exists() and not engine.readable(ext) and ext == "pdf" and pdftext.save(pid, f, f.name):

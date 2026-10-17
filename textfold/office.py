@@ -3,8 +3,9 @@ PowerPoint (.pptx, its slides as sections), Excel (.xlsx) and CSV tables, saved 
 article found by trafilatura) and e-books (.epub). Written in the shape the engine writes (structured_content.json:
 pages of blocks, and the pictures in images/), so that pdfdoc stores them as it stores the engine's.
 
-When the engine is installed, these files go to it instead (it reads slides with formulas, OpenDocument and old Office
-files more completely); this is the reader for everyone else, and for a file the engine cannot read."""
+When the engine is installed, these files go to it instead (it reads slides with formulas more completely); it also
+reads a stored OpenDocument or old Office file on a re-conversion, which this reader never did. This is the reader for
+everyone else, and for a file the engine cannot read."""
 import copy
 import csv
 import email

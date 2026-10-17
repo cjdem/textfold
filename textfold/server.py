@@ -19,6 +19,7 @@
   GET  /api/notes/<id>        the reader's notes on a paper (docs/notes-format.md)
   POST /api/files             a file dropped on the landing, its bytes (X-Name, X-Lang): a PDF (X-Refs: the papers it
                               names), or a Word, PowerPoint, Excel, EPUB, HTML file or picture: through the PDF engine
+                              (new RTF, OpenDocument and old Office files: refused, legacy-format)
   GET  /api/pdf/<id>          the paper's original PDF (arXiv, PubMed Central, bioRxiv), fetched once and kept (pdf.py)
   POST /api/pdf/<id>          the PDF itself (the reader's copy, when the server would not give it): kept the same way
   POST /api/notes/<id>        {op: "put", note} or {op: "delete", id}
@@ -358,8 +359,10 @@ def _named(headers):
 def take_file(jobs, data, headers):
     """A file from the landing, as (reply, status): a PDF (take_pdf), or another the engine reads (a Word, PowerPoint
     or Excel file, an e-book, a saved web page, a picture: engine.FILES). With the engine installed, it reads them all
-    (most completely); without it, TextFold reads the ones it can itself, at once (office.py), and keeps the others
-    (a picture, an old PowerPoint) until the engine is installed."""
+    (most completely); without it, TextFold reads the ones it can itself, at once (office.py), and keeps the kinds only
+    the engine reads (a picture, OFD) until it is installed. New imports of RTF, OpenDocument and old Office files are
+    refused with
+    `legacy-format`; a file of one of those kinds converted before the rule still opens."""
     name, lang = _named(headers)
     ext = engine.kind_of(name)
     if data[:5] == b"%PDF-" or ext == "pdf":
@@ -367,10 +370,12 @@ def take_file(jobs, data, headers):
     if not ext:
         return {"error": "not-supported"}, 400
     pid = pdfdoc.pid_of(data, ext)
+    if (store.pdir(pid) / "meta.json").exists():   # this file, converted before (even a kind no longer imported)
+        return {"job": jobs.submit(pid, lang, False), "via": "file"}, 200
+    if ext in engine.LEGACY:
+        return {"error": "legacy-format"}, 400
     f = store.DATA / "uploads" / f"{pid}.{ext}"
     f.parent.mkdir(parents=True, exist_ok=True)
-    if (store.pdir(pid) / "meta.json").exists():   # this file, converted before
-        return {"job": jobs.submit(pid, lang, False), "via": "file"}, 200
     if not f.exists():
         f.write_bytes(data)
     if engine.readable(ext):   # (this kind: not every kind is the API's, and the office reader has its own)

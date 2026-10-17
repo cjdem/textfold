@@ -34,13 +34,13 @@ ARXIV = re.compile(r"(?:arxiv\.org/(?:abs|pdf|html)/|arXiv:\s*|10\.48550/arXiv\.
 CITEKEY = re.compile(r"^\s*Citation Key:\s*(\S+)", re.M | re.I)
 SKIP_TYPES = {"attachment", "note", "annotation"}
 # the files of an item TextFold reads, best first, by the type Zotero gives them, and their extension when the file's
-# own name has none
+# own name has none. The formats new imports refuse come last, so an item with a supported attachment uses that one.
 READS = {"application/pdf": "pdf", "application/epub+zip": "epub",
          "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "docx",
          "application/vnd.openxmlformats-officedocument.presentationml.presentation": "pptx",
          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": "xlsx",
-         "application/vnd.oasis.opendocument.text": "odt", "application/rtf": "rtf", "application/msword": "doc",
-         "text/html": "html", "application/xhtml+xml": "html"}
+         "text/html": "html", "application/xhtml+xml": "html",
+         "application/vnd.oasis.opendocument.text": "odt", "application/rtf": "rtf", "application/msword": "doc"}
 LABEL = {"pdf": "PDF", "epub": "EPUB", "html": "HTML", "docx": "Word", "doc": "Word", "pptx": "PowerPoint",
          "xlsx": "Excel", "odt": "ODT", "rtf": "RTF"}
 _lock = threading.Lock()
@@ -184,14 +184,22 @@ def read(lib, key):
     it = item_of(r)
     if it["arxiv"]:
         return {"ref": it["arxiv"], "title": it["title"]}
+    legacy = None
     for att in _attachments(lib, key):
         f = _file(lib, att)
-        if f:
-            name = f.name if engine.kind_of(f.name) else f"{f.name}.pdf"   # (a PDF kept under a name without .pdf)
-            return {"data": f.read_bytes(), "name": name, "refs": [it["doi"]] if it["doi"] else [], "title": it["title"],
-                    "record": record_of(r, it)}
+        if not f:
+            continue
+        name = f.name if engine.kind_of(f.name) else f"{f.name}.pdf"   # (a PDF kept under a name without .pdf)
+        if engine.kind_of(name) in engine.LEGACY:
+            legacy = legacy or (f, name)   # (its message is shown only if nothing supported or online can be read)
+            continue
+        return {"data": f.read_bytes(), "name": name, "refs": [it["doi"]] if it["doi"] else [], "title": it["title"],
+                "record": record_of(r, it)}
     if it["doi"]:
         return {"ref": it["doi"], "title": it["title"]}
+    if legacy:
+        f, name = legacy
+        return {"data": f.read_bytes(), "name": name, "refs": [], "title": it["title"], "record": record_of(r, it)}
     raise ValueError("no-file")
 
 

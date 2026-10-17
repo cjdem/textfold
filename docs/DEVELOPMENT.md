@@ -284,23 +284,27 @@ pictures); accurate is advanced (a vision model, several seconds a page), with `
 pictures) go to `mineru.net/api/v4` instead: uploaded there and read on its servers, its zip (`*_content_list_v2.json`,
 `images/`) written into the same `structured_content.json` (boxes from 0-1000 to 0-1), the tiers mapped to
 `pipeline`/`vlm`, and a PDF that comes back with no text read once more with OCR. No 3.4 GB, and the document leaves
-this computer; RTF, OpenDocument and the kinds TextFold does not read itself still need the engine installed, and a
-kind the API does not read (EPUB, CSV) keeps TextFold's own reader.
+this computer; a stored RTF or OpenDocument document still needs the local engine for a re-conversion, while a stored
+old Word, PowerPoint or Excel file can use the engine or its API, and a kind the API does not read (EPUB, CSV) keeps
+TextFold's own reader. New files of those old kinds are refused (`take_file`: `legacy-format`).
 `pdfdoc.py` turns `structured_content.json` into the document: running heads and page numbers out, the title from the
 page or the file, heading depth from numbering, a figure's panels grouped under the caption that names it, figures from
 after the references put before them, short front matter dropped. A file that waits for the engine is kept in
 `uploads/` with a note of its name and language beside it, and converted once the engine is installed.
 
 Other files take the same road (`POST /api/files`, `take_file`; `doc-<file hash>`, the file kept as `original.<ext>`).
-With the engine installed, it reads them all: Word, PowerPoint, Excel, OpenDocument, RTF, EPUB, HTML and MHTML, CSV,
-OFD (its fast tier only: no model is needed) and pictures (either tier, as a scanned page). Without it, TextFold reads
-the common ones itself, at once (`office.py`): .docx through mammoth, its formulas turned from OMML into LaTeX first
-(`omml.py`, written for what latex2mathml and KaTeX both read); .pptx, .xlsx and .epub from their own XML; .csv and
-.tsv; and a saved page's article (.html, .mhtml, its pictures from inside the file). It writes the engine's shape
-(`structured_content.json` and `images/`), so `pdfdoc.py` stores both
-alike; a file whose structure is its own keeps its headings' depths, its captions and its notes. A picture, an old
-PowerPoint or Excel file, an OpenDocument sheet or deck still wait for the engine; a file the engine fails on falls back
-to `office.py`.
+New imports of RTF, OpenDocument (.odt, .ods, .odp) and old Office files (.doc, .ppt, .xls) are refused with
+`legacy-format`, in the server and before the picker offers them. Those kinds stay in `engine.FILES` so a document
+converted before the rule still opens, and can be converted again where the engine reads it. The rest: with the engine
+installed it reads Word, PowerPoint, Excel, EPUB, HTML and MHTML, CSV, OFD (its fast tier only: no model is needed) and
+pictures (either tier, as a scanned page). Without it, TextFold reads the common ones itself, at once (`office.py`):
+.docx through mammoth, its formulas turned from OMML into LaTeX first (`omml.py`, written for what latex2mathml and
+KaTeX both read); .pptx, .xlsx and .epub from their own XML; .csv and .tsv; and a saved page's article (.html, .mhtml,
+its pictures from inside the file). It writes the engine's shape (`structured_content.json` and `images/`), so
+`pdfdoc.py` stores both alike; a file whose structure is its own keeps its headings' depths, its captions and its
+notes. A picture still waits for the local engine; a stored RTF or OpenDocument file waits for it when converted
+again, and a stored old Word, PowerPoint or Excel file uses the engine or its API; a file the engine fails on falls
+back to `office.py`.
 
 The server has two queues (`Jobs`): generation (model calls) and the engine (installs, conversions), each one job at a
 time; a conversion's `next` is the generation that follows it. A converted PDF opens as soon as it is stored.
@@ -315,9 +319,10 @@ opens the library chosen (the reader's own, or a group) as Zotero shows it, its 
 of the one chosen at the right, through Zotero Desktop's local API (`localhost:23119`, read only, on once the reader
 allows other applications to talk to Zotero). `POST /api/zotero/read` reads an item by the best text it has: its arXiv
 paper when it names one, handed back to the page to generate as a pasted link is; else its file (a PDF, an EPUB, a saved
-page, a Word file), where Zotero says it is or in its `storage/`, given to `take_file` as a dropped file is, with its
-DOI as the PDF's `X-Refs`; else its DOI. A file is read only when it is one TextFold reads (a PDF by its first bytes,
-any other by its name), and a file name that leaves `storage/` is not followed. `zotero.json`, in the data folder,
+page, a Word DOCX), where Zotero says it is or in its `storage/`, given to `take_file` as a dropped file is, with its
+DOI as the PDF's `X-Refs`; else its DOI; a legacy-only attachment (RTF, OpenDocument, old Office) comes after the DOI
+and is refused by `take_file`, which shows its message. A file is read only when it is one TextFold reads (a PDF by its
+first bytes, any other by its name), and a file name that leaves `storage/` is not followed. `zotero.json`, in the data folder,
 says which item became which document, so the library marks what is open, and keeps the item's record: a document read
 from the item's own file takes Zotero's title, authors, date, DOI and citekey (`zotero.apply`, once it is stored), and
 lists among the papers. The page may change the library chosen and

@@ -76,7 +76,7 @@
 
 点拖放框下面的 **Zotero 文献库**，你的文献库就按 Zotero 里的样子出现：分类、群组文献库、搜索都在。任何条目点 **阅读** 就能打开。
 
-- **arXiv 上有的条目**，从 arXiv 读。其他条目读它的 PDF，PDF 放在旁边对照；没有 PDF 就读它附带的 EPUB、保存的网页或 Word 文件。只有 DOI 的条目，从 Europe PMC 读。
+- **arXiv 上有的条目**，从 arXiv 读。其他条目读它的 PDF，PDF 放在旁边对照；没有 PDF 就读它附带的 EPUB、保存的网页或 Word（DOCX）文件。只有 DOI 的条目，从 Europe PMC 读。旧版 Word、PowerPoint、Excel 附件不再导入：条目先试 DOI，再提示该格式不再支持。
 - **你在 Zotero 里填的信息都保留**：标题、作者和 citekey。
 - **一切都在你的电脑上。** TextFold 读的是你已经在用的 Zotero 应用，和引文插件的方式一样：不需要账号和密钥，不向 Zotero 的服务器发送任何东西，也不会改动你的文献库。
 
@@ -101,12 +101,14 @@ python -m textfold serve
 | 其他任何网页 | 它的正文，去掉菜单、广告，以及网页对读者隐藏的文字 |
 | 维基百科条目、GitHub 仓库 | 条目；README，连同里面的图 |
 | PDF | 如果它是网上能读到的论文，就读网上的版本，你的文件放在旁边对照；其他 PDF 在你的电脑上读：不装引擎 TextFold 自己就能读，图也会裁出来；装了 PDF 引擎读得更完整（MinerU，约 3.4 GB，在首页安装一次即可），扫描件需要它 |
-| Word、PowerPoint、Excel 文件，CSV、EPUB、保存的网页 | 文档本身，标题、表格、图片和公式都保留：不装引擎 TextFold 自己就能读，装了 PDF 引擎读得更完整 |
+| Word（DOCX）、PowerPoint（PPTX）、Excel（XLSX）文件，CSV、EPUB、保存的网页 | 文档本身，标题、表格、图片和公式都保留：不装引擎 TextFold 自己就能读，装了 PDF 引擎读得更完整 |
 | 图片 | 由 PDF 引擎识别出的文字 |
 | Zotero 文献库里的条目 | 有 arXiv 版本就读 arXiv，否则读它的 PDF 或其他附件，再没有就按 DOI 读。[直接读你的 Zotero ↑](#直接读你的-zotero) |
 | Markdown 或纯文本文件 | 原样的文件 |
 
-在 `~/.textfold/settings.json` 里写上 MinerU API 密钥（`mineru_api_key`），PDF、Word/PowerPoint/Excel 文件、HTML 和图片就改在 MinerU 的服务器上读：本机什么都不用装，文件会离开你的电脑。RTF、OpenDocument、EPUB 和 CSV 仍由 TextFold 自己或引擎读取。
+在 `~/.textfold/settings.json` 里写上 MinerU API 密钥（`mineru_api_key`），PDF、Word/PowerPoint/Excel 文件、HTML 和图片就改在 MinerU 的服务器上读：本机什么都不用装，文件会离开你的电脑。EPUB 和 CSV 由 TextFold 自己读取；装了引擎就交给引擎。
+
+新的 RTF、OpenDocument（.odt、.ods、.odp）和旧版 Word、PowerPoint、Excel 文件（.doc、.ppt、.xls）不再接受导入：请先另存为 DOCX、PPTX、XLSX 或 PDF。已经在文库里的文档照常打开，已生成的层也保留。
 
 读过的文档保存在系统存放应用数据的文件夹里，和桌面 App 共用。
 

@@ -76,7 +76,7 @@ Choose the level of detail you need, and lower your cognitive load.
 
 Click **Zotero library**, under the drop zone, and your library is there as Zotero shows it: your collections, your group libraries, a search. **Read** opens any item.
 
-- **An item on arXiv** opens from arXiv. Any other opens from its PDF, with the PDF beside the text, or from the EPUB, saved web page or Word file it holds. An item with only a DOI opens from Europe PMC.
+- **An item on arXiv** opens from arXiv. Any other opens from its PDF, with the PDF beside the text, or from the EPUB, saved web page or Word (DOCX) file it holds. An item with only a DOI opens from Europe PMC. An old Word, PowerPoint or Excel attachment is no longer imported: the item tries its DOI first, then says the format is no longer supported.
 - **It keeps what you entered in Zotero:** the title, the authors and the citekey.
 - **It stays on your computer.** TextFold asks the Zotero app you already run, the way citation plugins do: no account, no key, nothing sent to Zotero's servers, and nothing in your library changed.
 
@@ -101,12 +101,14 @@ Open `http://localhost:3017`. The first time, [connect a model](#connect-a-model
 | Any other web page | its article, without the menus, the adverts, or the text it hides from its readers |
 | A Wikipedia article, a GitHub repository | the article; the README, with its pictures |
 | A PDF | the paper online when the PDF names one, with your file beside it; any other PDF, on your computer: read by TextFold itself, figures included, or more completely by the PDF engine (MinerU, about 3.4 GB, installed once from the landing), which a scanned PDF needs |
-| A Word, PowerPoint or Excel file, a CSV, an EPUB, a saved web page | the document with its headings, tables, pictures and formulas: read by TextFold itself, or more completely by the PDF engine once it is installed |
+| A Word (DOCX), PowerPoint (PPTX) or Excel (XLSX) file, a CSV, an EPUB, a saved web page | the document with its headings, tables, pictures and formulas: read by TextFold itself, or more completely by the PDF engine once it is installed |
 | A picture | its text, read by the PDF engine |
 | An item of your Zotero library | its arXiv paper, else its PDF or other file, else its DOI. [Works on your Zotero ↑](#works-on-your-zotero) |
 | A Markdown or text file | the file as written |
 
-With a MinerU API key (`mineru_api_key` in `~/.textfold/settings.json`), PDFs, Word/PowerPoint/Excel files, HTML and pictures are read on MinerU's servers instead: nothing to install, and the file leaves your computer. RTF, OpenDocument, EPUB and CSV still use TextFold's own reader or the engine.
+With a MinerU API key (`mineru_api_key` in `~/.textfold/settings.json`), PDFs, Word/PowerPoint/Excel files, HTML and pictures are read on MinerU's servers instead: nothing to install, and the file leaves your computer. EPUB and CSV are read by TextFold itself, or by the engine once it is installed.
+
+New RTF, OpenDocument (.odt, .ods, .odp) and old Word, PowerPoint or Excel files (.doc, .ppt, .xls) are no longer accepted: save them as DOCX, PPTX, XLSX or PDF first. Documents already in the library keep opening, and their generated levels stay.
 
 What you read is kept in your system's folder for app data, shared with the desktop app.
 

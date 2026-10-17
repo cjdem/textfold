@@ -536,12 +536,15 @@
     return d;
   }
   const isPdf = (file) => /\.pdf$/i.test(file.name) || file.type === 'application/pdf';
-  // what TextFold opens: what the PDF engine reads (engine.FILES), and Markdown and text, read as they are
-  const ENGINE_EXT = ['pdf', 'docx', 'doc', 'rtf', 'pptx', 'ppt', 'xlsx', 'xls', 'odt', 'ods', 'odp', 'epub', 'html', 'htm', 'mhtml', 'mht',
+  // what TextFold still takes: the engine's kinds minus the legacy ones (engine.FILES, engine.LEGACY), and Markdown
+  // and text, read as they are
+  const ENGINE_EXT = ['pdf', 'docx', 'pptx', 'xlsx', 'epub', 'html', 'htm', 'mhtml', 'mht',
     'csv', 'tsv', 'ofd', 'png', 'jpg', 'jpeg', 'webp', 'gif', 'bmp', 'tif', 'tiff', 'jp2'];
+  // not offered in the picker, but uploaded so the server answers: a PDF renamed .odt still opens as a PDF
+  const LEGACY_EXT = ['doc', 'ppt', 'xls', 'rtf', 'odt', 'ods', 'odp'];
   const TEXT_EXT = ['md', 'markdown', 'mdown', 'txt'];
   const extOf = (name) => ((/\.([a-z0-9]+)$/i.exec(name || '') || [])[1] || '').toLowerCase();
-  const forEngine = (file) => isPdf(file) || ENGINE_EXT.includes(extOf(file.name));
+  const forEngine = (file) => isPdf(file) || ENGINE_EXT.includes(extOf(file.name)) || LEGACY_EXT.includes(extOf(file.name));
   const isText = (file) => TEXT_EXT.includes(extOf(file.name));
   // OpenRouter's consent page. In the browser: this tab goes there and comes back with the key. Inside the app: the
   // system browser (where the reader is signed in) goes there, and the app waits for the key, then offers the models.
@@ -556,7 +559,8 @@
     }
   }
   const errText = (msg) => (msg === 'no-html' ? t().no_html : msg === 'bad-ref' ? t().bad_ref : msg === 'no-model' ? t().no_model
-    : msg === 'not-markdown' || msg === 'empty' || msg === 'not-supported' ? t().md_only : msg === 'no-fulltext' ? t().no_fulltext
+    : msg === 'not-markdown' || msg === 'empty' || msg === 'not-supported' ? t().md_only : msg === 'legacy-format' ? t().legacy_format
+    : msg === 'no-fulltext' ? t().no_fulltext
     : msg === 'no-readme' ? t().no_readme : msg === 'github-limit' ? t().github_limit : msg === 'needs-engine' ? t().pdf_needs
     : msg === 'busy' ? t().engine_busy : msg === 'not-pdf' ? t().not_pdf : msg === 'too-large' ? t().pdf_large
     : msg === 'bad-file' ? t().file_bad : msg === 'no-file' ? t().no_file : msg === 'not-running' ? t().z_off : msg === 'api-off' ? t().z_api_off

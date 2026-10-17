@@ -100,7 +100,7 @@
 - [x] 2. 移除画廊/宣传素材管线，官网压缩为一页（含 README demo 链接与文档同步）。
 - [x] 3. 移除 Claude Code / Pi 折叠插件（含 fold-engine 不变式与测试）。
 - [x] 4. 停止默认生成段落论证关系（界面暂时保留旧数据）。
-- [ ] 5. 格式第一批收窄：RTF / OpenDocument / 旧版 DOC/PPT/XLS。
+- [x] 5. 格式第一批收窄：RTF / OpenDocument / 旧版 DOC/PPT/XLS。
 - [ ] 6. 设置、导出、命令行入口、图例、教程的收起与简化。
 - [ ] 7. 移除论证关系的界面（页边、主题图、hover）。
 - [ ] 8. 再评估 EPUB / MHTML / OFD（只做决定，不默认删除）。
