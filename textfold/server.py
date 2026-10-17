@@ -91,7 +91,7 @@ def models_payload():
         "models": cat, "selected": selected, "selectedName": name(selected),
         "askModel": ask, "askEffort": ask_effort, "askName": name(ask) if ask and ask != selected else "",
         "efforts": s.get("efforts") or {}, "bridge": bridges.bridge_status(),
-        "agents": [{k: a[k] for k in ("runtime", "label", "binary", "path", "version", "runnable", "error")} | {"models": len(a["models"])}
+        "agents": [{k: a[k] for k in ("runtime", "label", "binary", "path", "version", "error")} | {"models": len(a["models"])}
                    for a in agents.STATE["agents"]],
         "scanning": agents.STATE["scanning"], "scannedAt": agents.STATE["scanned_at"],
         "providers": [{"key": p["key"], "name": p["name"], "source": p["source"], "base": p["base"], "protocol": p["protocol"],

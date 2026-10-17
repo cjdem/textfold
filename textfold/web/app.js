@@ -1086,9 +1086,9 @@
       const t = T();
       const found = data.agents.filter((a) => a.path);
       const missing = data.agents.filter((a) => !a.path && !a.error);
-      const rows = found.map((a) => `<div class="st-item"><i class="st-dot${a.runnable ? '' : ' warn'}"></i><div class="st-main"><b>${esc(a.label)}</b>
+      const rows = found.map((a) => `<div class="st-item"><i class="st-dot"></i><div class="st-main"><b>${esc(a.label)}</b>
         <span class="st-meta">${a.version ? `${esc(a.version)} · ` : ''}<code title="${esc(a.path)}">${esc(a.binary)}</code></span></div>
-        <span class="st-aside">${a.runnable ? esc(t.st_models.replace('{n}', a.models)) : esc(t.st_unsupported)}</span></div>`).join('');
+        <span class="st-aside">${esc(t.st_models.replace('{n}', a.models))}</span></div>`).join('');
       return `<div class="st-list">${rows}<div class="st-item st-foot-line"><span class="st-main st-meta">${missing.length ? `${esc(t.st_notfound)}: ${missing.map((a) => esc(a.label)).join(', ')}` : ''}</span>
         <button type="button" class="st-btn st-scan"${data.scanning ? ' disabled' : ''}>${esc(data.scanning ? t.st_scanning : t.st_rescan)}</button></div></div>`;
     }

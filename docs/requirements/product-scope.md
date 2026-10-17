@@ -96,7 +96,7 @@
 
 每一项单独 worktree、单独提交、单独记录，完成后 ff-only 合回本地 main；不推送。
 
-- [ ] 1. 移除只检测不能调用的 Agent 展示（保留 Claude Code/Codex/Pi）。
+- [x] 1. 移除只检测不能调用的 Agent 展示（保留 Claude Code/Codex/Pi）。
 - [ ] 2. 移除画廊/宣传素材管线，官网压缩为一页（含 README demo 链接与文档同步）。
 - [ ] 3. 移除 Claude Code / Pi 折叠插件（含 fold-engine 不变式与测试）。
 - [ ] 4. 停止默认生成段落论证关系（界面暂时保留旧数据）。

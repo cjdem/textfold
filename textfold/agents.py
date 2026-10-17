@@ -1,14 +1,14 @@
 """Coding agents already installed on this computer, ported from ThoughtDAG (runtime/agents/*.cjs).
 
-The server scans for them at startup (and on demand): every mainstream agent CLI is looked for on PATH,
+The server scans for them at startup (and on demand): the three agent CLIs this reader drives are looked for on PATH,
 in the usual install directories and under the node version managers, as ThoughtDAG's where.cjs does.
-Three can run a generation, the three ThoughtDAG drives:
+All three run a generation:
 
   claude-code  claude -p, structured output by --json-schema        models: fable, opus, sonnet, haiku
   codex        codex exec, structured output by --output-schema      models: `codex app-server` model/list
   pi           pi -p --mode json, JSON asked for in the prompt       models: `pi --mode rpc` get_available_models
 
-The others are reported when found, but not driven yet. A model id is ThoughtDAG's:
+Only these three are scanned and listed: an agent the reader cannot drive is not offered. A model id is ThoughtDAG's:
 `claude/claude-code/opus`, `codex/codex/<model>`, `pi/<provider>/<model>`.
 Agents run here only as one-shot text generators: no tools, no session, a scratch working directory.
 """
@@ -25,23 +25,11 @@ import time
 from pathlib import Path
 
 HOME = Path.home()
-# runtime, label, binary, extra directories, can it run a generation here
+# runtime, label, binary, extra directories
 REGISTRY = [
-    ("claude-code", "Claude Code", "claude", ["~/.claude/local"], True),
-    ("codex", "Codex", "codex", ["~/.codex/bin"], True),
-    ("pi", "Pi", "pi", ["~/.pi/bin"], True),
-    ("gemini", "Gemini CLI", "gemini", [], False),
-    ("qwen", "Qwen Code", "qwen", [], False),
-    ("opencode", "opencode", "opencode", ["~/.opencode/bin"], False),
-    ("cursor-agent", "Cursor Agent", "cursor-agent", [], False),
-    ("kimi", "Kimi CLI", "kimi", [], False),
-    ("amp", "Amp", "amp", [], False),
-    ("goose", "Goose", "goose", [], False),
-    ("crush", "Crush", "crush", [], False),
-    ("droid", "Factory Droid", "droid", ["~/.factory/bin"], False),
-    ("copilot", "GitHub Copilot CLI", "copilot", [], False),
-    ("iflow", "iFlow CLI", "iflow", [], False),
-    ("aider", "Aider", "aider", [], False),
+    ("claude-code", "Claude Code", "claude", ["~/.claude/local"]),
+    ("codex", "Codex", "codex", ["~/.codex/bin"]),
+    ("pi", "Pi", "pi", ["~/.pi/bin"]),
 ]
 PREFIX = {"claude-code": "claude/", "codex": "codex/", "pi": "pi/"}
 # npm's global folder, Claude Code's own installer (~/.local/bin), Scoop, Node itself
@@ -228,14 +216,14 @@ _lock = threading.Lock()
 
 
 def scan(log=None):
-    """Find every registered agent, ask the runnable ones for their models. Safe to call from any thread."""
+    """Find every registered agent and ask it for its models. Safe to call from any thread."""
     with _lock:
         STATE["scanning"] = True
         found, seen = [], {}
-        for runtime, label, binary, extra, runnable in REGISTRY:
+        for runtime, label, binary, extra in REGISTRY:
             # TEXTFOLD_NO_MODELS=1: none looked for (a test server, a CI run: nothing calls a model by accident)
             path = None if os.environ.get("TEXTFOLD_NO_MODELS") else locate(binary, extra)
-            row = {"runtime": runtime, "label": label, "binary": binary, "path": path, "runnable": runnable,
+            row = {"runtime": runtime, "label": label, "binary": binary, "path": path,
                    "version": None, "models": [], "error": None}
             if path:
                 real = os.path.realpath(path)
@@ -248,11 +236,10 @@ def scan(log=None):
                         row["version"] = ((out.stdout or out.stderr).strip().splitlines() or [""])[0][:80]
                     except Exception as e:
                         row["error"] = str(e)[:200]
-                    if runnable:
-                        try:
-                            row["models"] = CATALOG[runtime](path)
-                        except Exception as e:
-                            row["error"] = f"model list: {e}"[:200]
+                    try:
+                        row["models"] = CATALOG[runtime](path)
+                    except Exception as e:
+                        row["error"] = f"model list: {e}"[:200]
             found.append(row)
         STATE.update(agents=found, scanned_at=time.time(), scanning=False)
     if log:
@@ -263,7 +250,7 @@ def scan(log=None):
 
 
 def models():
-    return [m for a in STATE["agents"] if a["path"] and a["runnable"] for m in a["models"]]
+    return [m for a in STATE["agents"] if a["path"] for m in a["models"]]
 
 
 def runtime_of(model_id):
