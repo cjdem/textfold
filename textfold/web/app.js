@@ -61,7 +61,7 @@
     return `${modelName} · ${t().sb_ask_with.replace('{m}', short)}`;
   };
   const live = (j) => j.status === 'queued' || j.status === 'running';
-  function jobFor(pid) { return jobs.find((j) => j.pid === pid && live(j)); }
+  function jobFor(pid) { return jobs.find((j) => j.pid === pid && live(j) && j.kind !== 'card'); }   // (a reading card's draft has its own progress in card.js)
   function pct(j) { return j.total ? Math.round((100 * j.done) / j.total) : (j.stage === 'done' ? 100 : 6); }
   // where a job is: its stage and count, or that it is stopping
   const stageOf = (j, T) => {
@@ -175,7 +175,7 @@
   }
   // an unfinished paper goes on in the language it was last asked for (else the reader's), in the background
   function resume(pid) {
-    const last = [...jobs].reverse().find((j) => j.pid === pid);
+    const last = [...jobs].reverse().find((j) => j.pid === pid && j.kind !== 'card');
     const lang = (last && last.lang) || uiLang;
     submit(pid, lang, false, () => {}).catch(() => {});
   }

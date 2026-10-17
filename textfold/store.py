@@ -14,6 +14,7 @@ import json
 import locale
 import os
 import re
+import threading
 import time
 from pathlib import Path
 
@@ -36,6 +37,7 @@ def app_data():
 # the reader's papers and exports: the project folder when run from it, the system's data folder when installed with
 # pip, or the folder TEXTFOLD_DATA names (the desktop app's; PAPERFOLD_DATA, its name before TextFold, is still read)
 DATA = Path(os.environ.get("TEXTFOLD_DATA") or os.environ.get("PAPERFOLD_DATA") or (ROOT if SOURCE else app_data()))
+LOCK = threading.RLock()   # a document's folder is moved or its card written as one thing (trash, a card save, a conversion)
 HOME = Path.home() / ".textfold"   # the reader's settings and keys, outside the project folder
 # where they were kept under earlier names, newest first: PaperFold, Dynamic Reader (read, never removed)
 OLD_HOMES = (Path.home() / ".paperfold", Path.home() / ".dynamic-reader")
@@ -241,6 +243,7 @@ def trash(pid):
     """Delete a paper from the list: its folder (source, layers, model replies, notes) moves to papers/.trash, from
     where it can be moved back by hand. Nothing is erased."""
     to = DATA / "papers" / ".trash" / f"{pid}-{time.strftime('%Y%m%d-%H%M%S')}"
-    to.parent.mkdir(parents=True, exist_ok=True)
-    pdir(pid).rename(to)
+    with LOCK:   # a card save and the move of the folder it writes into cannot cross
+        to.parent.mkdir(parents=True, exist_ok=True)
+        pdir(pid).rename(to)
     return to

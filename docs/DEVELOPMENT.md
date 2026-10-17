@@ -1,7 +1,8 @@
 # TextFold: development notes
 
 How the reader works, how to run and extend it. For what it is and how to use it, see the [README](../README.md).
-The notes format is [notes-format.md](notes-format.md).
+The notes format is [notes-format.md](notes-format.md); the reading card's is
+[reading-card-format.md](reading-card-format.md).
 
 The same semantic zoom as ThoughtDAG's plaques, applied to a paper's HTML (LaTeXML) version:
 
@@ -98,7 +99,7 @@ Models (⚙ Model & API), ported from ThoughtDAG's model access:
   - **Rate limits**: a 429, 502, 503 or 529 is waited out (Retry-After, else 5, 15, 30, 45 s) and asked again.
 - **Thinking, per task**, set by the reader's tools and not by the reader (a reader is here to read):
   `models.DEFAULT_THINKING` gives the levels and takeaways off, the argument links low, the translation off, the
-  questions low, from the model bench.
+  questions low, the reading card low, from the model bench.
   Each caller spells a level its own way: Claude Code `--effort`, and off as `MAX_THINKING_TOKENS=0`; Codex
   `model_reasoning_effort` (off as `none`, else `low`); Pi `--thinking`; the Claude API thinking and effort by model
   (off is `between_tools` on Sonnet 5.x, `disabled` on older models, the least effort where thinking cannot be
@@ -185,6 +186,24 @@ The chat (the button in the corner, in the app) asks about the whole paper. Each
 `on: "paper"`; the model is given the abstract, every paragraph's point section by section (at most 60,000
 characters: a long paper keeps every section and fewer paragraphs each) and eight passages found for the question.
 The answer cites up to five paragraphs; a cite opens its paragraph in place.
+
+**Reading card** (the button at the top of a paper, `textfold/cards.py` and `web/card.js`): a drawer apart from the
+document, with four sections — research question and contributions, method and assumptions, data and experimental
+setup, results and limitations — of separately editable points. A point may be a found statement, a missing one, one
+not applicable with its reason, or one to check; a model point starts unchecked, the reader can mark it checked, and
+changing its text or evidence puts it back to check. A generated card is a draft: the document's own units are sent in
+parts of about 26,000 characters (with the rows of any table in that part, so a number kept only in a table still has
+a caption to cite), each point names one to three units, and the section, block and PDF page of every evidence are
+read from the document again rather than trusted from the reply. A point the model marked found with no valid
+evidence becomes check. Parts keep their section and evidence mapping; a failed part leaves the others and marks the
+card partial. A first complete or partial result becomes the card; a later one is a candidate until the reader merges
+or replaces the card with it, or discards it. The document's units, blocks and section metadata are fingerprinted, so
+a changed document marks the card for review while a regenerated layer or translation does not; a lost unit or a
+quote no longer in the text is shown as broken or mismatched, keeps its excerpt, and can be linked again. Cards live
+in the document's own folder (`papers/<id>/card.json`, `docs/reading-card-format.md`), follow it to the trash and back,
+and are kept when a PDF is converted again. Without a model the card can still be written by hand; selecting a
+passage offers **Add to reading card**. The Markdown export writes the saved card with its states, evidence and
+`#u=`/`#b=` links, with no model call.
 
 In the app the mark (in the bar and in the sidebar's rail) leads home; the rail's second button opens the list of
 papers. A paper is deleted from the list after a prompt that says what goes with it: its folder (layers, model
@@ -378,7 +397,7 @@ textfold/links.py    argument links, one call over the whole paper
 textfold/translate.py  a language the reader offers: sentence-aligned translation + short levels, one call per section (langs.py: English and Simplified Chinese)
 textfold/store.py    versioned layers per paper; assembling a reader from them
 textfold/pipeline.py fetch → parse → English ladder + links (once) → translation, with progress
-textfold/server.py   local server: pages, /api/papers, /api/jobs (and /api/jobs/stop), /api/generate, /api/settings
+textfold/server.py   local server: pages, /api/papers, /api/jobs (and /api/jobs/stop), /api/generate, /api/card, /api/settings
 textfold/agents.py   local agents: the scan, model catalogs, one-shot runs (claude -p, codex exec, pi -p)
 textfold/providers.py API providers: ThoughtDAG's env registry and presets, /models probing
 textfold/models.py   one catalog of agent and API models; settings; resolving a model id
@@ -386,8 +405,10 @@ textfold/llm.py      the call (cached) for every kind of model; llm_openai.py: O
 textfold/build.py    reader pages: app mode (served) and static mode (one file)
 textfold/library.py  the sidebar's library: folders, when each document came in and was last opened (library.json)
 textfold/notes.py    the reader's notes (docs/notes-format.md) and questions answered by the model
+textfold/cards.py    a document's reading card (docs/reading-card-format.md): evidence, candidates, staleness, Markdown
 textfold/fold.py     the TextFold format (docs/format.md) and a document at one level as Markdown (python -m textfold get)
-textfold/web/   reader.js (render + FLIP morph), app.js (sidebar, landing, settings, jobs), i18n.js, CSS, templates
+textfold/web/   reader.js (render + FLIP morph), card.js/card.css (the reading card drawer), app.js (sidebar, landing,
+                settings, jobs), i18n.js, CSS, templates
 tests/          python -m unittest discover tests: the arXiv page's safety pass, the Zotero library (a fake Zotero),
                 agents on Windows
 desktop/       the app (its README): Electron around the same server, with its own Python; desktop/scripts/smoke.py

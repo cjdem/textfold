@@ -27,6 +27,8 @@
                               with PDF.js, for the side-by-side view
   POST /api/ask               {paper, id, question, req}: the model answers a note's question; the answer is stored in it
   POST /api/ask/stop          {req}: that question stopped: its answer, when it comes, is not stored
+  GET  /api/card/<id>         the document's reading card (cards.py), with what is stale or no longer reachable
+  POST /api/card/<id>         {op}: create | save | evidence | adopt | adopt_item | discard | review | generate | export
   POST /api/papers/delete     {paper}: move a paper to papers/.trash (not while it is being generated)
   GET  /api/folders           the reader's folders and which document is in which (library.py)
   POST /api/folders           {op: new | rename | delete | move, ...}: one change; the folders after it
@@ -61,10 +63,11 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, quote, unquote, urlparse
 
-from . import agents, bridges, build, engine, fetch, langs, library, llm, local, models, notes, office, pdf, pdfdoc, pdftext, pipeline, providers, store, zotero
+from . import agents, bridges, build, cards, engine, fetch, langs, library, llm, local, models, notes, office, pdf, pdfdoc, pdftext, pipeline, providers, store, zotero
 
 STATIC = {"app.js": "text/javascript", "app.css": "text/css", "reader.js": "text/javascript",
-          "reader.css": "text/css", "i18n.js": "text/javascript", "tutorial.js": "text/javascript"}
+          "card.js": "text/javascript", "card.css": "text/css", "reader.css": "text/css",
+          "i18n.js": "text/javascript", "tutorial.js": "text/javascript"}
 # fonts and KaTeX, kept here so that no page asks another server for them (web/vendor)
 IMAGE_TYPES = {".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".gif": "image/gif", ".webp": "image/webp"}
 VENDOR_TYPES = {".css": "text/css; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".mjs": "text/javascript; charset=utf-8", ".woff2": "font/woff2",
@@ -134,6 +137,11 @@ class Jobs:
     def submit(self, ref, lang, force, attach=None):
         pid = store.resolve(ref)
         return self._same(kind="generate", pid=pid, lang=lang) or self._new(self.q, pid=pid, lang=lang, force=bool(force), attach=attach)
+
+    def card(self, pid, lang):
+        """A reading card draft (cards.py): its own job, so the reader sees its progress and can stop it, and so it is
+        not mistaken for a generation of the document. A draft in another language is another job."""
+        return self._same(kind="card", pid=pid, lang=lang) or self._new(self.q, kind="card", pid=pid, lang=lang, title="Reading card")
 
     def convert(self, pid, file, name, lang, tier=None, replace=False):
         """A file through the engine (then generated): file is on disk; replace converts a stored one again."""
@@ -207,6 +215,13 @@ class Jobs:
         job["finished"] = time.time()
         PAGES.pop(job["pid"], None)
 
+    def _card_progress(self, job, stop):
+        def progress(stage, done, total):
+            if stop.is_set():
+                raise llm.Stopped()
+            job.update(stage=stage, done=done, total=total)
+        return progress
+
     def work(self):
         while True:
             job = self.items[self.q.get()]
@@ -220,6 +235,14 @@ class Jobs:
                     job["model"] = spec["id"]
                 except RuntimeError:   # none: the paper is still fetched and parsed, to be read as written
                     spec = None
+                if job["kind"] == "card":
+                    if spec is None:
+                        raise RuntimeError("No model is available: install Claude Code, Codex or Pi, or add an API provider in the settings")
+                    cards.generate(job["pid"], job["lang"] or "en", models.for_task(spec, "card"),
+                                   progress=self._card_progress(job, stop), log=self._log(job), stop=stop)
+                    job["status"] = "done"
+                    job["finished"] = time.time()
+                    continue
                 pipeline.generate(job["pid"], job["lang"], spec, force=job["force"], progress=self._progress(job, stop), log=self._log(job), stop=stop,
                                   also_zh=True)   # an English document is read in Simplified Chinese by default
                 job["status"] = "done"
@@ -542,6 +565,12 @@ def make_handler(jobs):
                 m = re.fullmatch(r"/api/notes/([\w.-]+)", u.path)
                 if m and store.valid_id(m.group(1)) and (store.pdir(m.group(1)) / "meta.json").exists():
                     return self.json(notes.read(m.group(1)))
+                m = re.fullmatch(r"/api/card/([\w.-]+)", u.path)
+                if m and store.valid_id(m.group(1)) and (store.pdir(m.group(1)) / "meta.json").exists():
+                    try:
+                        return self.json(cards.payload(m.group(1)))
+                    except ValueError as e:   # (a stored page that no longer parses)
+                        return self.json({"error": str(e)}, 400)
                 m = re.fullmatch(r"/api/pdf/([\w.-]+)", u.path)
                 if m and store.valid_id(m.group(1)) and (store.pdir(m.group(1)) / "meta.json").exists():
                     f = pdf.path(m.group(1)) if pdf.has_source(m.group(1)) else None
@@ -670,6 +699,26 @@ def make_handler(jobs):
                         return self.json(notes.put(m.group(1), body.get("note")))
                     except ValueError as e:
                         return self.json({"error": str(e)}, 400)
+                m = re.fullmatch(r"/api/card/([\w.-]+)", u.path)
+                if m and store.valid_id(m.group(1)) and (store.pdir(m.group(1)) / "meta.json").exists():
+                    pid = m.group(1)
+                    op = body.get("op")
+                    if op == "generate":
+                        lang = body.get("lang") if body.get("lang") in langs.LANGS else "en"
+                        return self.json(jobs.card(pid, lang))
+                    if op == "export":
+                        try:
+                            base = str(body.get("base") or "")[:200]
+                            md = cards.markdown(pid, base)
+                        except ValueError as e:
+                            return self.json({"error": str(e)}, 400)
+                        return self.json({"markdown": md, "name": cards.export_name(pid)})
+                    try:
+                        return self.json(cards.apply_op(pid, body))
+                    except ValueError as e:
+                        return self.json({"error": str(e)}, 400)
+                    except Exception as e:
+                        return self.json({"error": str(e)[:600]}, 500)
                 if u.path == "/api/bridge/start":
                     try:
                         return self.json(bridges.bridge_start())
@@ -682,7 +731,8 @@ def make_handler(jobs):
                     pid = str(body.get("paper", ""))
                     if not store.valid_id(pid) or not (store.pdir(pid) / "meta.json").exists():
                         return self.json({"error": "no such paper"}, 404)
-                    if any(j["pid"] == pid and j["status"] in ("queued", "running") for j in jobs.list()):
+                    if any(j["pid"] == pid and j["status"] in ("queued", "running") and j.get("kind") != "card"
+                           for j in jobs.list()):   # (a card draft is not the document being generated)
                         return self.json({"error": "busy"}, 409)
                     store.trash(pid)
                     library.forget(pid)

@@ -62,6 +62,7 @@ Your agent writes more than you have time to read. A [Claude Code mod](https://c
 - **Beside the original.** Open a paper's or a PDF's own pages next to the text, each paragraph shown where it stands on its page.
 - **Ask AI about exactly what you read.** Select a passage, or ask about the whole text. The answer comes structured: the short answer first, then the evidence, each point citing the paragraph it rests on, one click away.
 - **Notes that zoom with the text.** Highlight and write in the margin; what you marked stays as you zoom out, and is saved with the page.
+- **A reading card you can keep.** Four sections — the question, the method, the setup and the results — with every point editable and linked back to the passage it came from. A new draft waits beside the card instead of replacing what you wrote.
 
 - **Your language.** English and Simplified Chinese, translated sentence by sentence, with every formula as typeset.
 
@@ -153,6 +154,7 @@ Your questions can go to a stronger model than the one that writes the levels: *
 | Click a figure | see it enlarged |
 | **Original**, at the top | read beside the paper's PDF |
 | **Save**, at the top | keep the page as one file, or only your notes |
+| **Reading card**, at the top | keep the four questions a paper answers, with evidence back to the text |
 | Select text | highlight, write a note, or ask |
 | **Ask the paper**, bottom right | ask about the whole text |
 | `L` | next language |
@@ -238,6 +240,7 @@ More in [plugins/pi-textfold](https://github.com/chenxiachan/textfold/blob/main/
 
 ## What's new
 
+- **October 18, 2026: a reading card for every paper.** **Reading card**, at the top of a paper, keeps what it asks and contributes, how it works, what it measured and what it found, in four sections you can edit. Every point links back to the passage; a new draft waits as a candidate, and the card exports to Markdown.
 - **October 17, 2026: MinerU's servers read your files.** Put `mineru_api_key` in `~/.textfold/settings.json` and PDFs, Word/PowerPoint/Excel files, HTML and pictures are read by MinerU's cloud API: no 3.4 GB engine to install, and the file leaves your computer.
 - **October 17, 2026: English documents come with their Simplified Chinese.** An English document opened in the app is made with its Simplified Chinese version at the end of the same generation, so it reads in Chinese without a second request.
 - **October 15, 2026: Pi's replies fold too.** [An extension for Pi](https://github.com/chenxiachan/textfold/blob/main/plugins/pi-textfold/README.md) puts the five levels on every reply, with the same fold as in Claude Code. Thanks to [@jlamweil](https://github.com/jlamweil).

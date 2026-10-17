@@ -412,6 +412,7 @@
     for (const uid of unitEl.keys()) renderSide(uid);
     notesForLang();
     if (window.DRApp) window.DRApp.onLang(lang, ui);
+    document.dispatchEvent(new Event('tf-lang'));   // (the reading card's interface words follow the reader's)
   }
 
   // a page read from the web is a snapshot: the day it was read, in the interface's language ("6 October 2026")
@@ -1890,8 +1891,12 @@
     if (!anchors) { hideSelbar(); return; }
     selAnchors = anchors;
     const t = T[ui];
+    // a passage may also support an item of the reading card (card.js, the app only): the card is where a reader's
+    // checked findings live, and a selected original passage is the way a hand-written item gets its evidence
+    const card = window.PFCard && window.PFCard.available && window.PFCard.available()
+      ? `<button type="button" data-act="card">${esc(t.card_add)}</button>` : '';
     selbar.innerHTML = `<button type="button" data-act="hl">${esc(t.n_highlight)}</button><button type="button" data-act="note">${esc(t.n_note)}</button>` +
-      `<button type="button" data-act="ask">${esc(t.n_ask)}</button>`;
+      `<button type="button" data-act="ask">${esc(t.n_ask)}</button>${card}`;
     selbar.hidden = false;
     const r = getSelection().getRangeAt(0).getBoundingClientRect(), w = selbar.offsetWidth;
     selbar.style.left = `${Math.max(8, Math.min(innerWidth - w - 8, r.left + r.width / 2 - w / 2))}px`;
@@ -1902,9 +1907,13 @@
   selbar.addEventListener('click', (e) => {
     const act = e.target.closest('button') && e.target.closest('button').dataset.act, anchors = selAnchors;
     if (!act || !anchors) return;
-    const made = anchors.map((a, k) => ({ id: noteId(), kind: k === 0 && act === 'note' ? 'note' : 'highlight', anchor: a, text: '', ask: null }));
     hideSelbar();
     getSelection().removeAllRanges();
+    if (act === 'card') {   // card.js asks which item, or uses the item whose re-link was asked for
+      if (window.PFCard) window.PFCard.fromSelection(anchors);
+      return;
+    }
+    const made = anchors.map((a, k) => ({ id: noteId(), kind: k === 0 && act === 'note' ? 'note' : 'highlight', anchor: a, text: '', ask: null }));
     if (act === 'ask') {   // the question is written first; the note is kept once it is asked
       openNote({ ...made[0], kind: 'ask', thread: [] }, true);
       return;
@@ -2098,6 +2107,34 @@
     if (!el) return;
     go(unitBox(uid), from);
     if (level < 4 && !localLevel.has(uid)) setTimeout(() => { if (!busy && !localLevel.has(uid)) toggleUnit(uid); }, 480);
+  }
+  // a reading card's evidence (card.js): its paragraph, opened to the full text where the zoom hides it; a table or
+  // figure caption's evidence opens the figure itself when the document gave it one. From the Topic map it first
+  // steps in, and waits for that motion to end before opening the paragraph (Back returns to the map).
+  function jumpToEvidence(uid, block) {
+    if (!uid || !unitEl.has(uid)) return false;
+    const from = { y: scrollY, level, from: null };
+    const blockEl = () => { const e = block && document.getElementById(block); return e && e.getClientRects().length ? e : null; };
+    const target = () => blockEl() || unitBox(uid);
+    const open = () => {
+      go(target(), null);
+      backTo = from;
+      const wait = (tries = 0) => {
+        if (busy) { if (tries < 50) setTimeout(() => wait(tries + 1), 80); return; }
+        // A table or figure has its own place to land on; without one (or when that block is not drawn at this
+        // level), the paragraph itself opens, so a card's evidence never leads to a closed summary.
+        if (!blockEl() && level < 4 && !localLevel.has(uid)) toggleUnit(uid);
+      };
+      setTimeout(wait, 60);
+    };
+    if (level === 0) {
+      const el = unitBox(uid), r = el.getBoundingClientRect();
+      setLevel(2, { el, y: r.top, frac: 0 });
+      setTimeout(open, DUR + 120);
+    } else {
+      open();
+    }
+    return true;
   }
   addEventListener('scroll', () => { if (popNote) placePop(); }, { passive: true });
   // typing into a note scrolled out of sight brings its passage back (and the note with it, on the scroll above):
@@ -3470,6 +3507,16 @@ math { font-size: 1.05em; }
   hydrateSoon();
   warmSoon(600);
   loadNotes();
+  // a reading card's export links back to a passage (#u=<unit>, and #b=<figure or table>): open it, as a cite does,
+  // once the reader is at rest (a large page may still be settling)
+  const atUnit = /[#&]u=([^&]+)/.exec(location.hash), atBlock = /[#&]b=([^&]+)/.exec(location.hash);
+  if (atUnit) {
+    const goUnit = (tries = 0) => {
+      if (busy && tries < 60) { setTimeout(() => goUnit(tries + 1), 120); return; }
+      jumpToEvidence(decodeURIComponent(atUnit[1]), atBlock ? decodeURIComponent(atBlock[1]) : null);
+    };
+    setTimeout(goUnit, 420);
+  }
   try { if (PDF_OK && innerWidth >= 1100 && localStorage.getItem(CMP_KEY) === '1') openCompare(); } catch { /* private window */ }
   // the page again after a generation (app.js): the level and the paragraph that were being read, where they were
   try {
@@ -3488,7 +3535,8 @@ math { font-size: 1.05em; }
     store.set(UI_KEY, code);
     if (AVAIL.includes(code) && code !== lang) setLang(code); else applyLang();
   }
-  window.__reader = { setLevel, setLang, setUi, get ui() { return ui; }, zoomBy,
+  window.__reader = { setLevel, setLang, setUi, get ui() { return ui; }, zoomBy, saveAs, jumpToEvidence,
+    get langs() { return AVAIL; }, get meta() { return D.meta; }, get app() { return !!D.app; },
     get compared() { if (!cmp || !cmp.grams) return null; const ids = [...order.keys()]; return { units: ids.length, found: ids.filter((id) => locate(id)).length, words: cmp.words.length }; }, get level() { return level; }, get lang() { return lang; }, get pos() { return pos; },
     get staged() { return !!stage; }, get _caps() { return caps; }, get keyframes() { return caps.map((c) => (c ? c.P.size : 0)); },
     // holding the zoom at a position, as a hand would (for looking at the motion frame by frame)
