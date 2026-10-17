@@ -38,8 +38,10 @@ Português, Italiano, Русский, हिन्दी): the browser's, or the
 interface speaks it, and a paper is read in it: its text, and the names of its own parts (figures, tables, theorems,
 references, equations). A switch of either is a switch of both: the paper's menu at the top right, a language
 generated there, Settings, or the two menus of the landing. A paper that has not that language yet opens in one it
-has, and the interface stays; nothing is generated unasked. A question is answered in the language it is asked in,
-the interface's when that is unclear.
+has, and the interface stays; nothing is generated unasked but one: an English document is made with its Simplified
+Chinese version by default, at the end of the generation of whichever language was asked for (`pipeline.generate`'s
+`also_zh`, which the app passes and the command line does not), so an English paper is readable in Chinese without a
+second request. A question is answered in the language it is asked in, the interface's when that is unclear.
 
 Where things are kept: the code in the project (`textfold/`, with the reader's pages in `textfold/web/`); papers and exports in `papers/` and `out/` of the
 project, or wherever `TEXTFOLD_DATA` points (`PAPERFOLD_DATA`, its earlier name, is read too); settings and keys in

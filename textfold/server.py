@@ -172,7 +172,7 @@ class Jobs:
             if stop.is_set() and stage != "done":   # a fetch that reports (bioRxiv's paced figures) ends here too
                 raise llm.Stopped()
             job.update(stage=stage, done=done, total=total)
-            if stage in ("ladder", "links", "translate", "done"):   # parsed: the reader can open it (in its own words)
+            if stage in ("ladder", "links", "translate", "zh", "done"):   # parsed: the reader can open it (in its own words)
                 job["readable"] = True
             if job["kind"] == "generate" and stage not in ("queued", "fetch") and (store.pdir(job["pid"]) / "meta.json").exists():
                 if not job.get("title"):   # a new paper's title, once it is parsed
@@ -219,7 +219,8 @@ class Jobs:
                     job["model"] = spec["id"]
                 except RuntimeError:   # none: the paper is still fetched and parsed, to be read as written
                     spec = None
-                pipeline.generate(job["pid"], job["lang"], spec, force=job["force"], progress=self._progress(job, stop), log=self._log(job), stop=stop)
+                pipeline.generate(job["pid"], job["lang"], spec, force=job["force"], progress=self._progress(job, stop), log=self._log(job), stop=stop,
+                                  also_zh=True)   # an English document is read in Simplified Chinese by default
                 job["status"] = "done"
             except Exception as e:  # shown in the app; the traceback stays in the job log
                 if str(e) == "no-html" and not stop.is_set():

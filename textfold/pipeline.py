@@ -15,7 +15,13 @@ def task(cfg, name):
     return models.for_task(llm.spec_of(cfg), name)
 
 
-def generate(ref, lang, cfg, force=False, jobs=4, progress=lambda *a: None, log=lambda *a: None, stop=None):
+def _wants_zh(en, tr):
+    """Whether the default Simplified Chinese version still has to be made: the English base is a layer with a version,
+    and the Chinese one is missing, is no layer at all, or stands on an older base."""
+    return isinstance(en, dict) and bool(en.get("version")) and (not isinstance(tr, dict) or tr.get("base") != en.get("version"))
+
+
+def generate(ref, lang, cfg, force=False, jobs=4, progress=lambda *a: None, log=lambda *a: None, stop=None, also_zh=False):
     def check():
         if stop is not None and stop.is_set():
             raise llm.Stopped()
@@ -66,5 +72,25 @@ def generate(ref, lang, cfg, force=False, jobs=4, progress=lambda *a: None, log=
             check()
             translate.build(doc, lang, task(cfg, "translate"), cache, jobs=jobs, log=log, progress=lambda a, b: progress("translate", a, b), force=force, stop=stop)
             store.save_tr(doc, lang, en["version"], model)
+    # An English document is read in Simplified Chinese by default: the version is made at the end of this generation,
+    # whichever language was asked for (the app passes also_zh; the command line does not).
+    if also_zh and cfg is not None and lang != "zh":
+        try:
+            tr = store.read(pid, "tr-zh")
+        except (OSError, ValueError):
+            tr = None   # (an unreadable layer is no layer: it is made again, and the save replaces it)
+        if _wants_zh(en, tr):
+            check()
+            try:
+                _, failed = translate.build(doc, "zh", task(cfg, "translate"), cache, jobs=jobs, log=log,
+                                           progress=lambda a, b: progress("zh", a, b), stop=stop)
+                if failed:   # (a partial layer saved as current would never be completed: it waits for the next run)
+                    log(f"the Simplified Chinese version is incomplete ({failed} part(s) failed)")
+                else:
+                    store.save_tr(doc, "zh", en["version"], model)
+            except llm.Stopped:
+                raise
+            except Exception as e:   # (the language asked for is made: the default one does not fail the whole job)
+                log(f"the Simplified Chinese version could not be made ({str(e)[:200]})")
     progress("done", 1, 1)
     return pid

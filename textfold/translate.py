@@ -225,4 +225,4 @@ def build(doc, lang, cfg, cache_dir, jobs=4, log=print, progress=None, force=Fal
             log(f"  ! {lang} titles: {e}")
     for w in warnings:
         log(f"  ~ {lang} {w}")
-    return cost
+    return cost, len(errors)   # (the parts that failed: a caller that saves the layer must know it is partial)
