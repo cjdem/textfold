@@ -68,8 +68,8 @@ with them. Where the tool can run, `python tools/zoombench.py 2512.23916` is wha
 
 ## Papers and keys stay out of commits
 
-`papers/`, `out/` and `~/.textfold/` hold other people's papers and this
-machine's keys. All are git-ignored.
+`papers/`, `out/`, `library.json` and `~/.textfold/` hold other people's papers
+and this machine's keys. All are git-ignored.
 
 *Check:* `git status --short` before committing shows only source you meant to
 change.
@@ -83,11 +83,37 @@ A test that needs a model, the network, or a paper on disk is not one of these.
 
 *Check:* the suite still runs green from a clean clone.
 
+## Persistent writes have one writer at a time
+
+A document's card, notes and folder can be written by a save, a generation
+finishing, a PDF re-conversion and a move to the trash. They must be
+serialized per document — the project uses a re-entrant lock in `store.py`
+around the card write and the trash move, and `pdfdoc.py` holds it while a
+re-converted folder is replaced.
+
+*Check:* a change that writes `card.json`, `notes.json` or the document folder
+has a test with two writers interleaving: a save during a candidate write, a
+save during a re-conversion, a save crossing the move to the trash. Reading
+the code is not the check; a green suite that never runs two writers has not
+tested this.
+
+## Text is UTF-8 in and out on a Chinese Windows
+
+Files the reader writes are UTF-8; stored caches, layers and settings are
+ASCII-escaped; model and subprocess pipes are UTF-8 in both directions. A GBK
+console must not turn a Chinese title into a crash, on write or on read.
+
+*Check:* if the change reads or writes text or runs a subprocess, run a
+Chinese title and Chinese card or notes content through import, parse, save,
+export and the static page build, and look for `UnicodeDecodeError` and
+`UnicodeEncodeError`. A test that writes Chinese and reads it back is the
+durable form.
+
 ## One change per branch
 
 `CONTRIBUTING.md`: "One change per pull request: what it changes, why, and how
-you checked it." An optimization that also fixes two other things cannot be
-verified as one thing.
+you checked it." A change that also fixes two other things cannot be verified
+as one thing.
 
 *Check:* read the diff and ask whether every line serves the stated goal. Lines
 that do not are a second change wearing the first one's coat.

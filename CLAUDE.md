@@ -35,11 +35,11 @@ platform code should say what functionality goes with it.
 
 ## Working here
 
-- **Tests:** `python -m unittest discover tests` — 171 tests, about seven
-  seconds, needing nothing beyond `requirements.txt` and touching none of your
-  papers. `python .claude/hooks/verify.py` runs the same suite, finding the right
-  interpreter (this machine keeps its dependencies in `.venv`, not in the system
-  Python) and setting `TEXTFOLD_NO_MODELS=1`.
+- **Tests:** `python -m unittest discover tests` — about seven seconds, needing
+  nothing beyond `requirements.txt` and touching none of your papers; its output
+  gives the current count. `python .claude/hooks/verify.py` runs the same suite,
+  finding the right interpreter (this machine keeps its dependencies in `.venv`,
+  not in the system Python) and setting `TEXTFOLD_NO_MODELS=1`.
 - **Run it:** `python -m textfold serve`, then `http://localhost:3017`.
 - **One change at a time.** `CONTRIBUTING.md` asks for one change per pull
   request: what it changes, why, and how you checked it.
@@ -49,17 +49,23 @@ platform code should say what functionality goes with it.
   sidebar's state when the server runs from the clone) and `~/.textfold/` are
   git-ignored; if one of them shows up in `git status`, something is wrong.
 
-## Optimizing
+## Changing TextFold
 
-`/optimize <goal>` runs the full workflow — a confirmed plan, an isolated
-worktree, independent verification, a written record, and a local merge. The
-rules that are easiest to get wrong live in
+`/optimize <goal>` for an optimization and `/feature <requirements document>`
+for a new capability run the same workflow — a confirmed plan, an isolated
+worktree, independent verification, a written record, and a local merge; a
+feature starts from its document under `docs/requirements/`. The rules that are
+easiest to get wrong live in
 `.claude/skills/optimize/references/invariants.md`; the short version:
 
 - The two fold engines (`plugins/pi-textfold/extension/fold.ts` and
   `plugins/textfold/hooks/fold.ts`) must stay byte-identical.
 - Parsed HTML passes through `textfold/semantic.py`, and nothing renders around it.
 - A parser change renumbers atoms, so previously generated layers go stale.
+- A save, a generation, a re-conversion and a move to the trash must not
+  interleave; a change that persists data needs a test with two writers.
+- Text is UTF-8 in and out on a Chinese Windows: files read as UTF-8, stored
+  caches ASCII-escaped, subprocess pipes UTF-8 both ways.
 - **No change may make the zoom less smooth** — `tools/zoombench.py` measures it
   on Windows' Direct3D 11 backend, but running it end to end needs `playwright`
   and exported comparison pages, so on this machine that axis stays unmeasured.

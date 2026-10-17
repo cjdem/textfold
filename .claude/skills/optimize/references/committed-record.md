@@ -31,12 +31,25 @@ reader can go straight to the right place:
 - `textfold/foo.py` — <what changed here>
 - `tests/test_foo.py` — <what was added>
 
+## Decisions
+
+Product choices this change makes and why — the ones the diff cannot show:
+why a draft waits as a candidate instead of overwriting, why a partial
+generation becomes the current card, why a feature ships as one branch. One
+line each. Delete the section when there are none beyond the obvious.
+
+## Concurrency and locks
+
+Which operations can interleave, what serializes them (a per-document lock, a
+single writer, a transaction), and the regression test that runs two writers.
+Delete the section when the change writes no shared state.
+
 ## How it was verified
 
 The commands that were run, and what they said. Not "tests pass" — the actual
 result:
 
-- `python .claude/hooks/verify.py` — 130 tests, OK
+- `python .claude/hooks/verify.py` — <the current count> tests, OK
 - <any other check, and its outcome>
 
 ## Measured
@@ -65,5 +78,6 @@ write now.
 
 ---
 
-Keep it under a page. If it does not fit, the thinking belongs in the local log
-and this is carrying too much.
+Keep it under a page. Decisions and Concurrency are one or two lines each when
+they apply; if the whole record does not fit, the thinking belongs in the local
+log and this is carrying too much.

@@ -34,6 +34,20 @@ data, stored beside the notes and the layers and untouched by either.
 - `docs/reading-card-format.md` — the data contract; `docs/DEVELOPMENT.md`, READMEs, `CLAUDE.md` and the requirement
   document updated.
 
+## Decisions
+
+- One branch for the card, its API, UI, tests and docs: they cannot be verified apart.
+- Editing a checked point returns it to "to check"; only the reader can re-check it.
+- A partial generation becomes the current card with its unfinished sections marked, rather than being discarded.
+- The commit carries no `-s`; the maintainer's own commits do not sign off.
+
+## Concurrency and locks
+
+- One re-entrant lock per document (`store.py`) serializes the card write and the move to the trash; `pdfdoc.py`
+  holds it while a re-converted folder is replaced, so a save made during the conversion lands after it.
+- Regression tests interleave: a candidate write with a save, a re-conversion with a save, and a save with the move
+  to the trash (`tests/test_cards.py`).
+
 ## How it was verified
 
 - `python .claude/hooks/verify.py` — 171 tests, OK, 6.8 s (130 before this branch).
