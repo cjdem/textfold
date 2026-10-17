@@ -59,7 +59,8 @@ def import_thoughtdag_env(s):
 
 def save_settings(s):
     SETTINGS.parent.mkdir(parents=True, exist_ok=True)
-    SETTINGS.write_text(json.dumps(s, indent=1, ensure_ascii=False))
+    # ASCII-escaped, UTF-8: a provider's name may hold a character GBK lacks, and ensure_ascii=False failed the save
+    SETTINGS.write_text(json.dumps(s, indent=1), encoding="utf-8")
     os.chmod(SETTINGS, 0o600)
 
 

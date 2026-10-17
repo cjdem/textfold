@@ -114,7 +114,9 @@ def write(pid, name, data):
     f = _file(pid, name)
     f.parent.mkdir(parents=True, exist_ok=True)
     tmp = f.with_suffix(".tmp")
-    tmp.write_text(json.dumps(data, ensure_ascii=False))
+    # ASCII-escaped, UTF-8: a layer holds any language the reader offers, and Korean or Hindi are not in GBK at all
+    # (the system's encoding on a Chinese Windows), where ensure_ascii=False failed the save after the model answered
+    tmp.write_text(json.dumps(data), encoding="utf-8")
     tmp.replace(f)
 
 

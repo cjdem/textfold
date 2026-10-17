@@ -53,6 +53,19 @@ def label(model):
     return spec_of(model)["id"]
 
 
+def _read_cache(f):
+    """A cached reply: what is written now is ASCII-escaped. A reply cached before this was `ensure_ascii=False` — in
+    the system's encoding (GBK on a Chinese Windows) or UTF-8 (another machine's), and no marker tells which; reading
+    either the wrong way would put mojibake in the document unseen, so bytes outside ASCII are a miss: the call is
+    made again once, and the file rewritten in the new form."""
+    data = f.read_bytes()
+    try:
+        text = data.decode("ascii")
+    except UnicodeDecodeError:
+        raise ValueError("a reply cached before replies were ASCII-escaped")
+    return json.loads(text)
+
+
 def call(prompt, schema, model, cache_dir: Path, force=False, timeout=900, system=SYSTEM):
     """(system: the generation's role unless a caller has another, as the questions about a paper do)"""
     spec = spec_of(model)
@@ -65,7 +78,10 @@ def call(prompt, schema, model, cache_dir: Path, force=False, timeout=900, syste
     cache_dir.mkdir(parents=True, exist_ok=True)
     f = cache_dir / f"{key}.json"
     if f.exists() and not force:
-        return json.loads(f.read_text()), True
+        try:
+            return _read_cache(f), True
+        except (OSError, ValueError):
+            pass   # (a write that failed left it empty or partial: the call is made again, and the file rewritten)
     note = None
     try:
         out, cost = _once(prompt, schema, spec, timeout, system)
@@ -79,7 +95,9 @@ def call(prompt, schema, model, cache_dir: Path, force=False, timeout=900, syste
     rec = {"out": out, "cost": cost, "models": [spec["id"]] + ([effort] if effort else [])}
     if note:
         rec["note"] = note
-    f.write_text(json.dumps(rec, ensure_ascii=False, indent=1))
+    # ASCII-escaped (no ensure_ascii=False): a reply with Chinese or ⟦a1⟧ markers is written whatever the system's
+    # encoding is (GBK cannot hold ⟦, and the write failed outright before this), and every reader reads it back
+    f.write_text(json.dumps(rec, indent=1), encoding="utf-8")
     return rec, False
 
 
@@ -113,9 +131,9 @@ def _claude(prompt, schema, model, effort, timeout, system=SYSTEM):
     # settings to sign in, the call is made again with them.
     with tempfile.TemporaryDirectory() as tmp:
         r = subprocess.run(cmd + ["--setting-sources", "project,local"], input=prompt, capture_output=True, text=True,
-                           timeout=timeout, env=env, cwd=tmp)
+                           timeout=timeout, env=env, cwd=tmp, **agents.TEXT)
         if r.returncode:
-            r = subprocess.run(cmd, input=prompt, capture_output=True, text=True, timeout=timeout, env=env, cwd=tmp)
+            r = subprocess.run(cmd, input=prompt, capture_output=True, text=True, timeout=timeout, env=env, cwd=tmp, **agents.TEXT)
     if r.returncode:
         raise RuntimeError(f"claude -p exited {r.returncode}: {(r.stderr or r.stdout)[-1500:]}")
     d = json.loads(r.stdout)

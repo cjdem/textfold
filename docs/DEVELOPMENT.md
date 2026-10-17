@@ -390,3 +390,16 @@ Atoms (formulas, citations, cross-references, footnotes) are numbered in reading
 them by number. A parser change that reads more of a page (description lists, October 2026) renumbers every atom after
 the new ones, so a paper generated before it needs its layers made again, or its atom numbers mapped from the old parse
 to the new one by content and order.
+
+Everything exchanged with a coding agent is UTF-8 (`agents.TEXT`): the pipes of `claude -p`, `codex exec`, `pi -p`
+and the scan's JSON-RPC, the reply file `codex exec -o` writes, `~/.codex/config.toml`, and the reply cache
+`llm.py` keeps, which is ASCII-escaped for the same reason. A text-mode pipe or a `read_text()` with no encoding
+uses the system's — GBK on a Chinese Windows — where a prompt holding `▶` (the outline's mark for the section being
+read) dies in subprocess's writer thread before the agent sees it, a reply holding `⟦a1⟧` markers fails at the cache
+write after the model has answered, and a typographic quote in a config dies in a reader thread: the generation
+hangs or fails with no trace of the model call. New calls that exchange text with a model CLI take the same
+encoding, and a cache file that failed to write — or that was written before replies were ASCII-escaped, in an
+encoding no marker identifies — is made again rather than breaking a retry or feeding mojibake into a document. What
+a model's work is saved into follows the rule: a layer (`store.write`) and a note's answer (`notes.py`) are written
+ASCII-escaped as UTF-8, and the settings file is written the same way, since Korean or Hindi, or a provider named in
+either, are not in GBK at all.

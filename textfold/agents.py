@@ -103,7 +103,7 @@ def argv(path):
     if not (WIN and path.lower().endswith(".cmd")):
         return [path]
     try:
-        m = _SHIM.search(Path(path).read_text(errors="replace"))
+        m = _SHIM.search(Path(path).read_text(**TEXT))
     except OSError:
         m = None
     script = m and Path(path).parent / m.group(1).replace("\\", os.sep)
@@ -114,8 +114,16 @@ def argv(path):
     return [node, str(script)] if node else [path]
 
 
+# A text-mode pipe with no encoding uses the system's (GBK on a Chinese Windows), and an agent CLI speaks UTF-8: a
+# prompt holding ▶ (the outline marks the section being read) dies in subprocess's writer thread before the agent
+# sees a byte of it, and a reply holding a typographic quote dies in its reader thread. Every pipe to one is UTF-8;
+# errors="replace" keeps one stray byte in a reply from losing the reply.
+TEXT = {"encoding": "utf-8", "errors": "replace"}
+
+
 def _run(args, timeout, **kw):
-    return subprocess.run(args, capture_output=True, text=True, timeout=timeout, env=child_env(), stdin=subprocess.DEVNULL, **kw)
+    return subprocess.run(args, capture_output=True, text=True, timeout=timeout, env=child_env(), stdin=subprocess.DEVNULL,
+                          **TEXT, **kw)
 
 
 def _help_levels(path, flag, pattern):
@@ -141,9 +149,16 @@ def _claude_models(path):
 def _rpc(args, requests, timeout=30, cwd=None):
     """Write JSON lines, collect the replies whose id we asked for."""
     p = subprocess.Popen(args, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True,
-                         env=child_env(), cwd=cwd or str(HOME))
+                         env=child_env(), cwd=cwd or str(HOME), **TEXT)
     lines = queue.Queue()   # read by a thread: select() cannot wait on a pipe on Windows
-    threading.Thread(target=lambda: [*map(lines.put, p.stdout), lines.put(None)], daemon=True).start()
+
+    def read():            # (the thread owns the pipe: it closes it at the end, kill or no kill)
+        with p.stdout:
+            for line in p.stdout:
+                lines.put(line)
+        lines.put(None)
+
+    threading.Thread(target=read, daemon=True).start()
     got = {}
     try:
         for r in requests:
@@ -166,6 +181,11 @@ def _rpc(args, requests, timeout=30, cwd=None):
                 got[d["id"]] = d
     finally:
         p.kill()
+        p.wait()           # (reaped: a killed child left running is a leak, and Windows shows it in the tests)
+        try:
+            p.stdin.close()
+        except OSError:
+            pass
     return got
 
 
@@ -177,7 +197,7 @@ def _codex_models(path):
         {"jsonrpc": "2.0", "id": 2, "method": "model/list", "params": {}}])
     rows = (got.get(2) or {}).get("result", {}).get("data", [])
     home = Path(os.environ.get("CODEX_HOME", HOME / ".codex"))
-    m = re.search(r'^model_reasoning_effort\s*=\s*"([^"]+)"', (home / "config.toml").read_text(), re.M) if (home / "config.toml").exists() else None
+    m = re.search(r'^model_reasoning_effort\s*=\s*"([^"]+)"', (home / "config.toml").read_text(**TEXT), re.M) if (home / "config.toml").exists() else None
     out = []
     for r in rows:
         if r.get("hidden"):
@@ -303,12 +323,12 @@ def run_codex(model, prompt, schema, system, effort, timeout):
         # off is "none" (gpt-5.5 takes it, and refuses "minimal"); a model that refuses "none" runs at "low"
         for level in (["none", "low"] if effort == "off" else [effort]):
             r = subprocess.run(args + (["-c", f"model_reasoning_effort={level}"] if level else []) + ["-"], input=f"{system}\n\n{prompt}",
-                               capture_output=True, text=True, timeout=timeout, env=child_env(), cwd=tmp)
+                               capture_output=True, text=True, timeout=timeout, env=child_env(), cwd=tmp, **TEXT)
             if not r.returncode and of.exists():
                 break
         if r.returncode or not of.exists():
             raise RuntimeError(f"codex exec exited {r.returncode}: {(r.stderr or r.stdout)[-800:]}")
-        return parse_json(of.read_text()), None
+        return parse_json(of.read_text(**TEXT)), None   # (codex writes UTF-8)
 
 
 def run_pi(model, prompt, schema, system, effort, timeout):
@@ -330,7 +350,7 @@ def run_pi(model, prompt, schema, system, effort, timeout):
 
 def _pi_once(args, body, schema, timeout):
     with tempfile.TemporaryDirectory() as tmp:
-        r = subprocess.run(args, input=body, capture_output=True, text=True, timeout=timeout, env=child_env(), cwd=tmp)
+        r = subprocess.run(args, input=body, capture_output=True, text=True, timeout=timeout, env=child_env(), cwd=tmp, **TEXT)
     text, cost = None, None
     for line in r.stdout.splitlines():
         try:
