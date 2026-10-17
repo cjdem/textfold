@@ -16,6 +16,8 @@
   const pickId = () => 'c-' + Math.random().toString(36).slice(2, 10);
 
   let data = null;           // the server's card payload
+  let loadFailed = false;    // the last GET failed: data may be its placeholder, so open (or export) tries again
+  let loadNotice = '';       // the line that failure put above the card, cleared when a later load succeeds
   let job = null;            // a generation under way
   let view = 'card';         // 'card' or 'candidate'
   let armed = null;          // {item, drop}: the item the next selection in the text is linked to
@@ -80,9 +82,14 @@
       const d = await r.json();
       if (!r.ok) throw new Error(d.error || r.statusText);
       data = d;
+      loadFailed = false;
+      if (notice === loadNotice) notice = '';   // (a generation's own error stays)
+      loadNotice = '';
     } catch (e) {
       data = data || { exists: false, sections: {}, document: { title: R.meta.title }, titles: {}, hints: {}, model: null };
-      notice = t().card_load_failed.replace('{e}', e.message);
+      loadFailed = true;
+      loadNotice = t().card_load_failed.replace('{e}', e.message);
+      notice = loadNotice;
     }
     label();
     render();
@@ -134,7 +141,7 @@
     pane.hidden = false;
     btn.classList.add('on');
     render();
-    if (!data) load().then(resumeJob); else resumeJob();
+    if (!data || loadFailed) load().then(resumeJob); else resumeJob();
   }
   function close() {
     if (dirty) saveNow();
@@ -568,8 +575,15 @@
   // the reader's selection bar calls this: an armed item takes the passage, else the reader says which item it supports
   window.PFCard = {
     available: () => true,
+    async exportMarkdown() {   // from the reader's export menu, without opening the drawer first
+      if (!data || loadFailed) await load();
+      if (loadFailed) { open(); return; }   // the drawer shows why it could not be loaded, and tries again next time
+      if (!data || !data.exists) { toast(t().card_need_card); open(); return; }
+      exportMd();
+    },
     async fromSelection(anchors) {
-      if (!data) await load();
+      if (!data || loadFailed) await load();
+      if (loadFailed) { open(); return; }   // (not "make a card first": the card may be there and the server not)
       if (!data || !data.exists) { toast(t().card_need_card); open(); return; }
       if (dirty && !await flush()) { toast(t().card_save_failed.replace('{e}', saveError), true); return; }
       const as = (anchors || []).filter((a) => a && a.unit && Array.isArray(a.sents) && a.sents.length);

@@ -2353,13 +2353,19 @@
   nbtn.hidden = true;
   const nmenu = h('div', 'langmenu notesmenu');
   nmenu.hidden = true;
+  const savemenu = h('div', 'langmenu savemenu');   // the two everyday exports, the rest behind the save dialog
+  savemenu.hidden = true;
   const npick = h('div', 'notespick');
   const keepbtn = h('button', 'keepbtn');
   keepbtn.type = 'button';
   keepbtn.hidden = true;
-  const savebtn = h('button', 'savebtn');   // the page as a file, or the notes alone: one place for every export
+  const savebtn = h('button', 'savebtn');   // the everyday exports, and the save dialog behind them
   savebtn.type = 'button';
-  npick.append(keepbtn, nbtn, savebtn, nmenu);
+  savemenu.setAttribute('role', 'menu');
+  savebtn.setAttribute('aria-haspopup', 'menu');
+  savebtn.setAttribute('aria-expanded', 'false');
+  const hideSaveMenu = () => { savemenu.hidden = true; savebtn.setAttribute('aria-expanded', 'false'); };
+  npick.append(keepbtn, nbtn, savebtn, nmenu, savemenu);
   keepbtn.addEventListener('click', () => {
     keepMine = !keepMine;
     store.set('dr-keep-mine', keepMine ? '1' : '0');
@@ -2370,8 +2376,9 @@
     const t = T[ui], n = notes.filter((x) => shown(x.anchor)).length;
     nbtn.hidden = false;   // always there: the exports (the paper as PDF too) are in its menu
     nbtn.textContent = n ? `${t.n_notes} ${n}` : t.n_notes;
-    savebtn.innerHTML = `<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.5v7.5M5 7l3 3 3-3M3 12.5h10"/></svg><span>${esc(t.sv_save)}</span>`;
-    savebtn.title = t.sv_title;
+    savebtn.innerHTML = `<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.5v7.5M5 7l3 3 3-3M3 12.5h10"/></svg><span>${esc(t.sv_export)}</span>`;
+    savebtn.title = t.sv_export;
+    if (!savemenu.hidden) renderSaveMenu();   // (an open menu keeps its labels and count current)
     nbtn.classList.toggle('none', !n);
     keepbtn.hidden = !notes.some((x) => unitEl.has(x.anchor && x.anchor.unit) && (x.anchor.tokens || x.anchor.sents));
     keepbtn.innerHTML = `<i></i>${esc(t.n_keep)}`;
@@ -2408,13 +2415,15 @@
     const list = nmenu.querySelector('.nl-list'), top = list ? list.scrollTop : 0;
     nmenu.innerHTML = `<div class="nl-tabs">${tab('all', t.n_all)}${tab('hl', t.n_highlight)}${tab('note', t.n_note)}${tab('ask', t.n_ask)}</div>` +
       `<div class="nl-list">${items || `<div class="nm-note">${esc(t.n_none)}</div>`}</div>` +
-      `<div class="nl-x"><button type="button" class="lm-item" data-x="save"><span>${esc(t.sv_save)}…</span></button></div>` +
+      `<div class="nl-x"><button type="button" class="lm-item" data-x="save"><span>${esc(t.sv_more)}</span></button></div>` +
       (D.app ? '' : `<div class="nm-note">${esc(t.n_local)}</div>`);
     texify(nmenu);
     nmenu.querySelector('.nl-list').scrollTop = top;
   }
   nbtn.addEventListener('click', (e) => {
     e.stopPropagation();
+    hideSaveMenu();
+    closeLangMenu();
     if (!nmenu.hidden) { nmenu.hidden = true; return; }
     nmSure = null;
     renderNotesMenu();
@@ -2437,7 +2446,41 @@
     if (nmSure) { nmSure = null; renderNotesMenu(); }
     if (e.target.closest('[data-x="save"]')) openSave();
   });
-  addEventListener('click', (e) => { if (!nmenu.hidden && !e.target.closest('.notesmenu')) nmenu.hidden = true; });
+  // outside clicks close both menus even where a button stops the click from bubbling (the reading card's button does)
+  addEventListener('click', (e) => {
+    if (!nmenu.hidden && !e.target.closest('.notesmenu') && !e.target.closest('.notesbtn')) nmenu.hidden = true;
+    if (!savemenu.hidden && !e.target.closest('.savemenu') && !e.target.closest('.savebtn')) hideSaveMenu();
+  }, true);
+  // Export: the notes as Markdown and the reading card as Markdown are one click; everything else (the whole text as
+  // one HTML file, notes as PDF or JSON) stays in the save dialog behind More export options.
+  function renderSaveMenu() {
+    const t = T[ui], n = inOrder().length, card = D.app && window.PFCard;
+    savemenu.innerHTML = `<button type="button" role="menuitem" class="lm-item" data-sm="notes"${n ? '' : ' disabled'}>${esc(t.sv_export_notes)}<em>${n}</em></button>` +
+      (card ? `<button type="button" role="menuitem" class="lm-item" data-sm="card">${esc(t.sv_export_card)}</button>` : '') +
+      `<button type="button" role="menuitem" class="lm-item" data-sm="more">${esc(t.sv_more)}</button>` +
+      `<p class="sm-lic" role="none">${esc(t.sv_lic)}</p>`;
+  }
+  function exportNotesMd() {
+    const kinds = new Set(['hl', 'note', 'ask']);
+    saveAs(`${fileName()}.md`, () => notesMarkdown(kinds, sv.para), 'text/markdown').then((done) => { if (done) hideSaveMenu(); },
+      (x) => {   // the dialog opens on the file that failed, so its Save retries the same export
+        hideSaveMenu();
+        sv.what = 'marks'; sv.fmt = 'md';
+        renderSave(T[ui].sv_failed.replace('{e}', x.message));
+        svdlg.showModal();
+      });
+  }
+  savemenu.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const b = e.target.closest('[data-sm]');
+    if (!b || b.disabled) return;
+    const what = b.dataset.sm;
+    hideSaveMenu();
+    if (!e.detail) savebtn.focus();   // (a keyboard pick keeps the focus on the button, not on the hidden item)
+    if (what === 'notes') exportNotesMd();
+    else if (what === 'card') window.PFCard.exportMarkdown();
+    else openSave();
+  });
   // after any zoom under way (and a moment more)
   const afterZoom = (fn, wait = 0) => setTimeout(function tick() { if (busy) setTimeout(tick, 80); else fn(); }, wait);
   // a note from the list: the page flies to its passage (from the map, it first steps in to Key), opens the paragraph
@@ -2578,6 +2621,7 @@
   const fileName = () => `${D.meta.id} ${D.meta.title}`.replace(/[\\/:*?"<>|]+/g, ' ').slice(0, 90).trim();
   function openSave() {
     nmenu.hidden = true;
+    hideSaveMenu();
     renderSave();
     svdlg.showModal();
   }
@@ -2626,7 +2670,15 @@
   });
   svdlg.addEventListener('click', (e) => { if (e.target === svdlg || e.target.closest('.sv-x, .sv-cancel')) svdlg.close(); });
   svdlg.addEventListener('submit', (e) => { e.preventDefault(); doSave(); });
-  savebtn.addEventListener('click', (e) => { e.stopPropagation(); openSave(); });
+  savebtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (!savemenu.hidden) { hideSaveMenu(); return; }
+    closeLangMenu();
+    nmenu.hidden = true;
+    renderSaveMenu();
+    savemenu.hidden = false;
+    savebtn.setAttribute('aria-expanded', 'true');
+  });
   // where a file goes, the reader chooses: the app's own save dialog, or the browser's (Chrome's file picker); a browser
   // without one keeps it in its downloads. make() gives the file's text once the place is chosen; null when cancelled
   async function saveAs(name, make, type) {
@@ -3333,10 +3385,12 @@ math { font-size: 1.05em; }
   function closeLangMenu() { langMenu.hidden = true; langBtn.setAttribute('aria-expanded', 'false'); }
   langBtn.addEventListener('click', (e) => {
     e.stopPropagation();
+    nmenu.hidden = true;
+    hideSaveMenu();
     if (!langMenu.hidden) return closeLangMenu();
     renderLangMenu(); langMenu.hidden = false; langBtn.setAttribute('aria-expanded', 'true');
   });
-  addEventListener('click', (e) => { if (!langMenu.hidden && !e.target.closest('.langpick')) closeLangMenu(); });
+  addEventListener('click', (e) => { if (!langMenu.hidden && !e.target.closest('.langpick')) closeLangMenu(); }, true);
   if (!D.app && AVAIL.length < 2) document.querySelector('.langpick').remove();
 
   // ── a figure, enlarged: a click on its picture opens it over the page with its caption (as the reader sees it now:
@@ -3420,6 +3474,7 @@ math { font-size: 1.05em; }
     else if (e.key === '=' || e.key === '+') setLevel(level + 1);
     else if (/^[1-5]$/.test(e.key)) setLevel(BAR[+e.key - 1]);
     else if (e.key === 'l' && AVAIL.length > 1) setLang(AVAIL[(AVAIL.indexOf(lang) + 1) % AVAIL.length]);
+    else if (e.key === 'Escape' && !savemenu.hidden) { hideSaveMenu(); savebtn.focus(); }
     else if (e.key === 'Escape' && !langMenu.hidden) closeLangMenu();
     else if (e.key === 'Escape' && localLevel.size) setLevel(level);
     else return;

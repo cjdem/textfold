@@ -148,7 +148,7 @@ Your questions can go to a stronger model than the one that writes the levels: *
 | Click a paragraph | open just that paragraph |
 | Click a figure | see it enlarged |
 | **Original**, at the top | read beside the paper's PDF |
-| **Save**, at the top | keep the page as one file, or only your notes |
+| **Export**, at the top | your notes or the reading card as Markdown; more formats and the whole page in the dialog |
 | **Reading card**, at the top | keep the four questions a paper answers, with evidence back to the text |
 | Select text | highlight, write a note, or ask |
 | **Ask the paper**, bottom right | ask about the whole text |
@@ -167,9 +167,9 @@ python -m textfold get report.pdf --json                       # the whole docum
 
 A document not folded yet is folded first, with the model you connected. Every line a model wrote is marked as such and anchored to the author's sentences it rests on: [docs/format.md](https://github.com/chenxiachan/textfold/blob/main/docs/format.md) describes the format, for any program that reads or writes folded text.
 
-## Save a page
+## Export
 
-**Save**, at the top of the reader, keeps a page as one HTML file that opens anywhere without a server: its levels, the notes you choose and, if you like, its original PDF to read beside it. It can also keep only your notes, as a page, a PDF, Markdown for Obsidian or JSON. From the command line, the page without your notes:
+**Export**, at the top of the reader, opens the two everyday files directly: your notes as Markdown, and the reading card as Markdown. **More export options…** opens the save dialog: the page as one HTML file that opens anywhere without a server (its levels, the notes you choose and, if you like, its original PDF to read beside it), or only your notes as a page, a PDF, Markdown for Obsidian or JSON. From the command line, the page without your notes:
 
 ```bash
 python -m textfold export 2512.23916
@@ -191,7 +191,7 @@ TextFold is a tool, and its license covers its code. When you share a file, foll
 
 - **October 14, 2026: your Zotero library.** **Zotero library**, under the drop zone, shows your library and its collections as Zotero does, and opens any item in a click: from arXiv when it is there, else from its own PDF. Thanks to [@adalach](https://github.com/adalach). [Works on your Zotero ↑](#works-on-your-zotero)
 - **October 14, 2026: arXiv pages, read more safely.** What could run script in a page is taken out before the reader draws it, and its figures stay as they were. Thanks to [@neil-patel77](https://github.com/neil-patel77).
-- **October 13, 2026: save a page as one file.** **Save**, at the top of the reader, keeps the page as one HTML file, with your notes and its original PDF if you like, or only your notes. [Save a page ↓](#save-a-page)
+- **October 13, 2026: save a page as one file.** **Export**, at the top of the reader, opens the export menu; **More export options…** opens the save dialog: the page as one HTML file, with your notes and its original PDF if you like, or only your notes. [Export ↓](#export)
 - **October 13, 2026: Word, PowerPoint, Excel, e-books and more.** Drop a Word, PowerPoint or Excel file, a CSV, an EPUB or a saved web page, and it opens at once, formulas included, with nothing more to install.
 - **October 13, 2026: whole figures, and a guide.** A figure the PDF engine cut into pieces now comes out whole, cut from its page. A short guide opens on your first visit, and again from **How it works**.
 - **October 9, 2026: PaperFold is now TextFold.** The same reader, named for everything it folds: papers, web pages, PDFs and READMEs. Links to the old repository lead here, and your settings move over by themselves.
