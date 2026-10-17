@@ -433,18 +433,25 @@ def make_handler(jobs):
     class Handler(BaseHTTPRequestHandler):
         def send(self, code, body, ctype="application/json; charset=utf-8", cache="no-store"):
             data = body if isinstance(body, bytes) else body.encode()
-            self.send_response(code)
-            self.send_header("Content-Type", ctype)
-            self.send_header("Content-Length", str(len(data)))
-            self.send_header("Cache-Control", cache)
-            self.end_headers()
-            try:
+            try:   # (the reader stopped waiting — a question stopped, a page left or reloaded — at the body or, as
+                # Windows' WinError 10053 does, mid-headers: every ConnectionError is the reader having gone, not an error)
+                self.send_response(code)
+                self.send_header("Content-Type", ctype)
+                self.send_header("Content-Length", str(len(data)))
+                self.send_header("Cache-Control", cache)
+                self.end_headers()
                 self.wfile.write(data)
-            except (BrokenPipeError, ConnectionResetError):
-                pass   # (the reader stopped waiting: a question stopped, a page left)
+            except ConnectionError:
+                pass
 
         def json(self, obj, code=200):
             self.send(code, json.dumps(obj, ensure_ascii=False))
+
+        def send_error(self, code, message=None, explain=None):   # (the base's 400/501 replies: a client may be gone too)
+            try:
+                super().send_error(code, message, explain)
+            except ConnectionError:
+                pass
 
         def do_GET(self):
             u = urlparse(self.path)
@@ -482,9 +489,12 @@ def make_handler(jobs):
                 m = re.fullmatch(r"/p/([\w.-]+)", u.path)
                 if m and store.valid_id(m.group(1)):
                     if not (store.pdir(m.group(1)) / "source.html").exists():
-                        self.send_response(302)
-                        self.send_header("Location", "/")
-                        self.end_headers()
+                        try:
+                            self.send_response(302)
+                            self.send_header("Location", "/")
+                            self.end_headers()
+                        except ConnectionError:   # (the reader left while the redirect was being written)
+                            pass
                         return
                     library.opened(m.group(1))
                     return self.send(200, reader_page(m.group(1)), "text/html; charset=utf-8")
