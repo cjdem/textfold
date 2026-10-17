@@ -1,7 +1,7 @@
 """What has been generated for each paper, as versioned layers on disk.
 
   papers/<id>/source.html, meta.json     the arXiv HTML, fetched once (or a document from this computer, local.py)
-  papers/<id>/layers/en.json             the English ladder and the argument links
+  papers/<id>/layers/en.json             the English ladder and the argument links stored by older versions
   papers/<id>/layers/tr-<lang>.json      one translation, stamped with the English version it was built on
   papers/.trash/<id>-<time>/             a paper the reader deleted (moved there whole, notes included; not listed)
 

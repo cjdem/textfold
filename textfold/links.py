@@ -3,6 +3,10 @@
 Cross-references the author wrote ("Figure 2") come from the parser. These are
 the links the author left implicit; one model call over the whole paper, seen
 as its takeaways, finds them. Every link is kept as an edge from -> to.
+
+Generation stopped calling this on 2026-10-18. Layers made before then keep
+their argument links on disk, and the reader still draws them; a regenerated
+English layer has none.
 """
 from . import kinds, llm
 from .tokens import plain

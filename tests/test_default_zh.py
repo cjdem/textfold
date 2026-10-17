@@ -59,7 +59,6 @@ class Generation(unittest.TestCase):
 
         with mock.patch.object(pipeline, "task", side_effect=lambda c, n: c), \
              mock.patch.object(pipeline.ladder, "build"), \
-             mock.patch.object(pipeline.links, "build"), \
              mock.patch.object(pipeline.translate, "build", side_effect=translate or fake_translate):
             pipeline.generate(self.pid, lang, self.cfg if cfg is DEFAULT else cfg,
                               progress=lambda *a: None, log=logs.append, also_zh=also_zh)

@@ -16,11 +16,10 @@ from .store import HOME, OLD_HOMES
 
 SETTINGS = HOME / "settings.json"
 # How much the model may think, per task, in levels every caller maps onto its own (llm.py). Not a setting: a reader is
-# here to read. Measured on one paper (2026-10-04): thinking adds time, not quality, to the levels and the
-# translation, while the links need some.
-TASKS = ("ladder", "links", "translate", "ask", "card")
+# here to read. Measured on one paper (2026-10-04): thinking adds time, not quality, to the levels and the translation.
+TASKS = ("ladder", "translate", "ask", "card")
 LEVELS = ("default", "off", "low", "medium", "high")
-DEFAULT_THINKING = {"ladder": "off", "links": "low", "translate": "off", "ask": "low", "card": "low"}
+DEFAULT_THINKING = {"ladder": "off", "translate": "off", "ask": "low", "card": "low"}
 LEGACY_ALIASES = {"fable", "opus", "sonnet", "haiku"}
 # the Anthropic API spoken natively (official SDK), offered as one more preset in the settings
 ANTHROPIC_PRESET = {"id": "anthropic", "name": "Anthropic", "base": "https://api.anthropic.com", "protocol": "anthropic",

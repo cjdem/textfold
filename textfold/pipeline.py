@@ -1,4 +1,4 @@
-"""Generate a paper in a language: fetch (an arXiv paper), parse, the English ladder and links (once), the translation.
+"""Generate a paper in a language: fetch (an arXiv paper), parse, the English ladder (once), the translation.
 
 Every step reports through `progress(stage, done, total)`; the server turns that into a progress bar. A set `stop`
 (a threading.Event) ends it with llm.Stopped at the next step: what the model has already written stays in the cache,
@@ -6,7 +6,7 @@ so the same generation started again goes on from there.
 """
 import urllib.error
 
-from . import biorxiv, epmc, github, ladder, langs, links, llm, models, store, translate, webpage, wiki
+from . import biorxiv, epmc, github, ladder, langs, llm, models, store, translate, webpage, wiki
 from .fetch import fetch
 
 
@@ -63,8 +63,6 @@ def generate(ref, lang, cfg, force=False, jobs=4, progress=lambda *a: None, log=
         check()
         ladder.build(doc, task(cfg, "ladder"), cache, jobs=jobs, log=log, progress=lambda a, b: progress("ladder", a, b), force=force, stop=stop)
         check()
-        progress("links", 0, 1)
-        links.build(doc, task(cfg, "links"), cache, log=log, force=force)
         store.save_en(doc, model)
         en = store.read(pid, "en")
     else:

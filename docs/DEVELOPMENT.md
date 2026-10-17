@@ -79,8 +79,8 @@ Models (⚙ Model & API), ported from ThoughtDAG's model access:
     lists 466) as you type, keeping what is ticked. Changing the kind of a provider being edited makes a new one.
   - **Rate limits**: a 429, 502, 503 or 529 is waited out (Retry-After, else 5, 15, 30, 45 s) and asked again.
 - **Thinking, per task**, set by the reader's tools and not by the reader (a reader is here to read):
-  `models.DEFAULT_THINKING` gives the levels and takeaways off, the argument links low, the translation off, the
-  questions low, the reading card low, from the model bench.
+  `models.DEFAULT_THINKING` gives the levels and takeaways off, the translation off, the questions low, the
+  reading card low, from the model bench.
   Each caller spells a level its own way: Claude Code `--effort`, and off as `MAX_THINKING_TOKENS=0`; Codex
   `model_reasoning_effort` (off as `none`, else `low`); Pi `--thinking`; the Claude API thinking and effort by model
   (off is `between_tools` on Sonnet 5.x, `disabled` on older models, the least effort where thinking cannot be
@@ -120,7 +120,7 @@ python -m textfold export 2512.23916                # one self-contained HTML fi
 ### Is the same paper always the same?
 
 Only because it is stored. The model samples differently on every run, so two generations of one paper differ in
-wording, chosen key sentences, topics and links (Full is the author's text and never changes). Each paper keeps
+wording, chosen key sentences and topics (Full is the author's text and never changes). Each paper keeps
 versioned layers in `papers/<id>/layers/` (`en.json`, `tr-<lang>.json`); the reader is assembled from them with no
 model call, so it reads the same every time it is opened. Regenerate writes a new version; a translation built on an
 older English version is marked outdated. Model replies are also cached by prompt in `papers/<id>/llm-cache/`.
@@ -194,10 +194,13 @@ last opened, and kept in folders, one level deep, a document in one at most: dra
 right click opens on it. Folders and dates are in `library.json` beside `papers/` (`library.py`). The format, the contract for every export, is `docs/notes-format.md`; the server keeps notes in
 `papers/<id>/notes.json`, a static page in the browser.
 
-Links: the author's cross-references (parsed) and argument links (one model call: supports / builds on / qualifies /
-explains) show as margin notes at Full, Brief and Key; on the Topic map, hovering a chip
-keeps its linked chips lit and lets the rest step back. Hovering a reference previews its target; clicking jumps there
-and a Back pill returns.
+Links: the author's cross-references (parsed) show as margin notes at Full, Brief and Key, as do argument links
+(supports / builds on / qualifies / explains) stored in layers from before 2026-10-18 — generation no longer calls
+the model for them. A stored link names its units by id; after a parser change those ids can name other paragraphs, so
+a regenerated English layer drops the links instead of carrying them over. The reader rebuilt from an old layer still
+gets the parse's cross-references. On the
+Topic map, hovering a chip keeps its linked chips lit and lets the rest step back. Hovering a reference previews its
+target; clicking jumps there and a Back pill returns.
 
 ## Other sources: one parser, through semantic HTML
 
@@ -374,10 +377,10 @@ textfold/pdf.py      a paper's original PDF for the side-by-side view (source.pd
 textfold/zotero.py   a Zotero library through Zotero Desktop's local API; an item read as a link or a dropped file
 textfold/tokens.py   tokenizer, sentence splitter, LCS alignment
 textfold/ladder.py   one model call per section; validation; written words aligned to source words for the morph
-textfold/links.py    argument links, one call over the whole paper
+textfold/links.py    argument links; generation stopped calling it (2026-10), stored links still render
 textfold/translate.py  a language the reader offers: sentence-aligned translation + short levels, one call per section (langs.py: English and Simplified Chinese)
 textfold/store.py    versioned layers per paper; assembling a reader from them
-textfold/pipeline.py fetch → parse → English ladder + links (once) → translation, with progress
+textfold/pipeline.py fetch → parse → English ladder (once) → translation, with progress
 textfold/server.py   local server: pages, /api/papers, /api/jobs (and /api/jobs/stop), /api/generate, /api/card, /api/settings
 textfold/agents.py   local agents: the scan, model catalogs, one-shot runs (claude -p, codex exec, pi -p)
 textfold/providers.py API providers: ThoughtDAG's env registry and presets, /models probing

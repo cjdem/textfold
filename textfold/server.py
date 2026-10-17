@@ -181,7 +181,7 @@ class Jobs:
             if stop.is_set() and stage != "done":   # a fetch that reports (bioRxiv's paced figures) ends here too
                 raise llm.Stopped()
             job.update(stage=stage, done=done, total=total)
-            if stage in ("ladder", "links", "translate", "zh", "done"):   # parsed: the reader can open it (in its own words)
+            if stage in ("ladder", "translate", "zh", "done"):   # parsed: the reader can open it (in its own words)
                 job["readable"] = True
             if job["kind"] == "generate" and stage not in ("queued", "fetch") and (store.pdir(job["pid"]) / "meta.json").exists():
                 if not job.get("title"):   # a new paper's title, once it is parsed

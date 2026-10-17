@@ -5,7 +5,7 @@ window.DR_I18N = (() => {
   const env = (words) => Object.fromEntries(ENV.map((w, i) => [w, words[i]]));
   const roles = (w) => ({ claim: w[0], gap: w[1], method: w[2], setup: w[3], result: w[4], analysis: w[5], limitation: w[6], context: w[7] });
   const rel = (w) => ({ supports: [w[0], w[1]], builds_on: [w[2], w[3]], qualifies: [w[4], w[5]], explains: [w[6], w[7]], ref: [w[8], w[9]] });
-  const stages = (w) => ({ queued: w[0], fetch: w[1], parse: w[2], ladder: w[3], links: w[4], translate: w[5], done: w[6], zh: w[7] });
+  const stages = (w) => ({ queued: w[0], fetch: w[1], parse: w[2], ladder: w[3], translate: w[4], done: w[5], zh: w[6] });
 
   const S = {
     en: {
@@ -25,7 +25,7 @@ window.DR_I18N = (() => {
       backend_cli: 'Claude Code on this computer (no key)', backend_anthropic: 'Anthropic API', backend_openai: 'OpenAI-compatible API',
       api_key: 'API key', model: 'Model', base_url: 'Base URL', save: 'Save', cancel: 'Cancel', test: 'Test', test_ok: 'Connected',
       key_note: 'Keys stay on this computer (~/.textfold).', sdk_note: 'Needs the SDK: pip install anthropic',
-      stages: stages(["Waiting", "Fetching the text", "Reading the structure", "Writing the zoom levels", "Finding argument links", "Translating", "Done", "Making the Simplified Chinese version"]),
+      stages: stages(["Waiting", "Fetching the text", "Reading the structure", "Writing the zoom levels", "Translating", "Done", "Making the Simplified Chinese version"]),
       open: 'Open', failed: 'Failed', no_html: 'arXiv has no HTML version of this paper, so it cannot be read here yet.',
       bad_ref: "Paste a link (a web page, a paper) or a DOI.", collapse: 'Collapse', expand: "Library",
       st_model: "Model for generation", st_effort: "Effort", st_default: "default", st_agents: "Agents on this computer", st_rescan: "Rescan", st_scanning: "Scanning…", st_notfound: "Not found", st_models: "{n} models", st_providers: "API providers", st_add: "Add provider", st_edit: "Edit", st_remove: "Remove", st_fetch: "Fetch models", st_pick: "Models to offer", st_from_td: "ThoughtDAG .env", st_from_env: ".env", st_added: "added here", st_use_td: "Use the keys in ThoughtDAG's .env", st_preset: "Provider", st_name: "Name", st_close: "Close", st_save_provider: "Save provider", st_key_kept: "leave empty to keep the saved key", st_none: "No model available yet",
@@ -49,7 +49,7 @@ window.DR_I18N = (() => {
       backend_cli: '本机的 Claude Code（不需要 key）', backend_anthropic: 'Anthropic API', backend_openai: 'OpenAI 兼容接口',
       api_key: 'API key', model: '模型', base_url: 'Base URL', save: '保存', cancel: '取消', test: '测试', test_ok: '已连通',
       key_note: 'Key 只保存在本机（~/.textfold）。', sdk_note: '需要先安装 SDK：pip install anthropic',
-      stages: stages(["排队中", "获取原文", "解析结构", "生成缩放层级", "寻找论证连线", "翻译", "完成", "生成简体中文版"]),
+      stages: stages(["排队中", "获取原文", "解析结构", "生成缩放层级", "翻译", "完成", "生成简体中文版"]),
       open: '打开', failed: '失败', no_html: 'arXiv 还没有这篇论文的 HTML 版本，暂时无法在这里阅读。',
       bad_ref: "请粘贴一个链接（网页或论文）或 DOI。", collapse: '收起', expand: "列表",
       st_model: "生成用的模型", st_effort: "推理强度", st_default: "默认", st_agents: "本机的 Agent", st_rescan: "重新扫描", st_scanning: "扫描中…", st_notfound: "未找到", st_models: "{n} 个模型", st_providers: "API 供应商", st_add: "添加供应商", st_edit: "编辑", st_remove: "移除", st_fetch: "获取模型列表", st_pick: "要提供的模型", st_from_td: "ThoughtDAG .env", st_from_env: ".env", st_added: "在这里添加", st_use_td: "使用 ThoughtDAG .env 里的 key", st_preset: "供应商", st_name: "名称", st_close: "关闭", st_save_provider: "保存供应商", st_key_kept: "留空则沿用已保存的 key", st_none: "还没有可用的模型",
