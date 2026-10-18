@@ -8,13 +8,13 @@
   const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
   // the pages, and the ideas on each
-  const PAGES = [['link', 'file', 'lang'], ['levels', 'map', 'zoom'], ['voice', 'anchor'], ['original', 'ask', 'notes']];
+  const PAGES = [['link', 'file', 'lang'], ['levels', 'map', 'zoom'], ['voice', 'anchor', 'original']];
 
   // {levels}, {topic}, {brief} and {original} are the reader's own names for them (i18n.js), filled in when shown
   const W = {
     en: {
-      title: 'How TextFold works', sub: 'Four short pages: how to read a text that folds.',
-      p1: 'Bring a text in', p2: 'Fold and unfold', p3: 'Whose words', p4: 'Read deeper',
+      title: 'How TextFold works', sub: 'Three short pages: how to read a text that folds.',
+      p1: 'Bring a text in', p2: 'Fold and unfold', p3: 'Back to the original',
       link_t: 'Paste a link', link_d: 'Any web page works. A paper’s link or DOI, Wikipedia and GitHub are read with their sections, formulas and figures.',
       file_t: 'Or drop a file', file_d: 'A PDF, a Word, PowerPoint or Excel file, an EPUB, a picture, Markdown or a .txt. A PDF that names a paper online opens that version. Other PDFs and files are converted on your computer.',
       lang_t: 'Read in your language', lang_d: 'Read in English or Simplified Chinese. The text is translated sentence by sentence, and every formula stays as typeset.',
@@ -24,14 +24,12 @@
       voice_t: 'Serif is the author', voice_d: 'The author’s words are set in a serif, AI’s in a sans serif. {brief} keeps the author’s own sentences, word for word.',
       anchor_t: 'AI points to its source', anchor_d: 'Every line AI wrote points back to the sentences it rests on. Colors mark each paragraph’s role in the argument.',
       original_t: 'Beside the original', original_d: 'For a paper or a PDF, {original} at the top opens its pages at the left. Each paragraph is marked where it stands on its page.',
-      ask_t: 'Ask, and see the evidence', ask_d: 'Select a passage to ask about it, or ask about the whole text. Every answer cites the paragraphs it rests on, one click away.',
-      notes_t: 'Notes that zoom with you', notes_d: 'Highlight and write in the margin. What you mark stays as you zoom out. Export gives you your notes as Markdown, and the whole page with them as one file.',
       done: 'Got it', prev: 'Previous page', next: 'Next page', close: 'Close',
       k_levels: 'levels', k_scroll: 'scroll', k_zoom: 'zoom', k_lang: 'next language', k_pages: 'pages', k_close: 'close',
     },
     zh: {
-      title: 'TextFold 怎么用', sub: '四页，三分钟，看懂怎样把一份文本折起来读。',
-      p1: '带一份文本进来', p2: '折叠与展开', p3: '谁在说话', p4: '读得更深',
+      title: 'TextFold 怎么用', sub: '三页，看懂怎样把一份文本折起来读。',
+      p1: '带一份文本进来', p2: '折叠与展开', p3: '回查原文',
       link_t: '粘贴链接', link_d: '任意网页都可以。论文链接或 DOI、维基百科、GitHub 仓库，会连同章节、公式和图一起读进来。',
       file_t: '或者拖入文件', file_d: 'PDF、Word、PowerPoint、Excel、EPUB、图片、Markdown 或 .txt 文件。PDF 如果对应网上的某篇论文，就打开网上的版本。其他 PDF 和文件在你的电脑上转换。',
       lang_t: '用你的语言读', lang_d: '可以读英文或简体中文。逐句翻译，公式保持原样。',
@@ -41,8 +39,6 @@
       voice_t: '衬线体是作者的原话', voice_d: '作者的原话用衬线体，AI 写的用无衬线体。{brief}层保留的是作者的原句，一字不改。',
       anchor_t: 'AI 的每句话都有出处', anchor_d: 'AI 写的每一行都指回它依据的原句。颜色标出每段在论证中的角色。',
       original_t: '对照原文', original_d: '论文和 PDF 可以点顶部的「{original}」，左边打开原来的页面。每一段都标出它在页上的位置。',
-      ask_t: '提问，并看到依据', ask_d: '选中一段文字就能就它提问，也可以就全文提问。每个回答都标出依据的段落，点一下就能跳过去。',
-      notes_t: '笔记跟着缩放', notes_d: '高亮，在页边写笔记。缩小时，你标过的内容会留下来。用「导出」可以直接拿到笔记的 Markdown，也可以把整页连同笔记存成一个文件。',
       done: '明白了', prev: '上一页', next: '下一页', close: '关闭',
       k_levels: '层级', k_scroll: '滚动', k_zoom: '缩放', k_lang: '切换语言', k_pages: '翻页', k_close: '关闭',
     },
@@ -114,19 +110,6 @@
       + '<rect class="tk-card" x="64" y="6" width="48" height="60" rx="3"/><rect class="tk-soft" x="66" y="29" width="44" height="17" rx="2"/>'
       + L(69, 13, 36) + L(69, 18, 30) + L(69, 32, 38, 'tk-ink tk-strong') + L(69, 37, 34, 'tk-ink tk-strong') + L(69, 42, 22, 'tk-ink tk-strong') + L(69, 52, 36) + L(69, 57, 28)
       + '<path class="tk-s-acc" d="M51 33.5 C58 33.5 59 37.5 66 37.5"/>',
-    ask: '<rect class="tk-card" x="8" y="6" width="56" height="60" rx="4"/><rect class="tk-hl" x="11" y="21.8" width="50" height="10.4" rx="1.5"/>'
-      + [12, 18, 24, 29.5, 36, 42, 48, 54, 60].map((y, i) => L(14, y, [44, 40, 44, 30, 42, 38, 44, 36, 24][i], i === 2 || i === 3 ? 'tk-ink tk-strong' : 'tk-ink')).join('')
-      + '<rect class="tk-card" x="72" y="6" width="40" height="15" rx="7.5"/><text class="tk-sans" x="92" y="16.8" text-anchor="middle" style="font-size:9px;font-weight:650">?</text>'
-      + '<rect class="tk-soft" x="72" y="27" width="40" height="33" rx="5"/>' + L(77, 33, 30, 'tk-acc tk-ai') + L(77, 38, 24, 'tk-acc tk-ai')
-      + '<rect class="tk-card" x="77" y="45" width="14" height="9" rx="4.5"/><text class="tk-mono tk-accent" x="84" y="51.6" text-anchor="middle" style="font-size:5.5px">¶3</text>'
-      + '<rect class="tk-card" x="94" y="45" width="14" height="9" rx="4.5"/><text class="tk-mono tk-accent" x="101" y="51.6" text-anchor="middle" style="font-size:5.5px">¶7</text>'
-      + '<path class="tk-s-acc tk-dash tk-thin" d="M77 49.5 C68 49.5 70 27 61 27"/>',
-    notes: '<rect class="tk-card" x="6" y="7" width="46" height="52" rx="4"/><rect class="tk-hl" x="8.5" y="17.6" width="40" height="11" rx="1.5"/>'
-      + [13, 19, 25, 31, 37, 43, 49].map((y, i) => L(10, y, [38, 36, 30, 38, 34, 38, 22][i], i === 1 || i === 2 ? 'tk-ink tk-strong' : 'tk-ink')).join('')
-      + '<rect class="tk-note" x="40" y="30" width="22" height="16" rx="2"/>' + L(43, 35, 15, 'tk-warm') + L(43, 40, 10, 'tk-warm')
-      + '<path class="tk-s-muted" d="M66 31h9M72 28l3 3-3 3"/>'
-      + '<rect class="tk-card" x="79" y="12" width="35" height="30" rx="4"/>' + L(83, 19, 26, 'tk-acc tk-ai') + '<rect class="tk-hl" x="81" y="25.8" width="31" height="6.4" rx="1.5"/>' + L(83, 27.8, 24, 'tk-ink tk-strong') + L(83, 35, 20, 'tk-acc tk-ai')
-      + chip(32, 56, 16, 'MD') + chip(51, 56, 18, 'PDF') + chip(72, 56, 22, 'JSON'),
   };
 
   const CSS = `
@@ -177,9 +160,6 @@
 .tt-art .tk-acc { fill: var(--accent); }
 .tt-art .tk-acc.tk-ai { opacity: .6; }
 .tt-art .tk-soft { fill: var(--accent-soft); }
-.tt-art .tk-hl { fill: var(--hl); opacity: .7; }
-.tt-art .tk-warm { fill: var(--warm); opacity: .7; }
-.tt-art .tk-note { fill: color-mix(in srgb, var(--warm) 16%, var(--card)); stroke: var(--warm); stroke-width: .8; }
 .tt-art .tk-s-acc, .tt-art .tk-s-line, .tt-art .tk-s-muted { fill: none; stroke-width: 1.2; stroke-linecap: round; stroke-linejoin: round; }
 .tt-art .tk-s-acc { stroke: var(--accent); }
 .tt-art .tk-s-line { stroke: var(--line); }
