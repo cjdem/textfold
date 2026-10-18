@@ -133,7 +133,9 @@ def store_doc(pid, html, meta, raw_name, raw, resolver, sizes=False):
         (tmp / "source.html").write_text(semantic.normalize(html, resolve_img=resolver(tmp / "img"), sizes=sizes),
                                          encoding="utf-8")
         (tmp / raw_name).write_text(raw, encoding="utf-8")
-        (tmp / "meta.json").write_text(json.dumps(meta, indent=2, ensure_ascii=False))
+        # ASCII-escaped, like the layers and the notes: meta.json is read with the system's encoding, and a title can
+        # hold a character GBK lacks (the ✩ an Elsevier paper puts after its title, measured on a GBK Windows machine)
+        (tmp / "meta.json").write_text(json.dumps(meta, indent=2))
         shutil.rmtree(d, ignore_errors=True)
         tmp.rename(d)
     finally:

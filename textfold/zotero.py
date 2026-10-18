@@ -277,7 +277,8 @@ def link(lib, key, pid, title, record=None):
         data[f"{lib}/{key}"] = {"paper": pid, "title": title, **({"record": record} if record else {})}
         f.parent.mkdir(parents=True, exist_ok=True)
         tmp = f.with_suffix(".tmp")
-        tmp.write_text(json.dumps(data, indent=1, ensure_ascii=False))
+        # ASCII-escaped: an item's title can hold a character GBK lacks, and this is read with the system's encoding
+        tmp.write_text(json.dumps(data, indent=1))
         tmp.replace(f)
 
 
@@ -305,5 +306,6 @@ def apply(pid):
         meta["abs_url"] = rec.get("url") or f"https://doi.org/{rec['doi']}"
     meta["label"] = f"Zotero · {rec.get('citekey') or (meta.get('source') or {}).get('name') or meta['title']}"
     meta["zotero"] = {"library": lib, "item": key, "citekey": rec.get("citekey", "")}
-    mf.write_text(json.dumps(meta, ensure_ascii=False))
+    # ASCII-escaped: a Zotero title can hold a character GBK lacks, and meta.json is read with the system's encoding
+    mf.write_text(json.dumps(meta))
     return True

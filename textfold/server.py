@@ -153,7 +153,8 @@ class Jobs:
     def wait_for_engine(self, pid, file, name, lang):
         """A file kept until the engine is installed (then converted), with a note of its name and language beside it."""
         self.pending[pid] = (str(file), name, lang)
-        Path(file).with_suffix(".json").write_text(json.dumps({"name": name, "lang": lang, "file": Path(file).name}, ensure_ascii=False))
+        # ASCII-escaped: a file's name can hold a character GBK lacks, and this is read with the system's encoding
+        Path(file).with_suffix(".json").write_text(json.dumps({"name": name, "lang": lang, "file": Path(file).name}))
 
     def read_pdf(self, pid, file, name, lang):
         """A PDF that has its words in it, read by TextFold itself while the engine is not installed (pdftext.py), the
@@ -269,7 +270,7 @@ class Jobs:
             PAGES.pop(job["pid"], None)
 
     def _pdf_link(self, job, url=None):
-        url = url or (store.pdir(job["pid"]) / "url.txt").read_text().strip()
+        url = url or store.read_url(store.pdir(job["pid"]) / "url.txt").strip()
         with urllib.request.urlopen(urllib.request.Request(url, headers=fetch.UA), timeout=90) as r:
             data = r.read(pdf.LIMIT + 1)
         if data[:5] != b"%PDF-" or len(data) > pdf.LIMIT:
@@ -685,8 +686,8 @@ def make_handler(jobs):
                         f = pdf.path(pid)
                         if f:
                             saved["pdf"] = base64.b64encode(f.read_bytes()).decode()
-                            saved["pdfjs"] = {"lib": (build.VENDOR / "pdfjs" / "pdf.min.mjs").read_text(),
-                                              "worker": (build.VENDOR / "pdfjs" / "pdf.worker.min.mjs").read_text()}
+                            saved["pdfjs"] = {"lib": (build.VENDOR / "pdfjs" / "pdf.min.mjs").read_text(encoding="utf-8"),
+                                              "worker": (build.VENDOR / "pdfjs" / "pdf.worker.min.mjs").read_text(encoding="utf-8")}
                             if pid.startswith("pdf-"):   # a converted PDF: its paragraphs' places on the pages
                                 with RELAYOUT:
                                     try:

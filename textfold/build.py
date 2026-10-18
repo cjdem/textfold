@@ -8,6 +8,7 @@ serves them, and a single file carries them inside.
 import base64
 import io
 import json
+import locale
 import re
 import urllib.parse
 from html import escape
@@ -52,9 +53,26 @@ def _has_tex(doc):
 ANIMATED_INSIDE = 2_000_000   # a moving picture larger than this goes into a single-file page as its first frame
 
 
+def _svg_text(f):
+    """An SVG as text: the encoding an ASCII-compatible XML declaration names, when Python knows it; else UTF-8
+    (XML's default), else the system's. An undeclared non-UTF-8 SVG whose bytes are also valid UTF-8 is read as UTF-8;
+    no marker tells otherwise (a program that saves GBK declares it). `<?xml-stylesheet` is not a declaration."""
+    data = f.read_bytes()
+    m = re.match(rb'^\s*<\?xml\s[^>]*?\bencoding\s*=\s*["\']([A-Za-z0-9._-]+)["\']', data)
+    if m:
+        try:
+            return data.decode(m.group(1).decode("ascii"), "replace")
+        except LookupError:   # a name Python does not know: treat it as undeclared
+            pass
+    try:
+        return data.decode("utf-8")
+    except UnicodeDecodeError:
+        return data.decode(locale.getpreferredencoding(False) or "utf-8", "replace")
+
+
 def data_uri(f, max_side=1600):
     if f.suffix.lower() == ".svg":  # vector stays vector: crisp at every zoom, and small for line plots
-        svg = f.read_text(errors="replace")
+        svg = _svg_text(f)
         # "&" escaped too: in the page's src="…" an entity of the SVG's own (&quot;) would be decoded first and break it
         return "data:image/svg+xml;charset=utf-8," + urllib.parse.quote(svg, safe=" /:=;,'()-._~!*+@?$")
     im = Image.open(f)
@@ -120,5 +138,5 @@ def export(pid):
     out = store.DATA / "out" / pid
     out.mkdir(parents=True, exist_ok=True)
     f = out / "index.html"
-    f.write_text(page(doc, app=False))
+    f.write_text(page(doc, app=False), encoding="utf-8")   # the page declares UTF-8; the system's encoding would corrupt it
     return f

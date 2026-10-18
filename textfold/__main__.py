@@ -108,6 +108,9 @@ def engine_cmd(args):
 
 
 def main():
+    # a pipe or a file takes the system's encoding (GBK on a Chinese Windows); the CLI speaks UTF-8, as it reads it
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
     if sys.argv[1:2] == ["--version"]:
         from . import __version__
         return print(f"TextFold {__version__}")

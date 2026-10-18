@@ -48,7 +48,8 @@ def _save(d):
     f = path()
     f.parent.mkdir(parents=True, exist_ok=True)
     tmp = f.with_name(f.name + ".tmp")
-    tmp.write_text(json.dumps(d, ensure_ascii=False, indent=1))
+    # ASCII-escaped: a folder's name is the reader's, in any language, and this is read with the system's encoding
+    tmp.write_text(json.dumps(d, indent=1))
     tmp.replace(f)
 
 

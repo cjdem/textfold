@@ -425,4 +425,10 @@ encoding, and a cache file that failed to write — or that was written before r
 encoding no marker identifies — is made again rather than breaking a retry or feeding mojibake into a document. What
 a model's work is saved into follows the rule: a layer (`store.write`) and a note's answer (`notes.py`) are written
 ASCII-escaped as UTF-8, and the settings file is written the same way, since Korean or Hindi, or a provider named in
-either, are not in GBK at all.
+either, are not in GBK at all. The JSON the reader keeps about a document and its library — `meta.json`, `library.json`,
+`zotero.json`, the name beside a file waiting for the engine — is ASCII-escaped for the same reason: those files are
+read with the system's encoding, and a title or a folder's name can hold a character GBK lacks (an Elsevier paper's
+title ends in ✩, and storing it failed after MinerU had read the whole PDF). A stored address (`url.txt`) is written
+UTF-8 with a byte-order mark, so `store.read_url` reads an address stored before the mark in the system's encoding
+rather than guessing UTF-8 from its bytes (GBK's `一` is also valid UTF-8); an exported page and the CLI's stdout are
+written UTF-8 too, the encodings their readers expect.

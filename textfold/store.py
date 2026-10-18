@@ -188,6 +188,19 @@ def _read_html(path):
         return data.decode(locale.getpreferredencoding(False) or "utf-8", "replace")
 
 
+def read_url(path):
+    """A web page's stored address: UTF-8 when it carries the byte-order mark this reader now writes, else the
+    system's encoding. An address stored before the mark was written in the system's encoding, and some of its byte
+    pairs are also valid UTF-8 (一 in GBK is D2 BB), so trying UTF-8 first would silently read a different address."""
+    data = path.read_bytes()
+    if data.startswith(b"\xef\xbb\xbf"):
+        return data.decode("utf-8-sig")
+    try:
+        return data.decode(locale.getpreferredencoding(False) or "utf-8")
+    except UnicodeDecodeError:
+        return data.decode("utf-8", "replace")
+
+
 def assemble(pid, only=None):
     """The paper as the reader needs it, from the layers alone (no model call). only: the translations to carry (a page
     saved in one language), else all of them."""
