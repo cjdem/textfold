@@ -403,16 +403,23 @@
     document.querySelector('.tagline').textContent = t.tagline;
     langBtn.innerHTML = `${esc(I18N.NATIVE[lang])}${STALE.has(lang) ? ` <em class="stale">${esc(t.stale)}</em>` : ''} <span class="caret">▾</span>`;
     langBtn.title = t.language;
+    legendBtn.textContent = t.legend;
+    legendBtn.title = t.legend_title;
     bar.querySelectorAll('button').forEach((b) => { b.textContent = t.levels[+b.dataset.l]; });
     requestAnimationFrame(() => { geom = null; placeThumb(); });
     legend.replaceChildren();
+    const lgTitle = h('b', 'lg-h');
+    lgTitle.textContent = t.legend_title;
+    legend.append(lgTitle);
     for (const r of ROLES) if (usedRoles.has(r)) { const it = h('span', null, `<i style="background:var(--r-${r});--beat:var(--r-${r})"></i>${t.roles[r]}`); it.dataset.role = r; legend.append(it); }
     if (rolePinned) legendFocus(rolePinned, true);
+    setLegendShown(level);
     document.getElementById('back').textContent = `← ${t.back}`;
     for (const uid of unitEl.keys()) renderSide(uid);
     notesForLang();
     if (window.DRApp) window.DRApp.onLang(lang, ui);
     document.dispatchEvent(new Event('tf-lang'));   // (the reading card's interface words follow the reader's)
+    legendPlace();   // (last: the relabels above move the button)
   }
 
   // a page read from the web is a snapshot: the day it was read, in the interface's language ("6 October 2026")
@@ -702,6 +709,7 @@
     localLevel.clear();
     docEl.dataset.level = to;
     document.documentElement.dataset.level = to;
+    setLegendShown(to);
     renderAll(hot, band);
     perf('p.render', t0); t0 = performance.now();
     settle(anchor);
@@ -729,6 +737,7 @@
     level = from;
     docEl.dataset.level = from;
     document.documentElement.dataset.level = from;
+    setLegendShown(from);
     renderAll(from === 0 ? null : bandAround(anchor, 8, new Set()), from === 0 ? null : bandAround(anchor, K_BAND[from], new Set()));
     settle(anchor);
     for (let i = 0; i < 3 && drawStaleInView(160); i++) settle(anchor);
@@ -894,7 +903,7 @@
   let IDS = [];                                  // units in reading order
   const HEAD_IDX = new Map();                    // heading -> reading position of the first unit after it
   const capKey = () => `${lang}|${innerWidth}|${innerHeight}|${capEpoch}`;
-  const setLevelAttr = (L) => { level = L; docEl.dataset.level = L; document.documentElement.dataset.level = L; };
+  const setLevelAttr = (L) => { level = L; docEl.dataset.level = L; document.documentElement.dataset.level = L; setLegendShown(L); };
   // a level flipped and flipped back must leave no CSS transition running on the page, nor be measured half way
   const CSST = window.CSSTransition;
   function settleTransitions() { if (CSST) for (const a of document.getAnimations()) if (a instanceof CSST) a.finish(); }
@@ -1375,9 +1384,9 @@
     const lo = Math.max(s.lo, Math.min(s.hi - 1, Math.floor(pos))), t = Math.min(1, Math.max(0, lo + 1 - pos));
     if (!s.pair || s.pair.lo !== lo) enterPair(lo);
     const near = Math.round(pos);
-    if (s.chrome !== near) {   // the legend and the tagline follow the zoom (set on them: an attribute on <html> restyles everything)
+    if (s.chrome !== near) {   // the legend button and the tagline follow the zoom
       s.chrome = near;
-      legend.style.display = near <= 2 ? 'flex' : 'none';
+      setLegendShown(near);
       tagline.style.display = near <= 2 ? 'none' : '';
     }
     const ms = t * 1000;
@@ -1400,7 +1409,7 @@
       if (window.__drDrift) window.__drPerf.push(['commitDrift', L, stageDrift(L, s.shift[L])]);
     }
     for (const P of pairs) if (P) { P.layer.classList.remove('live'); P.layer.style.opacity = '0'; }
-    legend.style.display = ''; tagline.style.display = '';
+    tagline.style.display = '';
     stageEl.classList.remove('on');
     perf('commit', t0);
     if (window.__drPerf) window.__drPerf.push(['t.commit', performance.now()]);
@@ -3270,17 +3279,40 @@ math { font-size: 1.05em; }
   // ── the legend, both ways: hovering a kind lights its paragraphs' dots (and on the map, its chips) while the rest
   //    step back; hovering a paragraph lights its kind. A click on a kind keeps it lit until clicked again (or Esc).
   let rolePinned = null;
-  const legendEl = document.getElementById('legend');
+  const legend = document.getElementById('legend');
+  const legendPick = document.getElementById('legendpick');
+  const legendBtn = document.getElementById('legendbtn');
+  let legendOpen = false;
+  function legendPlace() {   // under its button, inside the window (fixed, so a narrow bar cannot push it off)
+    if (!legendOpen) return;
+    const b = legendBtn.getBoundingClientRect(), w = legend.getBoundingClientRect().width, vw = document.documentElement.clientWidth;
+    legend.style.left = `${Math.round(Math.max(8, Math.min(b.left, vw - w - 8)))}px`;
+    legend.style.top = `${Math.round(b.bottom + 6)}px`;
+  }
+  function legendShow(open) {   // the full list, on demand: a pin does not outlive the list it was set from
+    if (open === legendOpen) return;
+    legendOpen = open;
+    legend.classList.toggle('open', open);
+    legendBtn.setAttribute('aria-expanded', String(open));
+    if (open) legendPlace(); else legendFocus(null, true);
+  }
+  function setLegendShown(near) {   // (the phone rule hides the button under 640 px)
+    const on = near <= 2 && usedRoles.size > 0 && innerWidth > 640;
+    legendPick.hidden = !on;
+    if (!on) legendShow(false);
+  }
+  legendBtn.addEventListener('click', (e) => { e.stopPropagation(); legendShow(!legendOpen); });
+  addEventListener('click', (e) => { if (legendOpen && !e.target.closest('.legendpick') && !e.target.closest('.legend')) legendShow(false); }, true);
   function legendFocus(role, pin = false) {
     if (pin) rolePinned = role;
     const r = role || rolePinned;
     if (r) docEl.dataset.role = r; else delete docEl.dataset.role;
-    legendEl.querySelectorAll('[data-role]').forEach((it) => it.classList.toggle('pin', it.dataset.role === rolePinned));
+    legend.querySelectorAll('[data-role]').forEach((it) => it.classList.toggle('pin', it.dataset.role === rolePinned));
   }
-  function legendMark(role) { legendEl.querySelectorAll('[data-role]').forEach((it) => it.classList.toggle('on', it.dataset.role === role)); }
-  legendEl.addEventListener('mouseover', (e) => { const it = e.target.closest('[data-role]'); if (it) legendFocus(it.dataset.role); });
-  legendEl.addEventListener('mouseleave', () => legendFocus(null));
-  legendEl.addEventListener('click', (e) => {
+  function legendMark(role) { legend.querySelectorAll('[data-role]').forEach((it) => it.classList.toggle('on', it.dataset.role === role)); }
+  legend.addEventListener('mouseover', (e) => { const it = e.target.closest('[data-role]'); if (it) legendFocus(it.dataset.role); });
+  legend.addEventListener('mouseleave', () => legendFocus(null));
+  legend.addEventListener('click', (e) => {
     const it = e.target.closest('[data-role]');
     if (it) legendFocus(rolePinned === it.dataset.role ? null : it.dataset.role, true);
   });
@@ -3356,7 +3388,6 @@ math { font-size: 1.05em; }
     bar.setAttribute('aria-valuetext', T[ui].levels[level]);
     placeThumb();
   }
-  const legend = document.getElementById('legend');
   const tagline = document.querySelector('.tagline');
   const usedRoles = new Set(Object.values(U).map((u) => u.lad.role));
   // the language menu: generated languages switch in place; in the app, the others can be generated, and the
@@ -3469,7 +3500,7 @@ math { font-size: 1.05em; }
     if (e.target.closest && e.target.closest('input, textarea, [contenteditable]')) return;
     if (e.metaKey || e.ctrlKey || e.altKey) return;
     if (e.key === 'Escape' && (popNote || !selbar.hidden)) { closeNote(); hideSelbar(); e.preventDefault(); return; }
-    if (e.key === 'Escape' && rolePinned) { legendFocus(null, true); e.preventDefault(); return; }
+    if (e.key === 'Escape' && legendOpen) { legendShow(false); e.preventDefault(); return; }
     if (e.key === '-' || e.key === '_') setLevel(level - 1);
     else if (e.key === '=' || e.key === '+') setLevel(level + 1);
     else if (/^[1-5]$/.test(e.key)) setLevel(BAR[+e.key - 1]);
@@ -3514,7 +3545,7 @@ math { font-size: 1.05em; }
     clearTimeout(relayoutTimer);
     relayoutTimer = setTimeout(() => { const t0 = performance.now(); layoutSides(); perf('sides', t0); }, 30);
   }
-  addEventListener('resize', () => { snapNow(); capEpoch++; relayout(); geom = null; placeThumb(); warmSoon(); });
+  addEventListener('resize', () => { snapNow(); capEpoch++; relayout(); geom = null; placeThumb(); warmSoon(); setLegendShown(level); legendPlace(); });
 
   // ── start ────────────────────────────────────────────────────────────
   build();
@@ -3545,7 +3576,7 @@ math { font-size: 1.05em; }
   updateBar();
   relayout();
   if (document.fonts) {
-    document.fonts.ready.then(() => { capEpoch++; relayout(); geom = null; placeThumb(); warmSoon(30); });   // the keyframes, as soon as the type is in
+    document.fonts.ready.then(() => { capEpoch++; relayout(); geom = null; placeThumb(); warmSoon(30); legendPlace(); });   // the keyframes, as soon as the type is in
     document.fonts.addEventListener('loadingdone', () => { capEpoch++; warmSoon(); });
   }
   docEl.addEventListener('load', () => { capEpoch++; warmSoon(); }, true);   // an image arrived: the layout moved

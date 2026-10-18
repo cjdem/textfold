@@ -105,7 +105,7 @@
   - [x] 6a. 模型设置：主界面只留当前连接、默认模型、连接测试与 ChatGPT 桥/OpenRouter 一键入口，其余进高级。
   - [x] 6b. 导出：主入口笔记与阅读卡 Markdown，JSON/整篇 HTML/笔记 PDF 进次级菜单。
   - [x] 6c. 从 README 与首页收起命令行/Agent 接口，保留 `textfold get` 与 `docs/format.md`。
-  - [ ] 6d. 段落角色图例按需展开。
+  - [x] 6d. 段落角色图例按需展开。
   - [ ] 6e. 新手教程压缩为导入、缩放、回查原文三步。
 - [ ] 7. 移除论证关系的界面（页边、主题图、hover）。
 - [ ] 8. 再评估 EPUB / MHTML / OFD（只做决定，不默认删除）。

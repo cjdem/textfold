@@ -62,17 +62,16 @@ svg .m1 { fill: var(--accent); } svg .m2 { fill: var(--accent); opacity: .4; } s
 .brand a { font-weight: 450; color: var(--muted); font-size: 13.5px; margin-left: 6px; white-space: nowrap; }
 .brand a.brand-home { display: flex; align-items: center; gap: 9px; font: inherit; color: var(--ink); margin: 0; text-decoration: none; }
 .tagline { color: var(--muted); font-size: 13.5px; white-space: nowrap; }
-.topbar { gap: 6px 14px; flex-wrap: wrap; container: topbar / inline-size; }
+.topbar { gap: 6px 14px; flex-wrap: wrap; }
 .brand { flex: 1; }
 /* the bar is as wide as the reader's column, half the window beside the PDF: the source's name ends in an ellipsis (and
-   is left out beside the PDF, whose own bar names it, as is the tagline), and the legend, with no room beside the buttons, takes a
-   row of its own */
+   is left out beside the PDF, whose own bar names it, as is the tagline). The legend opens from its own button: the full
+   list takes no room in the bar until it is asked for. */
 .brand { min-width: auto; }
 .brand-home, .brand > span { flex: none; }
 #arxiv-link { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 1; overflow: hidden; white-space: normal; overflow-wrap: anywhere; }
 html.compare #arxiv-link, html.compare .tagline { display: none; }
 .tagline { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-@container topbar (max-width: 1000px) { .legend { order: 4; flex-basis: 100%; justify-content: flex-start; } }
 .langbtn { font: 600 12.5px var(--sans); color: var(--accent); background: var(--accent-soft); border: 0; border-radius: 999px;
   padding: 5px 11px; cursor: pointer; order: 3; }
 .langbtn:hover { filter: brightness(.97); }
@@ -109,9 +108,17 @@ footer.zoom {
 .zoombar .sep { position: relative; z-index: 1; color: var(--faint); font-size: 11px; opacity: .6; user-select: none; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .zthumb { background: #3A362F; } }
 .hint { color: var(--muted); font-size: 12.5px; }
-.legend { display: none; flex-wrap: wrap; justify-content: flex-end; gap: 4px 14px; font-size: 12.5px; color: var(--muted); }
-html[data-level="0"] .legend, html[data-level="1"] .legend, html[data-level="2"] .legend { display: flex; }
 html[data-level="0"] .tagline, html[data-level="1"] .tagline, html[data-level="2"] .tagline { display: none; }
+.legendpick { flex: none; }
+.legendbtn { font: 500 12.5px var(--sans); color: var(--muted); background: none; border: 1px solid var(--line); border-radius: 999px;
+  padding: 3px 10px; cursor: pointer; transition: background-color .15s, color .15s; }
+.legendbtn:hover, .legendbtn[aria-expanded="true"] { color: var(--ink); background: var(--line-2); }
+/* fixed and placed by the reader (legendPlace): the bar's own edge would push it off a narrow window */
+.legend { position: fixed; z-index: 40; display: none; width: max-content; max-width: min(420px, calc(100% - 16px));
+  flex-wrap: wrap; gap: 6px 14px; padding: 9px 13px 10px; background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+  box-shadow: 0 16px 44px -18px rgba(40, 30, 10, .45); font-size: 12.5px; color: var(--muted); }
+.legend.open { display: flex; }
+.lg-h { flex-basis: 100%; font-weight: 600; color: var(--ink-2); }
 .legend i { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 5px; vertical-align: 1px; }
 .legend > span { cursor: pointer; border-radius: 999px; padding: 1px 6px; margin: -1px -6px; transition: background-color .15s, color .15s; }
 .legend > span:hover, .legend > span.on { color: var(--ink); background: color-mix(in srgb, var(--line-2) 70%, transparent); }
@@ -346,8 +353,11 @@ math { font-size: 1.04em; }
 .ltx_rule { display: none; }
 .ltx_note_outer { display: none; }
 
+@media print {
+  .legendpick, .legend { display: none !important; }
+}
 @media (max-width: 640px) {
-  .tagline, .legend, .hint { display: none !important; }
+  .tagline, .legendpick, .legend, .hint { display: none !important; }
   .doc { padding: 4px 16px 170px; }
   .paper-head h1 { font-size: 26px; }
   .u[data-l="4"], .u[data-l="3"] { font-size: 17px; }
