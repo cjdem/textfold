@@ -137,7 +137,6 @@ html.app:not(.landing) #sidebar:not(.collapsed) { box-shadow: 0 0 60px -20px rgb
 html.app footer.zoom { left: var(--rail); }
 @media (max-width: 1299px) {
   html.app .side { position: static; width: auto; flex-direction: row; flex-wrap: wrap; gap: 2px 14px; margin-top: 4px; }
-  html.app .lk { width: auto; max-width: 100%; }
 }
 
 /* ── landing ─────────────────────────────────────────────── */

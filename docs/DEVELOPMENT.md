@@ -136,7 +136,7 @@ and a zoom plays those keyframes; the page takes over again at rest.
 Notes: select text anywhere (a paragraph at any level, a section's summary or its title) to highlight it, write a note,
 or ask the model about it (the answer, in the reading language, cites the paragraphs it rests on; a cite opens that
 paragraph to its full text in place). The reader's own notes sit in the left margin, the conversations with the model
-and the links in the right. Full and Brief show whole cards, Key shows them compact, and Takeaway and Topic show only a
+in the right. Full and Brief show whole cards, Key shows them compact, and Takeaway and Topic show only a
 mark, with the notes on hover. Highlights zoom with the words. `#n=<note id>` opens the reader at a note.
 
 What the model is given for a question (`textfold/notes.py`, `prompt`): the title, the abstract and a line per section
@@ -199,13 +199,11 @@ last opened, and kept in folders, one level deep, a document in one at most: dra
 right click opens on it. Folders and dates are in `library.json` beside `papers/` (`library.py`). The format, the contract for every export, is `docs/notes-format.md`; the server keeps notes in
 `papers/<id>/notes.json`, a static page in the browser.
 
-Links: the author's cross-references (parsed) show as margin notes at Full, Brief and Key, as do argument links
-(supports / builds on / qualifies / explains) stored in layers from before 2026-10-18 — generation no longer calls
-the model for them. A stored link names its units by id; after a parser change those ids can name other paragraphs, so
-a regenerated English layer drops the links instead of carrying them over. The reader rebuilt from an old layer still
-gets the parse's cross-references. On the
-Topic map, hovering a chip keeps its linked chips lit and lets the rest step back. Hovering a reference previews its
-target; clicking jumps there and a Back pill returns.
+Links: argument links (supports / builds on / qualifies / explains) were written by a model into English layers before
+2026-10-18. Generation no longer calls for them, the reader no longer draws them, and the stored edges stay on disk;
+`textfold get` still exports them. A stored link names its units by id; after a parser change those ids can name other
+paragraphs, so a regenerated English layer drops the links instead of carrying them over. Author cross-references come
+from the parser and stay: hovering a reference previews its target; clicking jumps there and a Back pill returns.
 
 ## Other sources: one parser, through semantic HTML
 
@@ -387,7 +385,7 @@ textfold/pdf.py      a paper's original PDF for the side-by-side view (source.pd
 textfold/zotero.py   a Zotero library through Zotero Desktop's local API; an item read as a link or a dropped file
 textfold/tokens.py   tokenizer, sentence splitter, LCS alignment
 textfold/ladder.py   one model call per section; validation; written words aligned to source words for the morph
-textfold/links.py    argument links; generation stopped calling it (2026-10), stored links still render
+textfold/links.py    argument links; generation stopped calling it (2026-10), the reader no longer draws stored links
 textfold/translate.py  a language the reader offers: sentence-aligned translation + short levels, one call per section (langs.py: English and Simplified Chinese)
 textfold/store.py    versioned layers per paper; assembling a reader from them
 textfold/pipeline.py fetch → parse → English ladder (once) → translation, with progress

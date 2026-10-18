@@ -4,7 +4,6 @@ window.DR_I18N = (() => {
   const ENV = ['Theorem', 'Lemma', 'Proposition', 'Corollary', 'Definition', 'Remark', 'Example', 'Proof', 'Conjecture', 'Claim', 'Assumption', 'Observation', 'Notation'];
   const env = (words) => Object.fromEntries(ENV.map((w, i) => [w, words[i]]));
   const roles = (w) => ({ claim: w[0], gap: w[1], method: w[2], setup: w[3], result: w[4], analysis: w[5], limitation: w[6], context: w[7] });
-  const rel = (w) => ({ supports: [w[0], w[1]], builds_on: [w[2], w[3]], qualifies: [w[4], w[5]], explains: [w[6], w[7]], ref: [w[8], w[9]] });
   const stages = (w) => ({ queued: w[0], fetch: w[1], parse: w[2], ladder: w[3], translate: w[4], done: w[5], zh: w[6] });
 
   const S = {
@@ -15,10 +14,9 @@ window.DR_I18N = (() => {
       no_readme: "This repository has no README, or it is private.", github_limit: "GitHub lets a computer that is not signed in ask 60 times an hour. Try again in a while.", g_wiki: "Wikipedia", g_docs: "Documents", pdf_mismatch: "This PDF’s text does not match the paper. Drop another PDF here to replace it.", pdf_open: "Open the PDF on its site", pdf_drop: "Once it is downloaded, drop the PDF here to read beside it.", pdf_pick: "Choose the PDF", pdf_saving: "Saving the PDF…", pdf_bad: "That is not a PDF file.", read_first: "Reading the original meanwhile. The levels appear when they are ready.", compare: "Original", compare_tip: "Read beside the original PDF pages", pdf_loading: "Opening the PDF…", pdf_none: "TextFold could not fetch this paper’s PDF.", pdf_error: "The PDF could not be opened.", stop: "Stop", stopping: "Stopping…", stopped: "Stopped", unfinished: "Unfinished · click to continue", resume: "Continue", close: "Close", md_only: "TextFold opens PDF, Word (DOCX), PowerPoint (PPTX), Excel (XLSX), EPUB, HTML, CSV, image, Markdown and text files.", legacy_format: "TextFold no longer opens new RTF, OpenDocument or old Word, PowerPoint and Excel files. Save the file as DOCX, PPTX, XLSX or PDF, then drop it here.", no_fulltext: "Europe PMC has no open full text of this paper, so it cannot be read here yet.", drop_md: "Drop the file here", snapshot: "Snapshot of {date}", sources: "Any web page works. Read most fully: arXiv · PubMed Central · bioRxiv · medRxiv · DOI · Wikipedia · GitHub", drop_zone: "Drag a file here, or click to choose one",
       levels: ['Topic', 'Takeaway', 'Key', 'Brief', 'Full'],
       hint: 'Pinch, Ctrl-scroll, or scroll on this bar to zoom · keys 1–5 · click a paragraph to open it', tagline: "Stretch any article",
-      refs: 'References', back: 'Back', eq: 'Eq.', figure: 'Figure', table: 'Table',
+      refs: 'References', back: 'Back', figure: 'Figure', table: 'Table',
       roles: roles(['claim', 'gap', 'method', 'setup', 'result', 'analysis', 'limitation', 'context']),
       legend: 'Legend', legend_title: 'Paragraph roles',
-      rel: rel(['supports', 'evidence', 'builds on', 'used by', 'qualifies', 'qualified by', 'explains', 'mechanism', 'see', 'cited by']),
       env: env(ENV),
       language: 'Language', read_in: 'Read in', gen_lang: 'Generate', regen: 'Regenerate', stale: 'outdated', generating: 'Generating',
       new_paper: "New", papers: 'Papers', empty: "Nothing here yet", hero: "Stretch any article into five levels, from the full text to a one-screen map.",
@@ -40,10 +38,9 @@ window.DR_I18N = (() => {
       no_readme: "这个仓库没有 README，或者是私有仓库。", github_limit: "GitHub 对未登录的电脑每小时只允许 60 次请求，请稍后再试。", g_wiki: "维基百科", g_docs: "文档", pdf_mismatch: "这份 PDF 的文字和这篇论文对不上。可以把另一个 PDF 拖到这里替换。", pdf_open: "在原网站打开 PDF", pdf_drop: "下载好以后把 PDF 拖到这里，就能对照着读。", pdf_pick: "选择 PDF 文件", pdf_saving: "正在保存 PDF…", pdf_bad: "这不是 PDF 文件。", read_first: "先读原文，缩放层级生成完会自动换上。", compare: "原文", compare_tip: "与原文 PDF 对照阅读", pdf_loading: "正在打开 PDF…", pdf_none: "TextFold 没能取到这篇论文的 PDF。", pdf_error: "PDF 打不开。", stop: "停止", stopping: "正在停止…", stopped: "已停止", unfinished: "未完成 · 点击继续", resume: "继续生成", close: "关闭", md_only: "TextFold 能打开 PDF、Word（DOCX）、PowerPoint（PPTX）、Excel（XLSX）、EPUB、HTML、CSV、图片、Markdown 和纯文本文件。", legacy_format: "TextFold 不再打开新的 RTF、OpenDocument 或旧版 Word、PowerPoint、Excel 文件。请先另存为 DOCX、PPTX、XLSX 或 PDF，再拖到这里。", no_fulltext: "Europe PMC 没有这篇论文的开放全文，暂时无法在这里阅读。", drop_md: "把文件放在这里", snapshot: "{date}的快照", sources: "任意网页都能读；这些来源读得最完整：arXiv · PubMed Central · bioRxiv · medRxiv · DOI · 维基百科 · GitHub", drop_zone: "把文件拖到这里，或点击选择文件",
       levels: ['主题', '要点', '关键句', '简述', '全文'],
       hint: '双指捏合、Ctrl+滚轮，或在这条滑块上直接滚动来缩放 · 数字键 1–5 · 点击段落展开原文', tagline: "展开任何一篇文章",
-      refs: '参考文献', back: '返回', eq: '公式', figure: '图', table: '表',
+      refs: '参考文献', back: '返回', figure: '图', table: '表',
       roles: roles(['主张', '缺口', '方法', '设置', '结果', '分析', '局限', '背景']),
       legend: '图例', legend_title: '段落角色',
-      rel: rel(['支持', '证据', '基于', '被沿用', '限定', '被限定', '解释', '机制', '参见', '被引用']),
       env: env(['定理', '引理', '命题', '推论', '定义', '注', '例', '证明', '猜想', '断言', '假设', '观察', '记号']),
       language: '语言', read_in: '阅读语言', gen_lang: '生成', regen: '重新生成', stale: '已过期', generating: '正在生成',
       new_paper: "新建", papers: '论文', empty: "还没有内容", hero: "把任何一篇文章展开成五个层级，从全文到一屏看完的地图。",

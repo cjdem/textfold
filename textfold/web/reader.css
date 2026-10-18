@@ -20,7 +20,6 @@
   --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
   --r-context: #A39C93; --r-gap: #D9822B; --r-claim: #6B5CE7; --r-method: #3B82C4;
   --r-setup: #7C8BA1; --r-result: #2E9E6A; --r-analysis: #0F8B8D; --r-limitation: #C2453D;
-  --rel-supports: #2E9E6A; --rel-builds_on: #3B82C4; --rel-qualifies: #C2453D; --rel-explains: #6B5CE7; --rel-ref: #A39C93;
   --hl: #FFE07A; --hl-ink: #D9A400;   /* the reader's highlights */
   --col: 700px;
   --ease: cubic-bezier(.2, .8, .2, 1);
@@ -372,33 +371,13 @@ html[data-lang="zh"] .u[data-l="4"], html[data-lang="zh"] .u[data-l="3"] { line-
 html[data-lang="zh"] .u[data-l="2"] { line-height: 1.7; }
 html[data-lang="zh"] .paper-head h1 { letter-spacing: 0; }
 
-/* ── links ──────────────────────────────────────────────── */
-.rel-supports { --rel: var(--rel-supports); } .rel-builds_on { --rel: var(--rel-builds_on); } .rel-qualifies { --rel: var(--rel-qualifies); }
-.rel-explains { --rel: var(--rel-explains); } .rel-ref { --rel: var(--rel-ref); }
+/* ── the margins ────────────────────────────────────────── */
 html.morphing .side, html.morphing .lside { opacity: 0 !important; transition: none !important; }
-.u.linked > .tx, figure.fig.linked, .hd.linked { background: color-mix(in srgb, var(--accent-soft) 80%, transparent); border-radius: 6px; }
-/* Topic map: the hovered chip's links stay lit, tinted by relation; the rest steps back */
-.u[data-l="0"] { transition: opacity .22s, background-color .22s, border-color .22s, color .22s; }
-.doc.mapfocus .u[data-l="0"]:not(.linked):not(.focal) { opacity: .26; }
-.doc.mapfocus .chunk .stake, .doc.mapfocus .box-h, .doc.mapfocus .chunk > .hd:not(.linked) { opacity: .55; transition: opacity .22s; }
-.doc.mapfocus .u[data-l="0"].linked { border-color: var(--rel); background: color-mix(in srgb, var(--rel) 9%, var(--card)); }
-.doc.mapfocus .u[data-l="0"].linked > .tx { background: none; }
-.doc.mapfocus .u[data-l="0"].focal { border-color: var(--ink); background: var(--card); }
-.doc.mapfocus .hd.linked { background: none; color: var(--rel); }
 
 .side { position: absolute; left: calc(100% + 34px); top: 0; width: 236px; display: none; flex-direction: column; gap: 1px;
   transition: opacity .3s; }
 .u[data-l="4"] > .side, .u[data-l="3"] > .side, .u[data-l="2"] > .side { display: flex; }
-.side .lk.ref { display: none; }
-.u[data-l="2"] > .side .lk.ref { display: flex; }
-.lk { display: flex; align-items: baseline; gap: 5px; width: 100%; text-align: left; font: 450 12px/1.4 var(--sans); color: var(--muted);
-  background: none; border: 0; padding: 2px 0; cursor: pointer; font-style: normal; letter-spacing: 0; }
-.lk:hover { color: var(--ink); }
-.lk .arr { color: var(--rel); flex: none; }
-.lk .rel { color: var(--rel); font-weight: 650; flex: none; }
-.lk .lbl { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.lk .where, .peek .pk-where { color: var(--faint); font-weight: 600; margin-right: 2px; }
-.lk .lbl math { font-size: 1em; }
+.peek .pk-where { color: var(--faint); font-weight: 600; margin-right: 2px; }
 li.u > .side { left: calc(100% + 34px); }
 
 .peek { position: fixed; z-index: 40; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 10px 13px 11px;
@@ -421,7 +400,6 @@ li.u > .side { left: calc(100% + 34px); }
 
 @media (max-width: 1239px) {
   .side { position: static; width: auto; flex-direction: row; flex-wrap: wrap; gap: 2px 14px; margin-top: 4px; }
-  .lk { width: auto; max-width: 100%; }
 }
 @media (max-width: 640px) { .brand > span, .brand-home > span { display: none; } .brand a { margin-left: 0; } }
 
@@ -565,7 +543,7 @@ li.u.has-notes::after { left: calc(-1.3em - 13px); }
 .np-a .np-cite.in:hover { border-color: var(--accent); }
 .np-a .np-cite.bad { color: var(--r-limitation); background: color-mix(in srgb, var(--r-limitation) 10%, transparent); cursor: help; }
 .np-a .np-inf { font-weight: 500; font-style: italic; color: var(--muted); border: 1px dashed var(--line); cursor: help; }
-/* the paragraph a citation under the pointer leads to: it beats, as an argument link's ends do */
+/* the paragraph a citation under the pointer leads to: it beats */
 .u.cite-lit { background: color-mix(in srgb, var(--accent-soft) 70%, transparent); border-radius: 6px; transition: background-color .15s; }
 .u.cite-lit > .dot { --beat: var(--accent); opacity: 1 !important; animation: dr-beat 1.6s ease-out infinite; }
 /* questions to start from (an empty conversation) and to go on with (under the last answer) */
@@ -669,7 +647,7 @@ html.morphing .chatbtn { pointer-events: none; }
 .nl-del.sure { font: 600 11.5px var(--sans); color: #fff; background: var(--r-gap); white-space: nowrap; }
 .nl-x { flex: none; border-top: 1px solid var(--line-2); margin-top: 4px; padding-top: 4px; }
 /* the paper as it stands, printed (Export PDF of the paper, or Ctrl+P): the column alone, the margins under their
-   paragraphs, the argument links left out, a line naming the level on top and the TextFold mark at the end */
+   paragraphs, a line naming the level on top and the TextFold mark at the end */
 .print-head, .print-mark { display: none; }
 @media print {
   html.printing-paper, html.printing-paper body { background: #fff !important; padding: 0 !important; margin: 0 !important; }
@@ -677,7 +655,6 @@ html.morphing .chatbtn { pointer-events: none; }
   html.printing-paper * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   html.printing-paper .doc { max-width: none; padding: 0; margin: 0; }
   html.printing-paper .side, html.printing-paper .lside { position: static !important; width: auto !important; margin: 4px 0 0 !important; flex-direction: row; flex-wrap: wrap; gap: 4px 8px; }
-  html.printing-paper .side-links, html.printing-paper .lk { display: none !important; }
   html.printing-paper .ncard { width: auto; max-width: 100%; }
   html.printing-paper .ncard .nc-t { -webkit-line-clamp: unset; display: block; }
   html.printing-paper .u, html.printing-paper .hd { break-inside: avoid; }
@@ -734,7 +711,7 @@ html.morphing .chatbtn { pointer-events: none; }
 .keepbtn.on i::after { transform: translateX(9px); }
 .notespick { display: flex; align-items: center; }
 
-/* ── the margins: the reader's notes on the left (warm), the conversations with the model and the links on the right
+/* ── the margins: the reader's notes on the left (warm), the conversations with the model on the right
    (cool). A section's margins hang after its heading, in their place in the flow. */
 .lside { position: absolute; right: calc(100% + 30px); top: 0; width: 214px; display: none; flex-direction: column; gap: 5px; transition: opacity .3s; }
 .u[data-l="4"] > .lside, .u[data-l="3"] > .lside, .u[data-l="2"] > .lside { display: flex; }
@@ -803,7 +780,7 @@ html.pp-resizing, html.pp-resizing * { cursor: col-resize !important; user-selec
   padding: 5px 13px; cursor: pointer; }
 .pp-pick:hover { border-color: var(--accent); }
 html.compare .side, html.compare .lside { position: static; width: auto; flex-direction: row; flex-wrap: wrap; gap: 2px 14px; margin-top: 4px; }
-html.compare .lk, html.compare .lside .ncard { width: auto; max-width: 100%; }
+html.compare .lside .ncard { width: auto; max-width: 100%; }
 html.compare .chunk > .side, html.compare .chunk > .lside { position: static; }
 @media (max-width: 1099px) {
   .cmpbtn, .pdfpane { display: none !important; }

@@ -99,7 +99,8 @@ A paragraph, a list item or a figure's or table's caption:
 ```
 
 How the units' claims bear on each other: `supports`, `builds_on`, `qualifies`, `explains`, and `ref` (the text
-points at a figure, a table or another unit).
+points at a figure, a table or another unit). TextFold wrote argument links into English layers before 2026-10-18 and
+`textfold get` still exports stored ones; the reader no longer draws them, and a new generation writes none.
 
 ## Text written to fold
 

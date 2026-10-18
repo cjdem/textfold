@@ -83,8 +83,8 @@ more than one way, so it can be found again when the text around it changes.
 - Key, Takeaway: the written words that came from those tokens are marked.
 - Wherever none of the passage is on screen (a sentence the Brief level leaves out, a chip on the Topic map), the
   paragraph carries a mark, so nothing a reader wrote disappears when they zoom out.
-- The reader's own notes (with text) sit in the left margin, the conversations with the model in the right margin
-  above the paragraph's links: at Full and Brief in full, at Key shortened to the question and its one-line answer.
+- The reader's own notes (with text) sit in the left margin, the conversations with the model in the right margin:
+  at Full and Brief in full, at Key shortened to the question and its one-line answer.
   At Takeaway and Topic only the paragraph's mark stays; hovering it shows its notes.
 - A note on a section's summary is marked on the summary (shown at Key, Takeaway, Topic); its cards hang after the
   section's heading, which also carries a mark.

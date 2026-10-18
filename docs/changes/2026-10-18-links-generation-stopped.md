@@ -2,6 +2,8 @@
 
 **Date:** 2026-10-18
 **Branch:** `worktree-links-off`
+**Superseded in part, 2026-10-18:** `2026-10-18-links-ui-removed.md` removes the interface, so
+stored links no longer render; the generation change below still stands.
 
 ## What and why
 

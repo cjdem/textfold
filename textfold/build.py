@@ -85,7 +85,7 @@ def inline_images(doc, app=False):
 
 
 def payload(doc, app, katex=None, saved=None):
-    data = {k: doc[k] for k in ("meta", "atoms", "units", "chunks", "blocks", "bib", "edges", "alias")}
+    data = {k: doc[k] for k in ("meta", "atoms", "units", "chunks", "blocks", "bib", "alias")}
     data["app"] = app
     data["katex"] = katex   # where the reader finds KaTeX: a folder, "inside" the page, or nowhere (math stays as written)
     if saved:   # saved from the reader: its notes (kept apart from any other page's in the viewer's browser), its language

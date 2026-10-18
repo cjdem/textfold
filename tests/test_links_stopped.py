@@ -2,7 +2,8 @@
 
 The links a layer already holds stay on disk and are still applied when a paper is opened; a
 regeneration still replaces the English layer, as it always did, and the new layer has none.
-Author-written cross-references come from the parser and are unaffected.
+The reader no longer draws them; `textfold get` still exports them. Author-written
+cross-references come from the parser and are unaffected.
 
 Run from the repo root:
     python -m unittest discover tests
@@ -13,7 +14,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from textfold import links, models, pipeline, store
+from textfold import build, fold, links, models, pipeline, store
 
 PAGE = ('<article class="ltx_document"><p class="ltx_p">First paragraph here.</p>'
         '<p class="ltx_p">Second paragraph here.</p></article>')
@@ -82,6 +83,22 @@ class ArgumentLinks(unittest.TestCase):
         doc = store.assemble(self.pid)
 
         self.assertIn(self.edge(ids[0], ids[1]), doc["edges"])
+
+    def test_the_page_carries_no_edges_but_get_still_exports_them(self):
+        self.generate()
+        ids = sorted(store.parsed(self.pid)["units"])
+        en = store.read(self.pid, "en")
+        en["edges"] = [self.edge(ids[0], ids[1])]
+        store.write(self.pid, "en", en)
+
+        doc = store.assemble(self.pid)
+        self.assertIn(self.edge(ids[0], ids[1]), doc["edges"])   # stored data still assembles
+
+        data = json.loads(build.payload(doc, False))
+        self.assertNotIn("edges", data)                          # ... but the reader is not sent it
+
+        self.assertEqual(fold.document(self.pid)["links"],
+                         [{"from": ids[0], "to": ids[1], "rel": "supports"}])
 
 
 if __name__ == "__main__":

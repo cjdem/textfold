@@ -8,13 +8,10 @@
 // A zoom gesture (wheel, pinch, slider, keys) does not lay anything out while it
 // runs: it plays keyframes of the screen at each level, prepared while the reader
 // was still ("the stage"), and the page takes over again at rest.
-// Links: the author's cross-references and the model's argument links, as
-// sidenotes (Full, Key, Brief), and on the Topic map by
-// letting a chip's linked chips stay lit while the rest of the map steps back.
 (() => {
   'use strict';
   const D = JSON.parse(document.getElementById('paper-data').textContent);
-  const U = D.units, A = D.atoms, EDGES = D.edges || [], ALIAS = D.alias || {};
+  const U = D.units, A = D.atoms, ALIAS = D.alias || {};
   const BAR = [4, 3, 2, 1, 0];
   const ROLES = ['claim', 'gap', 'method', 'setup', 'result', 'analysis', 'limitation', 'context'];
   const DUR = 560;
@@ -363,7 +360,6 @@
       bib.append(h('summary'), h('div', null, D.bib));
       docEl.append(bib);
     }
-    for (const uid of unitEl.keys()) sideNode(uid);
     let lastPos = 0;   // a block sits where the unit before it sits
     for (const el of docEl.querySelectorAll('.u, .eq, .raw, .front, figure.fig')) {
       if (el.dataset.u && order.has(el.dataset.u)) lastPos = order.get(el.dataset.u); else el._pos = lastPos;
@@ -415,7 +411,6 @@
     if (rolePinned) legendFocus(rolePinned, true);
     setLegendShown(level);
     document.getElementById('back').textContent = `← ${t.back}`;
-    for (const uid of unitEl.keys()) renderSide(uid);
     notesForLang();
     if (window.DRApp) window.DRApp.onLang(lang, ui);
     document.dispatchEvent(new Event('tf-lang'));   // (the reading card's interface words follow the reader's)
@@ -647,7 +642,6 @@
   // a timed change: everything near the reader moves at once
   function morph(mutate, anchor) {
     document.documentElement.classList.add('morphing');
-    clearFocus();
     if (reduced) { mutate(); settle(anchor); done(); return; }
     const M = 160;
     hydrate(M);
@@ -694,7 +688,6 @@
   function prepare(to) {
     const from = level, M = 160, anchor = anchorNow();
     document.documentElement.classList.add('morphing');
-    clearFocus();
     let t0 = performance.now(); const T0 = t0;
     hydrate(M);
     perf('p.hydrate', t0); t0 = performance.now();
@@ -1107,7 +1100,7 @@
       return !!((p & Node.DOCUMENT_POSITION_CONTAINS) || (q & Node.DOCUMENT_POSITION_CONTAINS) ||
         ((p & Node.DOCUMENT_POSITION_FOLLOWING) && (q & Node.DOCUMENT_POSITION_PRECEDING)));
     };
-    const plain = (el) => { el.classList.remove('linked', 'focal', 'flash', 'local-open'); return el; };
+    const plain = (el) => { el.classList.remove('flash', 'local-open'); return el; };
     function copy(node) {
       const cl = node.classList;
       if (cl.contains('u')) {
@@ -1265,8 +1258,8 @@
       if (covers(L, cands)) continue;
       const sig = `${key}|${level}|${Math.round(scrollY)}|${cands.map((c) => c.key).join(',')}`;
       if (tried[L] === sig) continue;   // tried in this very situation already: it cannot do better
-      // the map lit up under the pointer would be copied lit; other levels are laid out apart and can go ahead
-      if (L === level && (docEl.classList.contains('mapfocus') || docEl.dataset.role)) { warmSoon(600); continue; }
+      // a role lit under the pointer would be copied lit; other levels are laid out apart and can go ahead
+      if (L === level && docEl.dataset.role) { warmSoon(600); continue; }
       tried[L] = sig;
       const t0 = performance.now();
       if (L === level) captureHere(); else captureAt(L, cands);
@@ -1312,7 +1305,7 @@
     aimAnchor = null;
     stage = { el: anchor.el, key, shift, lo, hi, pair: null, last: level, sy: scrollY };
     busy = true;
-    clearFocus(); hidePeek();
+    hidePeek();
     document.documentElement.classList.add('morphing');
     stageEl.classList.add('on');   // opaque: it covers the page, which stays as it is and is not painted again
     perf('stage', t0);
@@ -1469,20 +1462,8 @@
     return anchorAt(col.left + Math.min(col.width / 2, 260), innerHeight * 0.38);
   }
 
-  // ── links: data ──────────────────────────────────────────────────────
-  const outOf = new Map(), inOf = new Map();
-  for (const e of EDGES) {
-    if (!outOf.has(e.f)) outOf.set(e.f, []);
-    outOf.get(e.f).push(e);
-    if (e.tk === 'unit') { if (!inOf.has(e.t)) inOf.set(e.t, []); inOf.get(e.t).push(e); }
-  }
+  // ── targets: the box an anchor, a preview or a note points at ────────
   const unitBox = (uid) => figOf.get(uid) || unitEl.get(uid);
-  function edgeTarget(tk, id) {
-    if (tk === 'unit') return unitBox(id);
-    if (tk === 'chunk') { const s = document.getElementById(id); return s && s.querySelector('.hd'); }
-    if (tk === 'eq') return docEl.querySelector(`[data-id="eq:${CSS.escape(id)}"]`);
-    return document.getElementById(id);
-  }
   function resolve(htmlId) {
     const el = document.getElementById(htmlId) || document.getElementById(ALIAS[htmlId]);
     if (!el) return null;
@@ -1494,30 +1475,10 @@
   }
   const secLabel = (uid) => { const c = chunkOf[uid]; return c ? (c.num ? `§${c.num}` : ((trOf(c) || c).title).replace(/\$/g, '')) : ''; };
   function figLabel(uid) { const f = figOf.get(uid); const fl = f && f.querySelector('.flabel'); return fl ? fl.textContent : ''; }
-  function targetLabel(tk, id) {
-    if (tk === 'unit') {
-      const v = view(id);
-      return `<span class="where">${esc(figLabel(id) || secLabel(id))}</span> ${toksHtml(v.topic)}`;
-    }
-    if (tk === 'chunk') {
-      const c = D.chunks.find((x) => x.id === id);
-      return c ? `<span class="where">§${esc(c.num)}</span> ${chunkTitle(c)}` : '';
-    }
-    if (tk === 'eq') {
-      const el = edgeTarget(tk, id), tag = el && el.querySelector('.ltx_tag_equation');
-      return `<span class="where">${T[lang].eq}</span> ${esc(tag ? tag.textContent : '')}`;
-    }
-    return esc(id);
-  }
 
-  // sidenotes: the unit's argument links (and, at Brief, its cross-references), in the right margin
-  // The margins of a unit, or of a section (hung after its heading). Right: the conversations with the model, then
-  // the links. Left: the reader's own notes. The reader on the left in warm ink, the machine on the right in cool ink.
+  // The margins of a unit, or of a section (hung after its heading). Right: the conversations with the model. Left:
+  // the reader's own notes. The reader on the left in warm ink, the machine on the right in cool ink.
   const secs = new Map();   // section id -> { c, sec, hd, st }
-  function sideNode(uid) {
-    if (!outOf.has(uid) && !inOf.has(uid)) return null;
-    return ensureSide(uid);
-  }
   function hostOf(key) {
     if (!key.startsWith('§')) return { el: unitEl.get(key), after: null };
     const s = secs.get(key.slice(1));
@@ -1529,26 +1490,12 @@
     let s = host.el.querySelector(`:scope > .${cls}`);
     if (!s) {
       s = h('div', cls + (host.after ? ' sec' : ''));
-      if (!left) s.append(h('div', 'side-notes'), h('div', 'side-links'));
-      const links = left && host.el.querySelector(':scope > .side');
-      if (links) links.before(s); else if (host.after) host.after.after(s); else host.el.append(s);
+      if (!left) s.append(h('div', 'side-notes'));
+      const right = left && host.el.querySelector(':scope > .side');
+      if (right) right.before(s); else if (host.after) host.after.after(s); else host.el.append(s);
     }
     return s;
   }
-  function renderSide(uid) {
-    const side = unitEl.get(uid).querySelector(':scope > .side'), s = side && side.querySelector(':scope > .side-links');
-    if (!s) return;
-    const t = T[ui], rows = [];
-    for (const e of outOf.get(uid) || []) rows.push({ e, dir: 0, tk: e.tk, id: e.t });
-    for (const e of inOf.get(uid) || []) rows.push({ e, dir: 1, tk: 'unit', id: e.f });
-    const order = (r) => (r.e.rel === 'ref' ? 2 : 0) + r.dir;
-    rows.sort((a, b) => order(a) - order(b));
-    s.innerHTML = rows.slice(0, 6).map((r) =>
-      `<button type="button" class="lk rel-${r.e.rel}${r.e.rel === 'ref' ? ' ref' : ''}" data-tk="${r.tk}" data-to="${esc(r.id)}">` +
-      `<span class="arr">${r.dir ? '←' : '→'}</span><span class="rel">${esc(t.rel[r.e.rel][r.dir])}</span><span class="lbl">${targetLabel(r.tk, r.id)}</span></button>`).join('');
-    texify(s);
-  }
-
   // keep sidenotes from overlapping: each sits at its paragraph, or just below the one above it
   // all writes, then all reads, then all writes: one layout, not one per sidenote
   function layoutSides() {
@@ -1569,34 +1516,7 @@
     for (const [sd, shift] of moves) sd.style.marginTop = `${shift}px`;
   }
 
-  // (Brief and Takeaway draw no links: with nothing to do next from a line, a line was only decoration.)
-  let focused = null;
-  function clearFocus() {
-    focused = null;
-    docEl.classList.remove('mapfocus');
-    docEl.querySelectorAll('.linked, .focal').forEach((e) => e.classList.remove('linked', 'focal'));
-    for (const [el, cls] of lit) el.classList.remove(cls);
-    lit = [];
-  }
-  // ── links on the Topic map: no lines. The hovered chip's linked chips stay lit (tinted by relation),
-  //    the rest of the map steps back, so the eye finds them without anything being drawn over the cards ──
-  let lit = [];
-  function mapFocus(uid) {
-    clearFocus();
-    const ends = [...(outOf.get(uid) || []).map((e) => [e, e.tk, e.t]), ...(inOf.get(uid) || []).map((e) => [e, 'unit', e.f])];
-    for (const [e, tk, id] of ends) {
-      const el = tk === 'unit' ? unitEl.get(id) : edgeTarget(tk, id);
-      if (!el || !visibleRect(el)) continue;
-      el.classList.add('linked', `rel-${e.rel}`);
-      lit.push([el, `rel-${e.rel}`]);
-    }
-    if (!lit.length) return;          // a chip without links: nothing dims
-    const me = unitEl.get(uid);
-    me.classList.add('focal'); lit.push([me, 'focal']);
-    docEl.classList.add('mapfocus');
-  }
-
-  // ── links: following one, and coming back ───────────────────────────
+  // ── following an anchor, and coming back ─────────────────────────────
   const backBtn = document.getElementById('back');
   let backTo = null;
   function flash(el) {
@@ -1664,7 +1584,7 @@
       const c = trigger.querySelector('.ltx_note_content');
       html = c ? `<div class="pk-note">${c.innerHTML}</div>` : '';
     } else {
-      el = trigger.matches('.lk') ? edgeTarget(trigger.dataset.tk, trigger.dataset.to) : resolve(decodeURIComponent(trigger.getAttribute('href').slice(1)));
+      el = resolve(decodeURIComponent(trigger.getAttribute('href').slice(1)));
       html = peekHtml(el);
     }
     if (!html) return;
@@ -1679,7 +1599,7 @@
     peek.style.top = `${r.bottom + 8 + ph > innerHeight - 90 ? Math.max(8, r.top - ph - 8) : r.bottom + 8}px`;
   }
   function hidePeek() { peekFor = null; peek.classList.remove('on'); }
-  const PEEKABLE = 'a[href^="#"], .lk, .ltx_note';
+  const PEEKABLE = 'a[href^="#"], .ltx_note';
   docEl.addEventListener('mouseover', (e) => {
     const trg = e.target.closest(PEEKABLE);
     if (trg && trg !== peekFor) { clearTimeout(peekTimer); peekTimer = setTimeout(() => showPeek(trg), 200); }
@@ -1690,23 +1610,14 @@
       const list = key && notesOf.get(key);
       if (list && tg !== peekFor) { clearTimeout(notesPeekTimer); notesPeekTimer = setTimeout(() => showNotesPeek(tg, list), 260); }
     }
-    if (u && !busy) {
-      clearTimeout(unfocusTimer);
-      if (level === 0) { if (!u.classList.contains('focal')) { clearTimeout(mapTimer); mapTimer = setTimeout(() => mapFocus(u.dataset.u), 90); } }
-    }
   });
-  let mapTimer = null, unfocusTimer = null;
   docEl.addEventListener('mouseout', (e) => {
     const nt = e.target.closest('.u, .hd, .stake');
     if (nt && !nt.contains(e.relatedTarget)) { clearTimeout(notesPeekTimer); if (peekFor === nt) hidePeek(); }
     const trg = e.target.closest(PEEKABLE);
     if (trg && !trg.contains(e.relatedTarget)) { clearTimeout(peekTimer); hidePeek(); }
     const u = e.target.closest('.u');
-    // leaving a chip for the gap before the next one should not flash the whole map
-    if (u && !u.contains(e.relatedTarget)) {
-      clearTimeout(mapTimer); clearTimeout(unfocusTimer); unfocusTimer = setTimeout(() => clearFocus(), 70);
-      if (!(e.relatedTarget && e.relatedTarget.closest && e.relatedTarget.closest('.u'))) legendMark(null);
-    }
+    if (u && !u.contains(e.relatedTarget) && !(e.relatedTarget && e.relatedTarget.closest && e.relatedTarget.closest('.u'))) legendMark(null);
   });
   addEventListener('scroll', () => { if (peekFor) hidePeek(); }, { passive: true });
 
@@ -2282,7 +2193,7 @@
     if (b) b.disabled = !e.target.value.trim();
   });
 
-  // a citation under the pointer: its paragraph beats in the page, as the ends of an argument link do
+  // a citation under the pointer: its paragraph beats in the page
   let litUnit = null;
   function lightCite(e) {
     const c = e.target.closest && e.target.closest('.np-cite[data-to]'), el = c ? unitEl.get(c.dataset.to) || null : null;
@@ -3518,8 +3429,6 @@ math { font-size: 1.05em; }
     if (card) { e.preventDefault(); const n = notes.find((x) => x.id === card.dataset.note); if (n) openNote(n); return; }
     const mark = e.target.closest('.hl, .hlsp');
     if (mark && !String(getSelection()).length) { const n = noteAt(mark); if (n) { e.preventDefault(); openNote(n); return; } }
-    const lk = e.target.closest('.lk');
-    if (lk) { e.preventDefault(); hidePeek(); go(edgeTarget(lk.dataset.tk, lk.dataset.to), lk.closest('.u')); return; }
     const a = e.target.closest('a[href^="#"]');
     if (a) {
       const id = decodeURIComponent(a.getAttribute('href').slice(1));
