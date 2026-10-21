@@ -32,9 +32,13 @@ WINDOWS-ONLY.md
 .venv/
 # worktrees the optimize workflow makes here: each is a whole checkout of this repo, not files of it
 .claude/worktrees/
+# the per-computer launch configuration for Claude Code
+/.claude/launch.json
 # the detailed log the optimize workflow keeps on this computer; the committed record is docs/changes/
 notes/
 # the website's build (site/build.py): the pages it writes, and the preview with its checks
 site/dist/
 site/preview.html
 site/_*
+# a reference checkout of the MyGo framework, kept on this computer
+/mygo/
