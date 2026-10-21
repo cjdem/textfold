@@ -81,3 +81,9 @@ work as above.
 - Windows Job Objects kill the Python process tree if MyGo exits unexpectedly.
 - The update manifest cannot update the old Electron installation; the first
   MyGo release is a manual reinstall.
+
+## Licenses
+
+`resources/LICENSE.txt` and `resources/NOTICE.txt` are copies of the repository's
+`LICENSE` and `NOTICE`, shipped next to the executable so an installed copy carries
+them. `go test` fails if the copies drift; copy them again after changing either.

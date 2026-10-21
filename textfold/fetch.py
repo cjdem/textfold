@@ -8,7 +8,7 @@ from pathlib import Path
 
 from . import __version__
 
-UA = {"User-Agent": f"TextFold/{__version__} (research prototype; github.com/chenxiachan/textfold)"}
+UA = {"User-Agent": f"TextFold/{__version__} (research prototype; github.com/cjdem/textfold)"}
 
 
 def paper_id(ref):

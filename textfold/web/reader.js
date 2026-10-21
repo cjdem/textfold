@@ -15,7 +15,7 @@
   const BAR = [4, 3, 2, 1, 0];
   const ROLES = ['claim', 'gap', 'method', 'setup', 'result', 'analysis', 'limitation', 'context'];
   const DUR = 560;
-  const BRAND = 'TextFold', REPO = 'https://github.com/chenxiachan/textfold';
+  const BRAND = 'TextFold', REPO = 'https://github.com/cjdem/textfold';
   const LOGO = '<svg viewBox="0 0 20 20" aria-hidden="true"><rect x="2" y="3" width="16" height="2.4" rx="1.2" fill="#6B5CE7"/>' +
     '<rect x="2" y="8.8" width="11" height="2.4" rx="1.2" fill="#6B5CE7" fill-opacity=".4"/><rect x="2" y="14.6" width="5" height="2.4" rx="1.2" fill="#E08A3C"/></svg>';
   const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;

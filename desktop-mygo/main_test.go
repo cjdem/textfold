@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -23,6 +24,22 @@ func TestConfigVersionMatchesThePackage(t *testing.T) {
 	}
 	if version != string(m[1]) {
 		t.Fatalf("mygo.json says %s, textfold says %s", version, m[1])
+	}
+}
+
+func TestShippedLicensesMatchTheRepository(t *testing.T) {
+	for _, name := range []string{"LICENSE", "NOTICE"} {
+		want, err := os.ReadFile(filepath.Join("..", name))
+		if err != nil {
+			t.Fatal(err)
+		}
+		got, err := os.ReadFile(filepath.Join("resources", name+".txt"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !bytes.Equal(got, want) {
+			t.Errorf("desktop-mygo/resources/%s.txt has drifted from %s; copy it again", name, name)
+		}
 	}
 }
 

@@ -16,16 +16,16 @@ import (
 	"sync"
 	"time"
 
-	"github.com/chenxiachan/textfold/desktop-mygo/internal/bridge"
-	"github.com/chenxiachan/textfold/desktop-mygo/internal/locator"
-	textserver "github.com/chenxiachan/textfold/desktop-mygo/internal/server"
+	"github.com/cjdem/textfold/desktop-mygo/internal/bridge"
+	"github.com/cjdem/textfold/desktop-mygo/internal/locator"
+	textserver "github.com/cjdem/textfold/desktop-mygo/internal/server"
 	"github.com/egoist/mygo"
 )
 
 const (
 	// projectURL is the project's home; updateURL is where this fork
 	// publishes the signed releases the app updates from.
-	projectURL = "https://github.com/chenxiachan/textfold"
+	projectURL = "https://github.com/cjdem/textfold"
 	updateURL  = "https://github.com/cjdem/textfold"
 )
 

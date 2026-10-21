@@ -91,8 +91,9 @@ def app_ld(lang):
         "featureList": ["Five levels per paragraph, from a map of the sections to every word", "Reads beside the original PDF",
                         "Answers about what you read, citing its paragraphs", "Notes that stay as you zoom out", "English and Simplified Chinese"],
         "keywords": "research papers, project material, reading, students, PDF reader, sources, Claude Code, Codex, Zotero",
-        "author": {"@type": "Person", "name": "Xia Chen", "url": "https://github.com/chenxiachan"},
-        "sameAs": [REPO, "https://pypi.org/project/textfold/"],
+        "author": {"@type": "Person", "name": "cjdem", "url": "https://github.com/cjdem"},
+        "contributor": {"@type": "Person", "name": "Xia Chen"},
+        "sameAs": [REPO],
     }
 
 

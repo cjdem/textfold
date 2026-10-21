@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="https://raw.githubusercontent.com/chenxiachan/textfold/main/docs/assets/logo.svg" width="72" alt="TextFold">
+<img src="https://raw.githubusercontent.com/cjdem/textfold/main/docs/assets/logo.svg" width="72" alt="TextFold">
 
 # TextFold
 
@@ -8,11 +8,15 @@
 
 <sub>原名 PaperFold</sub>
 
+> **这是一个 fork。** TextFold 由 Xia Chen 创建。这个 fork 由 cjdem 维护，与原项目没有隶属
+> 或背书关系。它的桌面版只支持 Windows；用 MyGo 取代 Electron 外壳，PDF 和图片一律交给
+> MinerU Cloud API，本机不再安装 PDF 引擎。原归属和完整修改说明见 [NOTICE](NOTICE)。
+
 <img alt="Python 3.9+" src="https://img.shields.io/badge/python-3.9%2B-6B5CE7?style=flat-square">
 <img alt="在你的电脑上运行" src="https://img.shields.io/badge/runs-on_your_computer-E08A3C?style=flat-square">
-<a href="https://github.com/chenxiachan/textfold/blob/main/LICENSE"><img alt="Apache 2.0 许可证" src="https://img.shields.io/badge/license-Apache_2.0-6B5CE7?style=flat-square"></a>
+<a href="LICENSE"><img alt="Apache 2.0 许可证" src="https://img.shields.io/badge/license-Apache_2.0-6B5CE7?style=flat-square"></a>
 
-[English](https://github.com/chenxiachan/textfold/blob/main/README.md) · **简体中文**
+[English](README.md) · **简体中文**
 
 **粘贴链接：** 任意网页 · arXiv · PubMed Central · bioRxiv · medRxiv · 维基百科 · GitHub<br>
 **拖入文件：** PDF · Word · PowerPoint · Excel · EPUB · HTML · CSV · 图片 · Markdown · 纯文本
@@ -21,7 +25,7 @@
 
 <br>
 
-<img src="https://raw.githubusercontent.com/chenxiachan/textfold/main/docs/assets/zoom-zh.gif" width="880" alt="一篇论文从全文折叠成章节地图，再展开回来">
+<img src="https://raw.githubusercontent.com/cjdem/textfold/main/docs/assets/zoom-zh.gif" width="880" alt="一篇论文从全文折叠成章节地图，再展开回来">
 
 </div>
 
@@ -53,8 +57,8 @@
 
 <table>
 <tr>
-<td width="50%"><img src="https://raw.githubusercontent.com/chenxiachan/textfold/main/docs/assets/notes.png" alt="全文里的高光和页边笔记"></td>
-<td width="50%"><img src="https://raw.githubusercontent.com/chenxiachan/textfold/main/docs/assets/keep.png" alt="高光过的句子在要点层被保留"></td>
+<td width="50%"><img src="https://raw.githubusercontent.com/cjdem/textfold/main/docs/assets/notes.png" alt="全文里的高光和页边笔记"></td>
+<td width="50%"><img src="https://raw.githubusercontent.com/cjdem/textfold/main/docs/assets/keep.png" alt="高光过的句子在要点层被保留"></td>
 </tr>
 <tr>
 <td align="center"><sub>在全文里高光、在页边写笔记……</sub></td>
@@ -74,12 +78,12 @@
 
 ## 开始使用
 
-**[下载软件](https://chenxiachan.github.io/textfold/zh.html#download)**，只有 Windows 版。需要的东西都在里面，包括 Python。
+**[下载软件](https://cjdem.github.io/textfold/zh.html#download)**，只有 Windows 版。需要的东西都在里面，包括 Python；唯一例外是 WebView2，Windows 11 自带，Windows 10 可能会先提示安装。
 
-也可以装 Python 包，任何系统都能用：
+也可以从本 fork 安装 Python 包，任何系统都能用：
 
 ```bash
-python -m pip install textfold
+python -m pip install git+https://github.com/cjdem/textfold
 python -m textfold serve
 ```
 
@@ -108,7 +112,7 @@ python -m textfold serve
 <summary>也可以直接从代码运行</summary>
 
 ```bash
-git clone https://github.com/chenxiachan/textfold.git
+git clone https://github.com/cjdem/textfold.git
 cd textfold
 python -m pip install -r requirements.txt
 python -m textfold serve
@@ -155,6 +159,8 @@ TextFold 只是一个工具，它的许可证只管代码。分享文件时，�
 
 ## 最新
 
+> 这个 fork 在 10 月 21 日之前的条目是原项目的历史；本 fork 的改动在 [docs/changes/](docs/changes/)。
+
 - **2026 年 10 月 18 日：每篇论文一张阅读卡。** 阅读页顶部的 **阅读卡** 把研究问题与贡献、方法与前提、数据与实验设置、结果与局限放在一起，条目都能改，也都回到原文；重新生成先存为候选，卡片可导出 Markdown。
 - **2026 年 10 月 21 日：PDF 只走 MinerU Cloud API。** 每个 PDF 都直接交给 MinerU，不再先读本地文字，也不先查找在线版本。约 3.4 GB 的本地引擎和离线 PDF 路径已经删除。请先在设置里填写密钥；PDF 和图片会离开电脑，交给 MinerU 转换。
 - **2026 年 10 月 17 日：MinerU 的服务器读你的文件。** 在 `~/.textfold/settings.json` 里写上 `mineru_api_key`，PDF、Word/PowerPoint/Excel 文件、HTML 和图片就交给 MinerU 的云 API 读：不用装 3.4 GB 的引擎，文件会离开你的电脑。
@@ -181,7 +187,7 @@ TextFold 只是一个工具，它的许可证只管代码。分享文件时，�
 
 <br>
 
-## 贡献者
+## 原项目贡献者
 
 <a href="https://github.com/neil-patel77" title="@neil-patel77"><img src="https://github.com/neil-patel77.png?size=80" width="40" height="40" alt="@neil-patel77" /></a>
 <a href="https://github.com/adalach" title="@adalach"><img src="https://github.com/adalach.png?size=80" width="40" height="40" alt="@adalach" /></a>
@@ -189,13 +195,13 @@ TextFold 只是一个工具，它的许可证只管代码。分享文件时，�
 <a href="https://github.com/sylvainHellin" title="@sylvainHellin"><img src="https://github.com/sylvainHellin.png?size=80" width="40" height="40" alt="@sylvainHellin" /></a>
 <a href="https://github.com/jlamweil" title="@jlamweil"><img src="https://github.com/jlamweil.png?size=80" width="40" height="40" alt="@jlamweil" /></a>
 
-欢迎贡献：先看 [CONTRIBUTING.md](https://github.com/chenxiachan/textfold/blob/main/CONTRIBUTING.md)。
+本 fork 由 [cjdem](https://github.com/cjdem) 维护。欢迎贡献：先看 [CONTRIBUTING.md](CONTRIBUTING.md)。
 
 <br>
 
 <div align="center">
 
-**如果 TextFold 让阅读轻松了一些，点个 ⭐ star，让更多人看到它。**
+**如果 TextFold 让阅读轻松了一些，点个 ⭐ [star](https://github.com/cjdem/textfold)，让更多人看到它。**
 
 </div>
 
@@ -205,6 +211,6 @@ TextFold 只是一个工具，它的许可证只管代码。分享文件时，�
 
 <sub>TextFold 建立在这些开源项目之上：[trafilatura](https://github.com/adbar/trafilatura) 从网页中找出正文，[PDFium](https://pdfium.googlesource.com/pdfium/)（经由 [pypdfium2](https://github.com/pypdfium2-team/pypdfium2)）从原页裁出图，[MinerU](https://github.com/opendatalab/MinerU) 的 Cloud API 读取每个 PDF，[mammoth](https://github.com/mwilliamson/python-mammoth) 读取 Word 文件，[PDF.js](https://github.com/mozilla/pdf.js) 显示 PDF，[KaTeX](https://katex.org) 排版公式。桌面外壳使用 [MyGo](https://github.com/egoist/mygo)。感谢它们的作者。</sub>
 
-[Apache 2.0](https://github.com/chenxiachan/textfold/blob/main/LICENSE) © 2026 Xia Chen · [开发文档](https://github.com/chenxiachan/textfold/blob/main/docs/DEVELOPMENT.md) · [格式](https://github.com/chenxiachan/textfold/blob/main/docs/format.md) · [参与贡献](https://github.com/chenxiachan/textfold/blob/main/CONTRIBUTING.md) · [安全](https://github.com/chenxiachan/textfold/blob/main/SECURITY.md) · [反馈](https://github.com/chenxiachan/textfold/issues)
+[Apache 2.0](LICENSE) © 2026 Xia Chen；fork 改动 © 2026 cjdem · [开发文档](docs/DEVELOPMENT.md) · [格式](docs/format.md) · [参与贡献](CONTRIBUTING.md) · [安全](SECURITY.md) · [反馈](https://github.com/cjdem/textfold/issues)
 
 </div>

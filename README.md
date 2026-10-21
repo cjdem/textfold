@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="https://raw.githubusercontent.com/chenxiachan/textfold/main/docs/assets/logo.svg" width="72" alt="TextFold">
+<img src="https://raw.githubusercontent.com/cjdem/textfold/main/docs/assets/logo.svg" width="72" alt="TextFold">
 
 # TextFold
 
@@ -8,11 +8,16 @@
 
 <sub>Formerly PaperFold</sub>
 
+> **This is a fork.** TextFold was created by Xia Chen. This fork is maintained by cjdem and is
+> not affiliated with or endorsed by the original author. Its desktop app is Windows-only; it
+> replaces the Electron shell with MyGo and sends every PDF and picture to MinerU's Cloud API,
+> so the local PDF engine is gone. See [NOTICE](NOTICE) for the attribution and changes.
+
 <img alt="Python 3.9+" src="https://img.shields.io/badge/python-3.9%2B-6B5CE7?style=flat-square">
 <img alt="Runs on your computer" src="https://img.shields.io/badge/runs-on_your_computer-E08A3C?style=flat-square">
-<a href="https://github.com/chenxiachan/textfold/blob/main/LICENSE"><img alt="Apache License 2.0" src="https://img.shields.io/badge/license-Apache_2.0-6B5CE7?style=flat-square"></a>
+<a href="LICENSE"><img alt="Apache License 2.0" src="https://img.shields.io/badge/license-Apache_2.0-6B5CE7?style=flat-square"></a>
 
-**English** · [简体中文](https://github.com/chenxiachan/textfold/blob/main/README.zh-CN.md)
+**English** · [简体中文](README.zh-CN.md)
 
 **Paste a link:** any web page · arXiv · PubMed Central · bioRxiv · medRxiv · Wikipedia · GitHub<br>
 **Drop a file:** PDF · Word · PowerPoint · Excel · EPUB · HTML · CSV · pictures · Markdown · text
@@ -21,7 +26,7 @@
 
 <br>
 
-<img src="https://raw.githubusercontent.com/chenxiachan/textfold/main/docs/assets/zoom.gif" width="880" alt="A paper folding from its full text into a map of its sections, and back">
+<img src="https://raw.githubusercontent.com/cjdem/textfold/main/docs/assets/zoom.gif" width="880" alt="A paper folding from its full text into a map of its sections, and back">
 
 </div>
 
@@ -53,8 +58,8 @@ Choose the level of detail you need, and lower your cognitive load.
 
 <table>
 <tr>
-<td width="50%"><img src="https://raw.githubusercontent.com/chenxiachan/textfold/main/docs/assets/notes.png" alt="Highlights in the full text and a note in the margin"></td>
-<td width="50%"><img src="https://raw.githubusercontent.com/chenxiachan/textfold/main/docs/assets/keep.png" alt="The highlighted passages kept at the Takeaway level"></td>
+<td width="50%"><img src="https://raw.githubusercontent.com/cjdem/textfold/main/docs/assets/notes.png" alt="Highlights in the full text and a note in the margin"></td>
+<td width="50%"><img src="https://raw.githubusercontent.com/cjdem/textfold/main/docs/assets/keep.png" alt="The highlighted passages kept at the Takeaway level"></td>
 </tr>
 <tr>
 <td align="center"><sub>Highlight and write in the margin…</sub></td>
@@ -74,12 +79,12 @@ To turn it on, in Zotero 7: **Settings › Advanced › Allow other applications
 
 ## Get started
 
-**[Download the app](https://chenxiachan.github.io/textfold/#download)** for Windows. Everything it needs is inside, Python included.
+**[Download the app](https://cjdem.github.io/textfold/#download)** for Windows. Everything it needs is inside, Python included; the one exception is WebView2, which Windows 11 already has and Windows 10 may ask for.
 
-Or install the Python package, on any system:
+Or install the Python package from this fork, on any system:
 
 ```bash
-python -m pip install textfold
+python -m pip install git+https://github.com/cjdem/textfold
 python -m textfold serve
 ```
 
@@ -108,7 +113,7 @@ What you read is kept in your system's folder for app data, shared with the desk
 <summary>Run it from the code instead</summary>
 
 ```bash
-git clone https://github.com/chenxiachan/textfold.git
+git clone https://github.com/cjdem/textfold.git
 cd textfold
 python -m pip install -r requirements.txt
 python -m textfold serve
@@ -155,6 +160,9 @@ TextFold is a tool, and its license covers its code. When you share a file, foll
 
 ## What's new
 
+> The entries before this fork's October 21 changes are the original project's history; this
+> fork's changes are in [docs/changes/](docs/changes/).
+
 - **October 18, 2026: a reading card for every paper.** **Reading card**, at the top of a paper, keeps what it asks and contributes, how it works, what it measured and what it found, in four sections you can edit. Every point links back to the passage; a new draft waits as a candidate, and the card exports to Markdown.
 - **October 21, 2026: PDFs use MinerU's Cloud API only.** Every PDF now goes directly to MinerU, without first reading its text or looking for an online version. The local 3.4 GB engine and the offline PDF path are gone. Add a key in Settings; PDFs and pictures leave your computer for conversion.
 - **October 17, 2026: MinerU's servers read your files.** Put `mineru_api_key` in `~/.textfold/settings.json` and PDFs, Word/PowerPoint/Excel files, HTML and pictures are read by MinerU's cloud API: no 3.4 GB engine to install, and the file leaves your computer.
@@ -181,7 +189,7 @@ TextFold is a tool, and its license covers its code. When you share a file, foll
 
 <br>
 
-## Contributors
+## Original project's contributors
 
 <a href="https://github.com/neil-patel77" title="@neil-patel77"><img src="https://github.com/neil-patel77.png?size=80" width="40" height="40" alt="@neil-patel77" /></a>
 <a href="https://github.com/adalach" title="@adalach"><img src="https://github.com/adalach.png?size=80" width="40" height="40" alt="@adalach" /></a>
@@ -189,13 +197,13 @@ TextFold is a tool, and its license covers its code. When you share a file, foll
 <a href="https://github.com/sylvainHellin" title="@sylvainHellin"><img src="https://github.com/sylvainHellin.png?size=80" width="40" height="40" alt="@sylvainHellin" /></a>
 <a href="https://github.com/jlamweil" title="@jlamweil"><img src="https://github.com/jlamweil.png?size=80" width="40" height="40" alt="@jlamweil" /></a>
 
-Contributions are welcome: start with [CONTRIBUTING.md](https://github.com/chenxiachan/textfold/blob/main/CONTRIBUTING.md).
+This fork is maintained by [cjdem](https://github.com/cjdem). Contributions are welcome: start with [CONTRIBUTING.md](CONTRIBUTING.md).
 
 <br>
 
 <div align="center">
 
-**If TextFold helps you read, ⭐ star it so others can find it.**
+**If TextFold helps you read, ⭐ [star it](https://github.com/cjdem/textfold) so others can find it.**
 
 </div>
 
@@ -205,6 +213,6 @@ Contributions are welcome: start with [CONTRIBUTING.md](https://github.com/chenx
 
 <sub>Built on [trafilatura](https://github.com/adbar/trafilatura), which finds the article on a web page, [PDFium](https://pdfium.googlesource.com/pdfium/) by way of [pypdfium2](https://github.com/pypdfium2-team/pypdfium2), which cuts figures from the original page, [MinerU](https://github.com/opendatalab/MinerU), whose Cloud API reads every PDF, and [mammoth](https://github.com/mwilliamson/python-mammoth), which reads Word files; PDFs are shown with [PDF.js](https://github.com/mozilla/pdf.js) and formulas with [KaTeX](https://katex.org). The desktop shell uses [MyGo](https://github.com/egoist/mygo). Thanks to their authors.</sub>
 
-[Apache 2.0](https://github.com/chenxiachan/textfold/blob/main/LICENSE) © 2026 Xia Chen · [Development](https://github.com/chenxiachan/textfold/blob/main/docs/DEVELOPMENT.md) · [Format](https://github.com/chenxiachan/textfold/blob/main/docs/format.md) · [Contributing](https://github.com/chenxiachan/textfold/blob/main/CONTRIBUTING.md) · [Security](https://github.com/chenxiachan/textfold/blob/main/SECURITY.md) · [Feedback](https://github.com/chenxiachan/textfold/issues)
+[Apache 2.0](LICENSE) © 2026 Xia Chen; fork changes © 2026 cjdem · [Development](docs/DEVELOPMENT.md) · [Format](docs/format.md) · [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) · [Feedback](https://github.com/cjdem/textfold/issues)
 
 </div>

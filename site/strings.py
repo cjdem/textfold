@@ -3,8 +3,8 @@
 # Few words: what the page must say and nothing the README says better (it links there).
 
 VERSION = "0.10.7"
-SITE = "https://chenxiachan.github.io/textfold/"
-REPO = "https://github.com/chenxiachan/textfold"
+SITE = "https://cjdem.github.io/textfold/"
+REPO = "https://github.com/cjdem/textfold"
 DL = REPO + "/releases/latest/download/"
 FILES = {"win": "TextFold-win-x64-setup.exe"}
 LANGS_NATIVE = "English, 简体中文"
@@ -41,10 +41,10 @@ S = {
         '用 Python 运行'),
     "py_p": ("The same reader as a Python package, on any system with Python 3.9 or newer.",
              "同样的阅读器也有 Python 包，任何装有 Python 3.9 或更新版本的系统都能用。"),
-    "py_links": ('<a href="https://github.com/chenxiachan/textfold/blob/main/docs/format.md">The TextFold format</a>',
-        '<a href="https://github.com/chenxiachan/textfold/blob/main/docs/format.md">TextFold 格式</a>'),
-    "app_p": ('Nothing else to install. It finds Claude Code, Codex or Pi on your computer, or connects a free model in one click.',
-        '不用再装别的。它会找到你电脑上的 Claude Code、Codex 或 Pi，也能一键连上免费模型。'),
+    "py_links": ('<a href="https://github.com/cjdem/textfold/blob/main/docs/format.md">The TextFold format</a>',
+        '<a href="https://github.com/cjdem/textfold/blob/main/docs/format.md">TextFold 格式</a>'),
+    "app_p": ('Windows 11 already has the WebView2 runtime; on Windows 10, install it if the app asks. It finds Claude Code, Codex or Pi on your computer, or connects a free model in one click.',
+        'Windows 11 自带 WebView2；Windows 10 如果提示就先装上。它会找到你电脑上的 Claude Code、Codex 或 Pi，也能一键连上免费模型。'),
 
     "app_meta": (f'Version {VERSION} · Windows 10 and 11, 64-bit · The app updates itself.',
         f'版本 {VERSION} · Windows 10 和 11，64 位 · 软件会自己更新。'),
@@ -76,15 +76,15 @@ S = {
         '更新说明'),
     "cta_py": ('Run it with Python',
         '用 Python 运行'),
-    "foot_license": ('Apache 2.0 © 2026 Xia Chen',
-        'Apache 2.0 © 2026 Xia Chen'),
+    "foot_license": ('Apache 2.0 © 2026 Xia Chen · Windows fork by cjdem',
+        'Apache 2.0 © 2026 Xia Chen · Windows fork，cjdem 维护'),
 
     "hero_note": ('Free and open source · No account · Formerly PaperFold',
         '免费开源 · 不用注册 · 原名 PaperFold'),
     "cta_win_sub": ('64-bit · installer',
         '64 位 · 安装程序'),
-    "cta_py_sub": ('python3 -m pip install textfold',
-        'python3 -m pip install textfold'),
+    "cta_py_sub": ('pip install git+https://github.com/cjdem/textfold',
+        'pip install git+https://github.com/cjdem/textfold'),
 
     "dl_h": ('Get TextFold',
         '获取 TextFold'),
@@ -98,8 +98,8 @@ S = {
         '暂未签名：第一次打开时点“更多信息”，再点“仍要运行”。'),
     "dl_btn_exe": ('Download installer',
         '下载安装程序'),
-    "readme_line": ('The <a href="https://github.com/chenxiachan/textfold#readme">README</a> has the rest: every source it reads, every key, every model.',
-        '其余的都在 <a href="https://github.com/chenxiachan/textfold/blob/main/README.zh-CN.md">README</a> 里：能读的所有来源、所有快捷键、所有模型。'),
+    "readme_line": ('The <a href="https://github.com/cjdem/textfold#readme">README</a> has the rest: every source it reads, every key, every model.',
+        '其余的都在 <a href="https://github.com/cjdem/textfold/blob/main/README.zh-CN.md">README</a> 里：能读的所有来源、所有快捷键、所有模型。'),
     # the opening's typed line (ascii.rest's typewriter): what can be folded
     "typer_prefix": ("fold ", "折叠"),
     "logo_alt": ("Three paragraphs folding to their points, fold any text, keep the point, unfold, the rest gathered into the bars of TextFold's mark, and opening out again",

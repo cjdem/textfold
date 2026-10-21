@@ -9,7 +9,7 @@ No change may make the zoom less smooth. If you touch the reader, measure before
 ## Set up
 
 ```bash
-git clone https://github.com/chenxiachan/textfold.git
+git clone https://github.com/cjdem/textfold.git
 cd textfold
 python -m pip install -r requirements.txt
 python -m textfold serve

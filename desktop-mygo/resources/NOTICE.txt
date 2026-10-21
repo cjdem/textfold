@@ -1,0 +1,55 @@
+TextFold (formerly PaperFold)
+Copyright 2026 Xia Chen
+
+This product includes software developed by Xia Chen
+(https://github.com/chenxiachan/textfold), licensed under the Apache License,
+Version 2.0 (see LICENSE).
+
+It includes the fonts Inter and Source Serif 4 (SIL Open Font License 1.1, in web/vendor/fonts), KaTeX
+(MIT License, in web/vendor/katex) and PDF.js (Apache License 2.0, in web/vendor/pdfjs), kept with TextFold
+so that its pages ask no other server for anything.
+
+
+Papers and their licenses
+
+The license covers TextFold's source code only. Papers read with TextFold, and the levels, links,
+translations and pages made from them, remain under the licenses their authors chose. Whoever stores,
+shares or publishes that content is responsible for respecting those licenses.
+
+
+This is a fork
+
+This is a modified fork of TextFold, originally created by Xia Chen
+(https://github.com/chenxiachan/textfold), maintained by cjdem
+(https://github.com/cjdem/textfold). This fork is not affiliated with or endorsed by the
+original author.
+
+Changes in this fork:
+
+- Windows only: the desktop app and its build targets.
+- The Electron desktop shell was replaced by a Go/MyGo shell.
+- Every PDF and picture is converted through MinerU Cloud API; the local MinerU engine and
+  the offline PDF path were removed.
+- The desktop app updates from this fork's signed release feed.
+
+Fork changes Copyright 2026 cjdem.
+
+
+MyGo (MIT License)
+
+Copyright (c) 2026 MyGo contributors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software
+and associated documentation files (the "Software"), to deal in the Software without
+restriction, including without limitation the rights to use, copy, modify, merge, publish,
+distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the
+Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or
+substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING
+BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.

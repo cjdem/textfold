@@ -11,7 +11,7 @@ more than one way, so it can be found again when the text around it changes.
 {
   "format": "textfold/notes",
   "version": 1,
-  "made_by": "TextFold · https://github.com/chenxiachan/textfold",
+  "made_by": "TextFold · https://github.com/cjdem/textfold",
   "paper": { "id": "2605.00089", "version": "v1", "title": "…", "url": "https://arxiv.org/abs/2605.00089v1" },
   "notes": [
     {

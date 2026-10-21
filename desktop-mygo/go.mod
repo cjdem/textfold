@@ -1,4 +1,4 @@
-module github.com/chenxiachan/textfold/desktop-mygo
+module github.com/cjdem/textfold/desktop-mygo
 
 go 1.27.3
 

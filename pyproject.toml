@@ -9,7 +9,7 @@ description = "Zoom any text from every word to a one-screen map: papers, README
 readme = "README.md"
 requires-python = ">=3.9"
 license = { text = "Apache-2.0" }
-authors = [{ name = "Xia Chen" }]
+authors = [{ name = "Xia Chen" }, { name = "cjdem" }]
 keywords = ["reading", "stretchtext", "semantic zoom", "arxiv", "summarization", "llm"]
 classifiers = [
     "License :: OSI Approved :: Apache Software License",
@@ -40,9 +40,9 @@ anthropic = ["anthropic"]
 textfold = "textfold.__main__:main"
 
 [project.urls]
-Homepage = "https://github.com/chenxiachan/textfold"
-Website = "https://chenxiachan.github.io/textfold/"
-Issues = "https://github.com/chenxiachan/textfold/issues"
+Homepage = "https://github.com/cjdem/textfold"
+Website = "https://cjdem.github.io/textfold/"
+Issues = "https://github.com/cjdem/textfold/issues"
 
 [tool.setuptools]
 packages = ["textfold"]
