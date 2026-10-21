@@ -1,6 +1,7 @@
 # The website, https://cjdem.github.io/textfold/: the download, install and usage page in English and Chinese
 # (site/build.py). Built and served by GitHub Pages when the site or this file changes on main; run it by hand
 # (Actions › site › Run workflow) after other changes.
+# Pages must serve from GitHub Actions (Settings › Pages › Source); with a branch as the source, deploy-pages fails.
 name: site
 on:
   push:
