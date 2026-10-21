@@ -55,8 +55,9 @@ The app is `desktop-mygo/`: a Go/MyGo window around the same Python server, with
 (python-build-standalone) and packages, so a reader installs nothing. MyGo owns the window, Python lifecycle, native
 dialogs, external links and the signed update feed; it does not reimplement the reader or document pipeline in Go. A
 copy installed by the old Electron shell cannot consume that feed and is reinstalled once; after that the app updates
-itself. Builds are parked in `.github/workflows-disabled/` until releases are wanted again (GitHub runs only
-`.github/workflows/`).
+itself. The Windows app is built by `.github/workflows/desktop.yml` on a `v*` tag; the PyPI and site workflows remain
+parked in `.github/workflows-disabled/` (GitHub runs only `.github/workflows/`). A tag build needs the
+`MYGO_UPDATER_PRIVATE_KEY` secret, and stops before it leaves a draft release without it.
 
 Models (⚙ Settings): the current connection, the default model and its test, plus the ChatGPT bridge and the
 OpenRouter one-click entry. Agents, API providers, the questions' model and reasoning, and the MinerU API key are under
