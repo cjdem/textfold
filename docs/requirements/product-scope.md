@@ -1,6 +1,10 @@
 # 产品范围：帮助硕博士生读懂论文和项目材料
 
-- 状态：已确认（2026-10-18）。本文是取舍与实施顺序，不是逐项需求；每一项实施时仍按
+- 状态：已确认（2026-10-18）；2026-10-22 追加锁定范围。
+- 追加锁定（2026-10-22）：Windows-only，不再新增跨平台；阅读语言只保留 English / 简体中文；
+  不聚合订阅或 agent，不保留 ChatGPT 本地桥；外部设备/编辑器联动、WebMCP、Markdown 原地
+  重折暂不做。
+- 本文是取舍与实施顺序，不是逐项需求；每一项实施时仍按
   `/optimize` 的七阶段走（计划、隔离 worktree、独立复核、两份记录、ff-only 合回本地 main）。
 - 定位：帮助硕博士生读懂论文和项目材料，围绕一条清楚的使用流程做减法。
 - 核心流程：**导入论文或项目材料 → 分层阅读与中英切换、原文对照 → 提问并回查原文 →
@@ -26,9 +30,10 @@
 ### 2.1 API-only 模型接入与可选 Magpie 网关
 
 - 移除所有产品侧命令行 Agent 的发现、模型目录和运行时，包括 Claude Code、Codex 和 Pi。
-- 保留 API providers 和 ChatGPT 本地桥。桥通过 Codex 登录凭据进行授权；TextFold 不运行 Codex CLI。
-- 增加可选的外部 Magpie 网关：从 `http://127.0.0.1:3425/v1/models` 动态读取模型，通过 OpenAI 兼容 API 调用；Magpie 可用时优先列出并默认选择其第一个模型。TextFold 不安装或打包 Magpie。
-- 失去：文档和产品不再发现、列出或调用本机的 Claude Code、Codex、Pi CLI 运行时；这些 CLI 的产品侧集成不再可用。ChatGPT bridge 仍使用 Codex 登录，但不启动 Codex CLI。
+- 保留 API providers（包括 OpenRouter 等普通 API 服务）；移除 ChatGPT 本地桥。产品不聚合
+  订阅，也不驱动 agent。
+- 增加可选的外部 Magpie 网关：从 `http://127.0.0.1:3425/v1/models` 动态读取模型，通过 OpenAI 兼容 API 调用；Magpie 可用时优先列出并默认选择其第一个模型。TextFold 不安装、不打包、不管理 Magpie 的账号或订阅。
+- 失去：产品内的 ChatGPT 订阅入口和本地桥；用户需要 API key、OpenRouter 或 Magpie。普通 API providers 不受影响。
 
 ### 2.2 公开画廊与宣传素材管线，官网压缩
 
@@ -65,8 +70,8 @@
 
 ## 3. 收起或简化（不删底层）
 
-- **模型设置**：主界面只留当前连接、默认模型、连接测试，以及 ChatGPT 桥 / OpenRouter
-  一键入口；其他服务商、自定义地址、独立问答模型、推理参数进高级设置。
+- **模型设置**：主界面只留当前连接、默认模型、连接测试，以及 OpenRouter 一键入口；不再有
+  ChatGPT 桥；其他服务商、自定义地址、独立问答模型、推理参数进高级设置。
 - **导出**：主入口“导出笔记”（Markdown）和“导出阅读卡”（Markdown）；JSON 作为高级数据
   导出，整篇 HTML 保存和笔记 PDF 放次级菜单。HTML 保存能力保留。
 - **命令行 / Agent 接口**：从 README 与首页收起，保留 `python -m textfold get` 和
@@ -106,7 +111,7 @@
 - [x] 4. 停止默认生成段落论证关系（界面暂时保留旧数据）。
 - [x] 5. 格式第一批收窄：RTF / OpenDocument / 旧版 DOC/PPT/XLS。
 - [x] 6. 设置、导出、命令行入口、图例、教程的收起与简化。
-  - [x] 6a. 模型设置：主界面只留当前连接、默认模型、连接测试与 ChatGPT 桥/OpenRouter 一键入口，其余进高级。
+  - [x] 6a. 模型设置：主界面只留当前连接、默认模型、连接测试与 OpenRouter 一键入口，其余进高级。（2026-10-22：ChatGPT 桥改为移除，见第 9 项；OpenRouter 保留。）
   - [x] 6b. 导出：主入口笔记与阅读卡 Markdown，JSON/整篇 HTML/笔记 PDF 进次级菜单。
   - [x] 6c. 从 README 与首页收起命令行/Agent 接口，保留 `textfold get` 与 `docs/format.md`。
   - [x] 6d. 段落角色图例按需展开。
@@ -114,6 +119,9 @@
 - [x] 7. 移除论证关系的界面（页边、主题图、hover）。
 - [x] 8. 再评估 EPUB / MHTML / OFD（只做决定，不默认删除）：EPUB、MHTML 保留；
   OFD 在 2026-10-21 随本地 MinerU 引擎删除而停止新导入。
+- [ ] 9. 移除 ChatGPT 本地桥；锁定不再新增语言、跨平台、订阅聚合或 agent 聚合，保留
+  OpenRouter 和普通 API providers。执行文档见
+  `docs/requirements/2026-10-22-upstream-round.md`。
 
 ## 7. 每一项的验收与停止条件
 

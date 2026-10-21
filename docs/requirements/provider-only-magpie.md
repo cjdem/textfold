@@ -1,5 +1,11 @@
 # API providers only, with Magpie as the default
 
+> 2026-10-22 update: the clauses below that keep the ChatGPT local bridge are superseded.
+> The locked product scope now removes the bridge in R0; see
+> `docs/requirements/product-scope.md` and
+> `docs/requirements/2026-10-22-upstream-round.md`. OpenRouter and ordinary API providers
+> remain supported.
+
 ## Problem and outcome
 
 TextFold currently reaches models through both product-side command-line agents (Claude Code, Codex and Pi) and API providers. This feature removes those product-side agent runtimes and uses API providers only, with the locally running Magpie gateway first in the provider list and as the default model source when the reader has no explicit model preference. Magpie remains an optional external service: TextFold neither packages nor installs it. PDF conversion remains MinerU Cloud API followed by TextFold's local parsing and is independent of model access.

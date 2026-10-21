@@ -27,7 +27,12 @@ Check every candidate against these before recommending it:
 - PDFs and pictures go to MinerU's Cloud API only; the local PDF engine is gone;
 - the desktop and the Python package are Windows-only;
 - the Python package is installed from git, not PyPI;
-- the site is this fork's, not the original project's.
+- the site is this fork's, not the original project's;
+- models come from API providers only; there is no product-side agent runtime and no
+  subscription aggregation (the ChatGPT local bridge is removed in this round's R0).
+  Magpie is an external OpenAI-compatible gateway, not something the product manages;
+- reading languages are English and Simplified Chinese only; no new languages and no
+  external device/editor integration.
 
 An upstream change that assumes one of these is usually a skip. A change that
 is still valuable gets reimplemented against the fork, not merged wholesale.
