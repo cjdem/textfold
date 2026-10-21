@@ -22,13 +22,13 @@ cannot act on your computer, and so that it cannot steer the model that folds it
   zero-size text) is removed before a model sees the page, and the model is told that an instruction inside a
   document is part of what the document says, never to be followed.
 - Keys and settings are kept in `~/.textfold/settings.json`, readable by you alone, never in the project folder.
-- The PDF engine runs in a Python of its own. TextFold calls MinerU's command line only, which sends nothing anywhere;
-  not its document library, which keeps an index of your files and asks to send usage data.
+- PDFs and pictures are sent to MinerU's Cloud API for conversion. The file leaves your computer for that
+  conversion, and the page says so before it is sent. The API key is kept in `~/.textfold/settings.json`.
 
 A known gap: arXiv's HTML is shown as LaTeXML wrote it, without the allowlist. Rules made for LaTeXML (its drawings
 and sizes must survive them) are in progress.
 
 ## In scope
 
-The local server and its API, the reader, the import of every source, and the PDF engine's install and its runs.
+The local server and its API, the reader, the import of every source, and the MinerU Cloud API conversion.
 Problems in the models TextFold calls, or in the sites it reads from, belong to them.
