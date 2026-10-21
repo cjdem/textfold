@@ -184,7 +184,9 @@ func (d *Desktop) DownloadUpdate(ctx context.Context) error {
 
 	d.show(UpdateState{Kind: "downloading", Version: version})
 	last := -1
-	err := up.Install(ctx, func(downloaded, total int64) {
+	// A download is the app's, not the page's: moving to another page in
+	// the reader must not cancel it. Closing the app still ends it.
+	err := up.Install(context.WithoutCancel(ctx), func(downloaded, total int64) {
 		percent := 0
 		if total > 0 {
 			percent = int(downloaded * 100 / total)
