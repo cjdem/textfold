@@ -1,7 +1,10 @@
 package main
 
 import (
+	"context"
 	_ "embed"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"html"
 	"log"
@@ -11,6 +14,7 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/chenxiachan/textfold/desktop-mygo/internal/bridge"
 	"github.com/chenxiachan/textfold/desktop-mygo/internal/locator"
@@ -18,10 +22,32 @@ import (
 	"github.com/egoist/mygo"
 )
 
-const version = "0.10.7"
+const (
+	// projectURL is the project's home; updateURL is where this fork
+	// publishes the signed releases the app updates from.
+	projectURL = "https://github.com/chenxiachan/textfold"
+	updateURL  = "https://github.com/cjdem/textfold"
+)
 
 //go:embed preload.js
 var preload string
+
+//go:embed mygo.json
+var configJSON []byte
+
+// configVersion reads the one version the build and the page share.
+func configVersion() (string, error) {
+	var c struct {
+		Version string `json:"version"`
+	}
+	if err := json.Unmarshal(configJSON, &c); err != nil {
+		return "", fmt.Errorf("mygo.json: %w", err)
+	}
+	if c.Version == "" {
+		return "", errors.New("mygo.json has no version")
+	}
+	return c.Version, nil
+}
 
 var (
 	stateMu sync.Mutex
@@ -31,6 +57,10 @@ var (
 
 func main() {
 	app := mygo.App
+	version, err := configVersion()
+	if err != nil {
+		log.Fatal(err)
+	}
 	app.SetName("TextFold")
 	app.SetVersion(version)
 
@@ -52,17 +82,13 @@ func main() {
 		log.Fatal(err)
 	}
 	downloads, _ := app.Path(mygo.PathDownloads)
-	mygo.Bind(bridge.New(version, downloads))
+	desk := bridge.New(version, downloads, data, updateURL, stopServer)
+	mygo.Bind(desk)
+	desk.NoteVersion()
 
 	app.WhenReady(func() {
-		app.SetMenu(mygo.NewMenu([]*mygo.MenuItem{
-			{Role: mygo.RoleAppMenu},
-			{Role: mygo.RoleEditMenu},
-			{Role: mygo.RoleViewMenu},
-			{Role: mygo.RoleWindowMenu},
-			{Role: mygo.RoleHelp},
-		}))
-		go launch(data)
+		app.SetMenu(appMenu(desk))
+		go launch(data, desk)
 	})
 	app.OnWillQuit(func(*mygo.QuitEvent) { stopServer() })
 
@@ -71,7 +97,43 @@ func main() {
 	}
 }
 
-func launch(data string) {
+// appMenu is the system's own menu: Check for Updates (Help) and the project
+// on GitHub, with MyGo's standard menus around them.
+func appMenu(desk *bridge.Desktop) *mygo.Menu {
+	locale := mygo.App.Locale()
+	help, check := "Help", "Check for Updates…"
+	if strings.HasPrefix(locale, "zh") {
+		help, check = "帮助", "检查更新…"
+	}
+	return mygo.NewMenu([]*mygo.MenuItem{
+		{Role: mygo.RoleAppMenu},
+		{Role: mygo.RoleEditMenu},
+		{Role: mygo.RoleViewMenu},
+		{Role: mygo.RoleWindowMenu},
+		{Label: help, Submenu: []*mygo.MenuItem{
+			{Label: check, Click: func(*mygo.MenuItem, *mygo.Window) {
+				go desk.CheckByHand(context.Background())
+			}},
+			mygo.Separator(),
+			{Label: "TextFold on GitHub", Click: func(*mygo.MenuItem, *mygo.Window) {
+				go mygo.Shell.OpenExternal(projectURL)
+			}},
+		}},
+	})
+}
+
+// watchUpdates asks the feed shortly after launch, then every four hours.
+// A check that finds a newer version shows the page's toast; one that fails
+// says nothing.
+func watchUpdates(desk *bridge.Desktop) {
+	time.Sleep(8 * time.Second)
+	for {
+		desk.CheckForUpdates(context.Background())
+		time.Sleep(4 * time.Hour)
+	}
+}
+
+func launch(data string, desk *bridge.Desktop) {
 	resources, err := mygo.App.Path(mygo.PathResources)
 	if err != nil {
 		showFailure(err)
@@ -101,6 +163,7 @@ func launch(data string) {
 	stateMu.Lock()
 	win = current
 	stateMu.Unlock()
+	go watchUpdates(desk)
 }
 
 func openWindow(rawURL string) *mygo.Window {
@@ -120,7 +183,7 @@ func openWindow(rawURL string) *mygo.Window {
 			TrustedOrigins: []string{
 				origin,
 			},
-			UserAgentSuffix: "TextFold/" + version,
+			UserAgentSuffix: "TextFold/" + mygo.App.Version(),
 		},
 	})
 	w.Page().SetWindowOpenHandler(func(req mygo.WindowOpenRequest) *mygo.WindowOptions {

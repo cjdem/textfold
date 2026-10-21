@@ -23,8 +23,7 @@ go run .
 ```
 
 Set `TEXTFOLD_DATA` for a disposable test library. It defaults to
-`%LOCALAPPDATA%\TextFold`, the same folder as the Python server and the old
-Electron app.
+`%LOCALAPPDATA%\TextFold`, the same folder as the Python server.
 
 ## Payload and build
 
@@ -35,8 +34,8 @@ node scripts/prepare-payload.mjs
 go tool mygo build
 ```
 
-`prepare-payload.mjs` reuses `../desktop/scripts/prepare-payload.mjs` and writes
-`resources/payload/{python,app}`. The MyGo build output is under `build/`.
+`prepare-payload.mjs` writes `resources/payload/{python,app}`. The MyGo build
+output is under `build/`.
 If GitHub's API is unreachable, pass a downloaded python-build-standalone
 archive and its published digest:
 
@@ -46,11 +45,39 @@ $env:PBS_SHA256 = "<published sha256>"
 node scripts/prepare-payload.mjs
 ```
 
+## Updates
+
+The app checks `https://github.com/cjdem/textfold/releases/latest` shortly
+after launch and every four hours. A newer signed release shows as a note at
+the bottom right of the page; nothing downloads until the reader asks, and the
+new version starts when they restart. The installed copy sits in
+`%LOCALAPPDATA%\Programs\TextFold`, which the current user can write, so it
+updates itself without administrator rights.
+
+The public key is in `mygo.json`; the secret key is **not** in the repository.
+`go tool mygo keygen` wrote this machine's pair to
+`%APPDATA%\mygo\update-keys\mygo-update.key` (secret) and `mygo-update.pub`
+(public). Back the secret up: installed apps accept only updates signed with
+it, so losing it strands them. A release build needs it in
+`MYGO_UPDATER_PRIVATE_KEY`; the workflow reads it from the
+`MYGO_UPDATER_PRIVATE_KEY` repository secret.
+
+`go tool mygo build` writes the installer, the update archive and the signed
+manifest under `build/windows-amd64/`. A tag build uploads all of them to the
+draft release; the installer is also copied to the stable
+`TextFold-win-x64-setup.exe` name the download page uses. Without the secret,
+the build still makes the app and the installer, but no update files.
+
+The Electron shell that came before is gone. A copy installed before this
+change follows the old `latest.yml` feed and cannot install a MyGo build; those
+readers need to uninstall and install this version once. After that, updates
+work as above.
+
 ## Boundaries
 
-- `resources/payload/` is generated and ignored.
+- `resources/payload/` and `build/` are generated and ignored.
 - The WebView trusts only the exact dynamic `http://127.0.0.1:<port>` origin.
 - `preload.js` restores the old `window.desktop` API through bound Go methods.
 - Windows Job Objects kill the Python process tree if MyGo exits unexpectedly.
-- Signed MyGo updates are not configured yet; the existing Electron update
-  manifest cannot update a MyGo installation.
+- The update manifest cannot update the old Electron installation; the first
+  MyGo release is a manual reinstall.

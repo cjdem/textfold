@@ -2,7 +2,8 @@
 # It is built on its own system, since the Python it ships and its packages are that system's. The payload's Python
 # starts the server before anything is packed (desktop-mygo/scripts/smoke.py).
 # A version tag builds it into a draft release; run by hand (Actions › desktop › Run workflow) it is kept as the
-# run's artifacts. Signed MyGo update manifests are release work: the old Electron latest.yml is not compatible.
+# run's artifacts. The release carries the signed MyGo update manifest and archive the installed app updates from;
+# the old Electron latest.yml is not compatible, so a copy installed before the MyGo switch needs one manual install.
 name: desktop
 on:
   push:
@@ -62,9 +63,17 @@ jobs:
         run: |
           go test ./...
           go vet ./...
+      - name: A release needs the update signing key
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: bash
+        run: test -n "$MYGO_UPDATER_PRIVATE_KEY" || { echo "MYGO_UPDATER_PRIVATE_KEY is not set"; exit 1; }
+        env:
+          MYGO_UPDATER_PRIVATE_KEY: ${{ secrets.MYGO_UPDATER_PRIVATE_KEY }}
       - name: Build TextFold
         working-directory: desktop-mygo
         run: go tool mygo build
+        env:
+          MYGO_UPDATER_PRIVATE_KEY: ${{ secrets.MYGO_UPDATER_PRIVATE_KEY }}
       - name: The bundled Python starts the server
         run: desktop-mygo/resources/payload/python/python.exe desktop-mygo/scripts/smoke.py
       - name: Give the installer the download page's stable name
@@ -76,12 +85,20 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: textfold-${{ matrix.name }}
-          path: desktop-mygo/build/windows-amd64/TextFold-win-x64-setup.exe
+          path: |
+            desktop-mygo/build/windows-amd64/TextFold-win-x64-setup.exe
+            desktop-mygo/build/windows-amd64/update-*.json
+            desktop-mygo/build/windows-amd64/*.tar.gz
+            desktop-mygo/build/windows-amd64/*.delta
           if-no-files-found: error
       - name: Into the draft release
         if: startsWith(github.ref, 'refs/tags/')
         shell: pwsh
-        run: gh release upload "$env:TAG" desktop-mygo/build/windows-amd64/TextFold-win-x64-setup.exe -R "$env:REPO" --clobber
+        run: |
+          $files = Get-ChildItem desktop-mygo/build/windows-amd64 -File |
+            Where-Object { $_.Name -eq 'TextFold-win-x64-setup.exe' -or $_.Name -like 'update-*.json' -or $_.Extension -in '.gz', '.delta' }
+          if (-not $files) { throw 'MyGo produced nothing to release' }
+          gh release upload "$env:TAG" $files.FullName -R "$env:REPO" --clobber
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ github.ref_name }}

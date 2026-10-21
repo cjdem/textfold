@@ -1,9 +1,30 @@
 package main
 
 import (
+	"os"
+	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 )
+
+func TestConfigVersionMatchesThePackage(t *testing.T) {
+	version, err := configVersion()
+	if err != nil {
+		t.Fatal(err)
+	}
+	source, err := os.ReadFile(filepath.Join("..", "textfold", "__init__.py"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	m := regexp.MustCompile(`(?m)^__version__ = "([^"]+)"`).FindSubmatch(source)
+	if m == nil {
+		t.Fatal("textfold/__init__.py has no __version__")
+	}
+	if version != string(m[1]) {
+		t.Fatalf("mygo.json says %s, textfold says %s", version, m[1])
+	}
+}
 
 func TestSameOrigin(t *testing.T) {
 	base := "http://127.0.0.1:31917/"

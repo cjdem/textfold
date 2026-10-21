@@ -13,7 +13,7 @@
       downloadUpdate: () => call("Desktop.DownloadUpdate"),
       installUpdate: () => call("Desktop.InstallUpdate"),
       dismissUpdate: () => call("Desktop.DismissUpdate"),
-      onUpdate: () => () => {},
+      onUpdate: (listener) => (typeof listener === "function" ? window.mygo.on("update", listener) : () => {}),
     }),
   });
 })();
