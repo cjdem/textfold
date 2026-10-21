@@ -149,6 +149,8 @@ def llms():
 
 > TextFold is a reader for research papers and project material: it folds a paper, a web page or a document into five levels, from a one-screen map of its sections to every word. Every line a model writes points back to the sentences it rests on, and the two finest levels are the author's own words, so what is read can always be checked against what was written. Free and open source (Apache License 2.0). It runs on the reader's computer: an app for Windows, or a Python package for any system. Formerly PaperFold.
 
+> This is an unofficial fork of Xia Chen's TextFold, maintained by cjdem; not affiliated with or endorsed by the original author. See [NOTICE]({REPO}/blob/main/NOTICE) for attribution and changes.
+
 TextFold keeps the whole text and lets each reader take it at the level of detail they need.
 
 ## What it does
@@ -163,7 +165,7 @@ TextFold keeps the whole text and lets each reader take it at the level of detai
 ## Download
 
 - [TextFold for Windows, 64-bit (installer)]({DL}{FILES['win']})
-- [The Python package on PyPI](https://pypi.org/project/textfold/): `python3 -m pip install textfold`, then `python3 -m textfold serve`, then open http://localhost:3017
+- [The Python package from this fork]({REPO}): `python3 -m pip install git+{REPO}`, then `python3 -m textfold serve`, then open http://localhost:3017
 
 ## Docs
 

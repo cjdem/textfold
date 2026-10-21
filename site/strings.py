@@ -39,8 +39,8 @@ S = {
 
     "py_h": ('Run it with Python',
         '用 Python 运行'),
-    "py_p": ("The same reader as a Python package, on any system with Python 3.9 or newer.",
-             "同样的阅读器也有 Python 包，任何装有 Python 3.9 或更新版本的系统都能用。"),
+    "py_p": ("The same reader as a Python package, installed from this fork, on any system with Python 3.9 or newer.",
+             "同样的阅读器也有 Python 包，从本 fork 安装，任何装有 Python 3.9 或更新版本的系统都能用。"),
     "py_links": ('<a href="https://github.com/cjdem/textfold/blob/main/docs/format.md">The TextFold format</a>',
         '<a href="https://github.com/cjdem/textfold/blob/main/docs/format.md">TextFold 格式</a>'),
     "app_p": ('Windows 11 already has the WebView2 runtime; on Windows 10, install it if the app asks. It finds Claude Code, Codex or Pi on your computer, or connects a free model in one click.',
@@ -76,8 +76,10 @@ S = {
         '更新说明'),
     "cta_py": ('Run it with Python',
         '用 Python 运行'),
-    "foot_license": ('Apache 2.0 © 2026 Xia Chen · Windows fork by cjdem',
-        'Apache 2.0 © 2026 Xia Chen · Windows fork，cjdem 维护'),
+    "foot_license": ('Apache 2.0 · Original © Xia Chen · Fork changes © 2026 cjdem · '
+                     'Unofficial Windows fork, not affiliated with or endorsed by the original author',
+        'Apache 2.0 · 原作 © Xia Chen · Fork 改动 © 2026 cjdem · '
+        '非官方 Windows fork，与原作者无隶属或背书关系'),
 
     "hero_note": ('Free and open source · No account · Formerly PaperFold',
         '免费开源 · 不用注册 · 原名 PaperFold'),
