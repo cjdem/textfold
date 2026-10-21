@@ -14,9 +14,9 @@ S = {
     "title": ("TextFold · Fold any text, from a map to every word",
               "TextFold · 任何文字，从地图折到每一个字"),
     "description": ("TextFold is a free, open-source reader that folds papers, web pages and project material into five levels, "
-                    "from a one-screen map to every word. A Python package, and an app for Windows.",
-                    "TextFold 是免费开源的阅读器，把论文、网页和项目材料折成五层，从一屏地图到每一个字。"
-                    "既是 Python 包，也有 Windows 软件。"),
+                    "from a one-screen map to every word. An app and a Python package, both for Windows.",
+                    "TextFold 是免费开源的 Windows 阅读器，把论文、网页和项目材料折成五层，从一屏地图到每一个字。"
+                    "有 Windows 软件，也有 Windows 上的 Python 包。"),
 
     "nav_download": ('Download',
         '下载'),
@@ -39,8 +39,8 @@ S = {
 
     "py_h": ('Run it with Python',
         '用 Python 运行'),
-    "py_p": ("The same reader as a Python package, installed from this fork, on any system with Python 3.9 or newer.",
-             "同样的阅读器也有 Python 包，从本 fork 安装，任何装有 Python 3.9 或更新版本的系统都能用。"),
+    "py_p": ("The same reader as a Python package, installed from this fork, on Windows with Python 3.9 or newer.",
+             "同样的阅读器也有 Python 包，从本 fork 安装，在 Windows 上使用，需要 Python 3.9 或更新版本。"),
     "py_links": ('<a href="https://github.com/cjdem/textfold/blob/main/docs/format.md">The TextFold format</a>',
         '<a href="https://github.com/cjdem/textfold/blob/main/docs/format.md">TextFold 格式</a>'),
     "app_p": ('Windows 11 already has the WebView2 runtime; on Windows 10, install it if the app asks. It finds Claude Code, Codex or Pi on your computer, or connects a free model in one click.',
@@ -74,8 +74,6 @@ S = {
         '所有版本'),
     "notes": ('Release notes',
         '更新说明'),
-    "cta_py": ('Run it with Python',
-        '用 Python 运行'),
     "foot_license": ('Apache 2.0 · Original © Xia Chen · Fork changes © 2026 cjdem · '
                      'Unofficial Windows fork, not affiliated with or endorsed by the original author',
         'Apache 2.0 · 原作 © Xia Chen · Fork 改动 © 2026 cjdem · '
@@ -85,8 +83,6 @@ S = {
         '免费开源 · 不用注册 · 原名 PaperFold'),
     "cta_win_sub": ('64-bit · installer',
         '64 位 · 安装程序'),
-    "cta_py_sub": ('pip install git+https://github.com/cjdem/textfold',
-        'pip install git+https://github.com/cjdem/textfold'),
 
     "dl_h": ('Get TextFold',
         '获取 TextFold'),

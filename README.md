@@ -9,9 +9,10 @@
 <sub>Formerly PaperFold</sub>
 
 > **This is a fork.** TextFold was created by Xia Chen. This fork is maintained by cjdem and is
-> not affiliated with or endorsed by the original author. Its desktop app is Windows-only; it
-> replaces the Electron shell with MyGo and sends every PDF and picture to MinerU's Cloud API,
-> so the local PDF engine is gone. See [NOTICE](NOTICE) for the attribution and changes.
+> not affiliated with or endorsed by the original author. It is Windows-only: the desktop app
+> replaces the Electron shell with MyGo, and the app and the Python package send every PDF and
+> picture to MinerU's Cloud API, so the local PDF engine is gone. See [NOTICE](NOTICE) for the
+> attribution and changes.
 
 <img alt="Python 3.9+" src="https://img.shields.io/badge/python-3.9%2B-6B5CE7?style=flat-square">
 <img alt="Runs on your computer" src="https://img.shields.io/badge/runs-on_your_computer-E08A3C?style=flat-square">
@@ -81,14 +82,14 @@ To turn it on, in Zotero 7: **Settings › Advanced › Allow other applications
 
 **[Download the app](https://cjdem.github.io/textfold/#download)** for Windows. Everything it needs is inside, Python included; the one exception is WebView2, which Windows 11 already has and Windows 10 may ask for.
 
-Or install the Python package from this fork, on any system:
+Or install the Python package from this fork, on Windows:
 
 ```bash
 python -m pip install git+https://github.com/cjdem/textfold
 python -m textfold serve
 ```
 
-Open `http://localhost:3017`. The first time, [connect a model](#connect-a-model); then paste a link or drop a file, and pick a language. You need Python 3.9 or newer.
+Open `http://localhost:3017`. The first time, [connect a model](#connect-a-model); then paste a link or drop a file, and pick a language. You need Python 3.9 or newer on Windows.
 
 | Paste or drop | What TextFold reads |
 |---|---|
@@ -161,7 +162,8 @@ TextFold is a tool, and its license covers its code. When you share a file, foll
 ## What's new
 
 > The entries before this fork's October 21 changes are the original project's history; this
-> fork's changes are in [docs/changes/](docs/changes/).
+> fork's changes are in [docs/changes/](docs/changes/). The original project's macOS app is not
+> part of this fork.
 
 - **October 18, 2026: a reading card for every paper.** **Reading card**, at the top of a paper, keeps what it asks and contributes, how it works, what it measured and what it found, in four sections you can edit. Every point links back to the passage; a new draft waits as a candidate, and the card exports to Markdown.
 - **October 21, 2026: PDFs use MinerU's Cloud API only.** Every PDF now goes directly to MinerU, without first reading its text or looking for an online version. The local 3.4 GB engine and the offline PDF path are gone. Add a key in Settings; PDFs and pictures leave your computer for conversion.

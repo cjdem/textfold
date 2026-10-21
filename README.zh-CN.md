@@ -9,8 +9,8 @@
 <sub>原名 PaperFold</sub>
 
 > **这是一个 fork。** TextFold 由 Xia Chen 创建。这个 fork 由 cjdem 维护，与原项目没有隶属
-> 或背书关系。它的桌面版只支持 Windows；用 MyGo 取代 Electron 外壳，PDF 和图片一律交给
-> MinerU Cloud API，本机不再安装 PDF 引擎。原归属和完整修改说明见 [NOTICE](NOTICE)。
+> 或背书关系。整个项目只支持 Windows：桌面版用 MyGo 取代 Electron 外壳，桌面版和 Python 包
+> 的 PDF、图片一律交给 MinerU Cloud API，本机不再安装 PDF 引擎。原归属和完整修改说明见 [NOTICE](NOTICE)。
 
 <img alt="Python 3.9+" src="https://img.shields.io/badge/python-3.9%2B-6B5CE7?style=flat-square">
 <img alt="在你的电脑上运行" src="https://img.shields.io/badge/runs-on_your_computer-E08A3C?style=flat-square">
@@ -80,14 +80,14 @@
 
 **[下载软件](https://cjdem.github.io/textfold/zh.html#download)**，只有 Windows 版。需要的东西都在里面，包括 Python；唯一例外是 WebView2，Windows 11 自带，Windows 10 可能会先提示安装。
 
-也可以从本 fork 安装 Python 包，任何系统都能用：
+也可以从本 fork 安装 Python 包，在 Windows 上使用：
 
 ```bash
 python -m pip install git+https://github.com/cjdem/textfold
 python -m textfold serve
 ```
 
-在浏览器里打开 `http://localhost:3017`。第一次使用先[连接一个模型](#连接模型)，然后粘贴链接或拖入文件，再选择语言。需要 Python 3.9 或更新的版本。
+在浏览器里打开 `http://localhost:3017`。第一次使用先[连接一个模型](#连接模型)，然后粘贴链接或拖入文件，再选择语言。需要在 Windows 上使用 Python 3.9 或更新版本。
 
 | 粘贴或拖入 | TextFold 读到的 |
 |---|---|
@@ -160,6 +160,7 @@ TextFold 只是一个工具，它的许可证只管代码。分享文件时，�
 ## 最新
 
 > 这个 fork 在 10 月 21 日之前的条目是原项目的历史；本 fork 的改动在 [docs/changes/](docs/changes/)。
+> 原项目的 macOS 版不属于本 fork。
 
 - **2026 年 10 月 18 日：每篇论文一张阅读卡。** 阅读页顶部的 **阅读卡** 把研究问题与贡献、方法与前提、数据与实验设置、结果与局限放在一起，条目都能改，也都回到原文；重新生成先存为候选，卡片可导出 Markdown。
 - **2026 年 10 月 21 日：PDF 只走 MinerU Cloud API。** 每个 PDF 都直接交给 MinerU，不再先读本地文字，也不先查找在线版本。约 3.4 GB 的本地引擎和离线 PDF 路径已经删除。请先在设置里填写密钥；PDF 和图片会离开电脑，交给 MinerU 转换。

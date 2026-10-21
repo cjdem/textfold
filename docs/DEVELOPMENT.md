@@ -23,8 +23,8 @@ python -m pip install -r requirements.txt   # beautifulsoup4, lxml, Pillow
 python -m textfold serve                    # http://localhost:3017  (ThoughtDAG keeps 3001)
 ```
 
-The same code is a Python package (`pyproject.toml`): `python -m pip wheel . --no-deps` builds it, with the reader's
-pages (`textfold/web/`) inside, and `pip install textfold` gives the `textfold` command. The docs write
+The same code is a Windows-only Python package (`pyproject.toml`): `python -m pip wheel . --no-deps` builds it, with
+the reader's pages (`textfold/web/`) inside, and `pip install .` gives the `textfold` command. The docs write
 `python -m textfold` instead: pip puts that command's own folder (`Scripts\`, under the install or the user's
 `%APPDATA%\Python`) where the PATH may not reach, so `textfold` alone is not always found, and `python -m textfold`
 always is. Run from a clone, papers are

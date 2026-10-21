@@ -2,9 +2,9 @@
 (() => {
   const roots = [...document.querySelectorAll('[data-root]')];
 
-  // ── the download for this computer: the Windows app here, the Python package for anything else ──
+  // ── the Windows app; the Python package runs on Windows too ──
   const ua = navigator.userAgent;
-  const os = /Windows NT/.test(ua) ? 'win' : 'py';
+  const os = /Windows NT/.test(ua) ? 'win' : null;
   function pick(id) {
     for (const root of roots) {
       const c = JSON.parse(root.querySelector('script.cta-conf').textContent)[id];
@@ -16,7 +16,7 @@
       a.querySelector('[data-cta-s]').textContent = c.s;
     }
   }
-  pick(os);
+  if (os) pick(os);
 
   // ── copy ──
   document.addEventListener('click', (e) => {

@@ -38,10 +38,9 @@ def plain(text):
 
 
 def cta(lang):
-    """The first button, for each computer (page.js picks one)."""
+    """The first button: the Windows app is the only download."""
     return {
         "win": {"href": DL + FILES["win"], "t": s("cta_win", lang), "s": s("cta_win_sub", lang)},
-        "py": {"href": "#python", "t": s("cta_py", lang), "s": s("cta_py_sub", lang)},
     }
 
 
@@ -79,7 +78,7 @@ def app_ld(lang):
         "url": PAGE[lang],
         "applicationCategory": "EducationalApplication",
         "applicationSubCategory": "Reader for research papers and project material",
-        "operatingSystem": "Windows 10 or 11 (64-bit), and any system with Python 3.9+ (the Python package)",
+        "operatingSystem": "Windows 10 or 11 (64-bit)",
         "softwareVersion": VERSION,
         "downloadUrl": [DL + FILES["win"]],
         "installUrl": PAGE[lang] + "#download",
@@ -147,7 +146,7 @@ def head(lang):
 def llms():
     return f"""# TextFold
 
-> TextFold is a reader for research papers and project material: it folds a paper, a web page or a document into five levels, from a one-screen map of its sections to every word. Every line a model writes points back to the sentences it rests on, and the two finest levels are the author's own words, so what is read can always be checked against what was written. Free and open source (Apache License 2.0). It runs on the reader's computer: an app for Windows, or a Python package for any system. Formerly PaperFold.
+> TextFold is a reader for research papers and project material: it folds a paper, a web page or a document into five levels, from a one-screen map of its sections to every word. Every line a model writes points back to the sentences it rests on, and the two finest levels are the author's own words, so what is read can always be checked against what was written. Free and open source (Apache License 2.0). It runs on the reader's computer: an app for Windows, or a Python package on Windows. Formerly PaperFold.
 
 > This is an unofficial fork of Xia Chen's TextFold, maintained by cjdem; not affiliated with or endorsed by the original author. See [NOTICE]({REPO}/blob/main/NOTICE) for attribution and changes.
 
@@ -160,12 +159,12 @@ TextFold keeps the whole text and lets each reader take it at the level of detai
 - Uses a model the reader already has: Claude Code, Codex or Pi on the computer, a ChatGPT plan, free models on OpenRouter, or an API key (Anthropic, OpenAI, DeepSeek, Qwen, Zhipu GLM, Kimi, MiniMax, Google, Ollama, any OpenAI-compatible endpoint).
 - Two languages, translated sentence by sentence: {LANGS_NATIVE}.
 - The library stays on the reader's computer, and there is no account.
-- Systems: Windows 10 and 11 (64-bit), and any system with Python 3.9 or newer (the Python package). Current version: {VERSION}.
+- Systems: Windows 10 and 11 (64-bit); the Python package needs Python 3.9 or newer. Current version: {VERSION}.
 
 ## Download
 
 - [TextFold for Windows, 64-bit (installer)]({DL}{FILES['win']})
-- [The Python package from this fork]({REPO}): `python3 -m pip install git+{REPO}`, then `python3 -m textfold serve`, then open http://localhost:3017
+- [The Python package from this fork, for Windows]({REPO}): `python3 -m pip install git+{REPO}`, then `python3 -m textfold serve`, then open http://localhost:3017
 
 ## Docs
 
