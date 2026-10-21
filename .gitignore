@@ -20,6 +20,10 @@ launch/
 desktop/node_modules/
 desktop/payload/
 desktop/out/
+# the MyGo shell and the shared Python payload it packages
+desktop-mygo/.mygo/
+desktop-mygo/build/
+desktop-mygo/resources/payload/
 # the maintainer's working log, kept on this computer
 STATUS.md
 WINDOWS-ONLY.md

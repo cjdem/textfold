@@ -174,16 +174,14 @@ def _check(lib):
 # ── an item, read ─────────────────────────────────────────────────────
 
 def read(lib, key):
-    """What an item is read from: {"ref", "title"} for a paper online (its arXiv id, else its DOI when it has no file),
-    or {"data", "name", "refs", "title", "record"} for its file, to be taken as a dropped file is. ValueError("no-file")
-    when it has neither."""
+    """What an item is read from: {"data", "name", "title", "record"} for its file, to be taken as a dropped file is;
+    else {"ref", "title"} for a paper online. A file takes precedence even when the item also names an arXiv paper or
+    DOI. ValueError("no-file") when it has neither."""
     _check(lib)
     if not KEY.fullmatch(key or ""):
         raise ValueError("bad-item")
     r, _ = _get(f"{lib}/items/{key}")
     it = item_of(r)
-    if it["arxiv"]:
-        return {"ref": it["arxiv"], "title": it["title"]}
     legacy = None
     for att in _attachments(lib, key):
         f = _file(lib, att)
@@ -193,13 +191,14 @@ def read(lib, key):
         if engine.kind_of(name) in engine.LEGACY:
             legacy = legacy or (f, name)   # (its message is shown only if nothing supported or online can be read)
             continue
-        return {"data": f.read_bytes(), "name": name, "refs": [it["doi"]] if it["doi"] else [], "title": it["title"],
-                "record": record_of(r, it)}
+        return {"data": f.read_bytes(), "name": name, "title": it["title"], "record": record_of(r, it)}
+    if it["arxiv"]:
+        return {"ref": it["arxiv"], "title": it["title"]}
     if it["doi"]:
         return {"ref": it["doi"], "title": it["title"]}
     if legacy:
         f, name = legacy
-        return {"data": f.read_bytes(), "name": name, "refs": [], "title": it["title"], "record": record_of(r, it)}
+        return {"data": f.read_bytes(), "name": name, "title": it["title"], "record": record_of(r, it)}
     raise ValueError("no-file")
 
 

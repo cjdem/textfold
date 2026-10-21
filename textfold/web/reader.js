@@ -2848,7 +2848,7 @@ math { font-size: 1.05em; }
     x.setAttribute('aria-label', T[ui].close);
     pane.setAttribute('aria-label', T[ui].compare_tip);
     const src = { pmc: 'PubMed Central', ppr: 'Preprint', biorxiv: 'bioRxiv', medrxiv: 'medRxiv' }[D.meta.id.match(/^[a-z]+/)?.[0]];
-    const own = D.meta.id.startsWith('pdf-');   // a PDF read through the engine: the file itself, not one fetched for it
+    const own = D.meta.id.startsWith('pdf-');   // a PDF read through MinerU: the file itself, not one fetched for it
     title.textContent = own ? (D.meta.label || 'PDF') : src ? `${src} · PDF` : `arXiv · PDF ${D.meta.version || ''}`.trim();
     bar.append(title, count, x);
     pane.append(bar, scroller, gripFor(pane));
@@ -2899,7 +2899,7 @@ math { font-size: 1.05em; }
       await indexWords();
       await layOut();
       // a PDF whose words are not this paper's (another paper dropped by mistake): said, and another can be dropped.
-      // (A PDF read through the engine is the text's own file: never another's.)
+      // (A PDF read through MinerU is the text's own file: never another's.)
       const ids = [...order.keys()];
       if (!D.meta.id.startsWith('pdf-') && ids.length && ids.filter((id) => locate(id)).length < ids.length * 0.3) cmp.scroller.prepend(h('div', 'pp-warn', esc(T[ui].pdf_mismatch)));
       cmp.follow = null;
@@ -3036,7 +3036,7 @@ math { font-size: 1.05em; }
     Object.assign(cmp, { words, grams });
   }
 
-  // a PDF read through the engine: each paragraph's place on its page, as the engine found the block it came from.
+  // a PDF read through MinerU: each paragraph's place on its page, as MinerU found the block it came from.
   // A scan has no words of its own to search, and even a PDF with words is found more exactly this way.
   async function layOut() {
     cmp.layout = null;

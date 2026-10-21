@@ -51,13 +51,15 @@ Where things are kept: the code in the project (`textfold/`, with the reader's p
 project, or wherever `TEXTFOLD_DATA` points (`PAPERFOLD_DATA`, its earlier name, is read too); settings and keys in
 `~/.textfold/`.
 
-The app (`desktop/`, see its README): an Electron window around the same server, with its own CPython
-(python-build-standalone) and packages, so a reader installs nothing. For Windows, built on its own system by
-`.github/workflows/desktop.yml` when a version is tagged, beside the package for PyPI; both workflows are parked in
-`.github/workflows-disabled/` until builds are wanted again (GitHub runs only `.github/workflows/`).
+The app is a hybrid: `desktop-mygo/` is a Go/MyGo window around the same Python server, with its own CPython
+(python-build-standalone) and packages, so a reader installs nothing. MyGo owns the window, Python lifecycle, native
+dialogs, external links and update hooks; it does not reimplement the reader or document pipeline in Go. The older
+Electron shell remains in `desktop/` as a fallback until the MyGo installer and update transition are validated.
+Builds are parked in `.github/workflows-disabled/` until releases are wanted again (GitHub runs only
+`.github/workflows/`).
 
 Models (⚙ Settings): the current connection, the default model and its test, plus the ChatGPT bridge and the
-OpenRouter one-click entry. Agents, API providers, the questions' model and reasoning, and the PDF engine are under
+OpenRouter one-click entry. Agents, API providers, the questions' model and reasoning, and the MinerU API key are under
 **Advanced**. Ported from ThoughtDAG's model access:
 
 - **Agents on this computer**, found at startup (and on Rescan) on PATH, the usual install
@@ -163,8 +165,9 @@ Only the marks: one small HTML page made in the browser (the passages quoted, or
 chosen; the notes, the questions and answers with their citations as labels, formulas as MathML, a link to the source,
 the mark), a PDF, Markdown for Obsidian (block ids, callouts, links back) or the notes data (JSON, with `made_by`).
 The menu and the dialog both say that TextFold is a tool and that a file shared follows the terms of the original
-text; neither judges a license. Where a file goes, the reader chooses: the desktop app's own save dialog (`save-file`,
-in `desktop/main.js`), Chrome's file picker, else the browser's downloads; a PDF through the system's print dialog.
+text; neither judges a license. Where a file goes, the reader chooses: the desktop app's own save dialog
+(`Desktop.SaveFile`, through either `desktop-mygo/preload.js` or `desktop/preload.js`), Chrome's file picker, else the
+browser's downloads; a PDF through the system's print dialog.
 While the file is made (seconds, for a whole text with its PDF), the mark folds and unfolds in place of the dialog's
 buttons. A page that is a file (saved, or published) has its mark lead to the repository and ends with it.
 
@@ -271,45 +274,30 @@ is read with English levels over its own text. Making the levels in the document
 
 ## PDFs and web pages
 
-A PDF dropped on the landing is read in the browser first (pdf.js, `refsOf` in app.js): an arXiv id from its margin
-stamp, a DOI from its metadata or its first page (only the first: the second is often the references). `POST /api/pdfs`
-takes the file with what was found (`X-Refs`): a paper that resolves is generated from its online version, the file
-kept as its `source.pdf` once it is fetched; an arXiv paper without HTML falls back to the file (or, with none, to
-arXiv's PDF). While neither a MinerU API key nor the engine is there, a PDF that has its words in it is read by
-TextFold itself (`pdftext.py`): pdf-inspector's Markdown, page by page, into the engine's blocks, and each figure found
-by its caption (the drawings and pictures above or below it, up to the prose around them) and cut from its page with
-pypdfium2 (`engine.crop_here`). A scanned PDF, and every PDF once one of them is there, goes to
-the PDF engine (`engine.py`): MinerU 4, pinned, in `<app data>/engine` (a PaperFold install in its old place is used
-there), installed from the landing, the settings or `python -m textfold engine install`. Its command line only (`mineru-kit
-parse --format zip`), never the `mineru` document library. Fast is MinerU's flash tier (seconds, no model; formulas as
-pictures); accurate is advanced (a vision model, several seconds a page), with `--disable-image-analysis`. With
-`mineru_api_key` in `~/.textfold/settings.json`, the files MinerU's cloud API reads (PDFs, the Office files, HTML,
-pictures) go to `mineru.net/api/v4` instead: uploaded there and read on its servers, its zip (`*_content_list_v2.json`,
-`images/`) written into the same `structured_content.json` (boxes from 0-1000 to 0-1), the tiers mapped to
-`pipeline`/`vlm`, and a PDF that comes back with no text read once more with OCR. No 3.4 GB, and the document leaves
-this computer; a stored RTF or OpenDocument document still needs the local engine for a re-conversion, while a stored
-old Word, PowerPoint or Excel file can use the engine or its API, and a kind the API does not read (EPUB, CSV) keeps
-TextFold's own reader. New files of those old kinds are refused (`take_file`: `legacy-format`).
+A PDF dropped on the landing goes directly to MinerU Cloud API (`take_pdf` in `server.py`). No browser code reads its
+text, no arXiv id or DOI changes the route, and no online paper or local text parser takes precedence. Without
+`mineru_api_key`, the server answers `needs-mineru-key` with HTTP 409 and removes the refused upload. With a key, the
+file is uploaded to `mineru.net/api/v4`, read there, and its zip (`*_content_list_v2.json`, `images/`) written into the
+same `structured_content.json` the reader consumes (boxes from 0-1000 to 0-1; tiers mapped to `pipeline`/`vlm`; a PDF
+with no text read once more with OCR). Fast is MinerU's pipeline tier; accurate is its vision model. PDFium
+(`pypdfium2`) remains only to cut figures from the original page using MinerU's boxes. A PDF imported before this
+change opens from its stored result. The document leaves this computer for conversion.
 `pdfdoc.py` turns `structured_content.json` into the document: running heads and page numbers out, the title from the
 page or the file, heading depth from numbering, a figure's panels grouped under the caption that names it, figures from
-after the references put before them, short front matter dropped. A file that waits for the engine is kept in
-`uploads/` with a note of its name and language beside it, and converted once the engine is installed.
+after the references put before them, short front matter dropped.
 
-Other files take the same road (`POST /api/files`, `take_file`; `doc-<file hash>`, the file kept as `original.<ext>`).
+Other files take the same entry (`POST /api/files`, `take_file`; `doc-<file hash>`, the file kept as `original.<ext>`).
 New imports of RTF, OpenDocument (.odt, .ods, .odp) and old Office files (.doc, .ppt, .xls) are refused with
 `legacy-format`, in the server and before the picker offers them. Those kinds stay in `engine.FILES` so a document
-converted before the rule still opens, and can be converted again where the engine reads it. The rest: with the engine
-installed it reads Word, PowerPoint, Excel, EPUB, HTML and MHTML, CSV, OFD (its fast tier only: no model is needed) and
-pictures (either tier, as a scanned page). Without it, TextFold reads the common ones itself, at once (`office.py`):
+converted before the rule still opens. TextFold reads the common kinds itself, at once (`office.py`):
 .docx through mammoth, its formulas turned from OMML into LaTeX first (`omml.py`, written for what latex2mathml and
 KaTeX both read); .pptx, .xlsx and .epub from their own XML; .csv and .tsv; and a saved page's article (.html, .mhtml,
 its pictures from inside the file). It writes the engine's shape (`structured_content.json` and `images/`), so
 `pdfdoc.py` stores both alike; a file whose structure is its own keeps its headings' depths, its captions and its
-notes. A picture still waits for the local engine; a stored RTF or OpenDocument file waits for it when converted
-again, and a stored old Word, PowerPoint or Excel file uses the engine or its API; a file the engine fails on falls
-back to `office.py`.
+notes. Pictures use MinerU's API. OFD and TIFF are no longer accepted as new imports because their only reader was the
+removed local MinerU engine; existing documents are not deleted.
 
-The server has two queues (`Jobs`): generation (model calls) and the engine (installs, conversions), each one job at a
+The server has two queues (`Jobs`): generation (model calls) and conversion (MinerU API calls), each one job at a
 time; a conversion's `next` is the generation that follows it. A converted PDF opens as soon as it is stored.
 
 Any other link is a web page (`webpage.py`): fetched with TextFold's own user agent, its hidden elements removed (they
@@ -320,12 +308,13 @@ dropped PDF) each have their own answer.
 A Zotero library (`zotero.py`): **Zotero library**, under the landing's drop zone and at the foot of the sidebar,
 opens the library chosen (the reader's own, or a group) as Zotero shows it, its collections at the left and the items
 of the one chosen at the right, through Zotero Desktop's local API (`localhost:23119`, read only, on once the reader
-allows other applications to talk to Zotero). `POST /api/zotero/read` reads an item by the best text it has: its arXiv
-paper when it names one, handed back to the page to generate as a pasted link is; else its file (a PDF, an EPUB, a saved
-page, a Word DOCX), where Zotero says it is or in its `storage/`, given to `take_file` as a dropped file is, with its
-DOI as the PDF's `X-Refs`; else its DOI; a legacy-only attachment (RTF, OpenDocument, old Office) comes after the DOI
-and is refused by `take_file`, which shows its message. A file is read only when it is one TextFold reads (a PDF by its
-first bytes, any other by its name), and a file name that leaves `storage/` is not followed. `zotero.json`, in the data folder,
+allows other applications to talk to Zotero). `POST /api/zotero/read` reads an item by the best text it has: its file
+first (a PDF, an EPUB, a saved page, a Word DOCX), where Zotero says it is or in its `storage/`, given to `take_file`
+as a dropped file is; else its arXiv paper or DOI, handed back to the page to generate as a pasted link is. A
+legacy-only attachment (RTF, OpenDocument, old Office) comes after the online references and is refused by
+`take_file`, which shows its message. A stored file wins even when the item also names an arXiv paper or DOI. A file is
+read only when it is one TextFold reads (a PDF by its first bytes, any other by its name), and a file name that leaves
+`storage/` is not followed. `zotero.json`, in the data folder,
 says which item became which document, so the library marks what is open, and keeps the item's record: a document read
 from the item's own file takes Zotero's title, authors, date, DOI and citekey (`zotero.apply`, once it is stored), and
 lists among the papers. The page may change the library chosen and
@@ -375,8 +364,7 @@ textfold/biorxiv.py  preprints from bioRxiv and medRxiv, from their own JATS (bi
 textfold/wiki.py     Wikipedia articles, any language edition (wiki-<lang>-<page id>)
 textfold/github.py   a GitHub repository's README (gh-<owner>--<repo>)
 textfold/webpage.py  any other web page: its article (trafilatura), hidden text removed first (web-<host>-<hash>)
-textfold/engine.py   the PDF engine: MinerU in a Python of its own under the app data folder; install, removal, conversion
-textfold/pdftext.py  a PDF with its own text, read without the engine (pdf-inspector); figures found by their captions, cut with pypdfium2
+textfold/engine.py   MinerU Cloud API only: upload, poll, unpack; pypdfium2 crops figures from MinerU's boxes
 textfold/pdfdoc.py   a converted PDF as a document: MinerU's structured output into Markdown and HTML (pdf-<file hash>;
                      another file, doc-<file hash>)
 textfold/office.py   Word, PowerPoint, Excel, CSV, EPUB and saved web pages read without the engine, in its shape
@@ -403,8 +391,8 @@ textfold/web/   reader.js (render + FLIP morph), card.js/card.css (the reading c
                 settings, jobs), i18n.js, CSS, templates
 tests/          python -m unittest discover tests: the arXiv page's safety pass, the Zotero library (a fake Zotero),
                 agents on Windows
-desktop/       the app (its README): Electron around the same server, with its own Python; desktop/scripts/smoke.py
-                checks that Python before it ships (.github/workflows/desktop.yml)
+desktop-mygo/  the app (its README): Go/MyGo window around the same Python server, native dialogs and lifecycle
+desktop/       the older Electron shell, kept as a fallback while the MyGo release path is validated
 tools/zoombench.py  zoom smoothness as the screen sees it (Windows' d3d11 GPU backend, 2x, Chrome's frame trace), on
                 out/compare/<id>/ pages; needs playwright and an exported page
 ```

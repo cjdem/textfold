@@ -15,11 +15,12 @@
   POST /api/agents/scan       look for agents again (also done at startup)
   POST /api/providers/probe   {base, api_key | key, preset}: a provider's /models
   POST /api/providers/save    {key?, preset, name, base, api_key?, models}  ·  POST /api/providers/remove {key}
-  POST /api/settings          {use_thoughtdag_env}  ·  POST /api/settings/test {model?} or {task: "ask"}: one tiny call
+  POST /api/settings          {use_thoughtdag_env, pdf_tier, mineru_api_key}: one change; the models after it
+  POST /api/settings/test     {model?} or {task: "ask"}: one tiny call
   GET  /api/notes/<id>        the reader's notes on a paper (docs/notes-format.md)
-  POST /api/files             a file dropped on the landing, its bytes (X-Name, X-Lang): a PDF (X-Refs: the papers it
-                              names), or a Word, PowerPoint, Excel, EPUB, HTML file or picture: through the PDF engine
-                              (new RTF, OpenDocument and old Office files: refused, legacy-format)
+  POST /api/files             a file dropped on the landing, its bytes (X-Name, X-Lang): a PDF through MinerU's API,
+                              or a Word, PowerPoint, Excel, EPUB, HTML file or picture through TextFold's own readers,
+                              else MinerU's API (new RTF, OpenDocument and old Office files: refused, legacy-format)
   GET  /api/pdf/<id>          the paper's original PDF (arXiv, PubMed Central, bioRxiv), fetched once and kept (pdf.py)
   POST /api/pdf/<id>          the PDF itself (the reader's copy, when the server would not give it): kept the same way
   POST /api/notes/<id>        {op: "put", note} or {op: "delete", id}
@@ -64,7 +65,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, quote, unquote, urlparse
 
-from . import agents, bridges, build, cards, engine, fetch, langs, library, llm, local, models, notes, office, pdf, pdfdoc, pdftext, pipeline, providers, store, zotero
+from . import agents, bridges, build, cards, engine, fetch, langs, library, llm, local, models, notes, office, pdf, pdfdoc, pipeline, providers, store, zotero
 
 STATIC = {"app.js": "text/javascript", "app.css": "text/css", "reader.js": "text/javascript",
           "card.js": "text/javascript", "card.css": "text/css", "reader.css": "text/css",
@@ -100,29 +101,19 @@ def models_payload():
                        "hasKey": bool(p["api_key"]) and p["api_key"] not in ("none", "ollama")} for p in provs],
         "presets": providers.PRESETS[:-1] + [models.ANTHROPIC_PRESET, providers.PRESETS[-1]],
         "useThoughtdagEnv": s.get("use_thoughtdag_env", True), "thoughtdagEnv": providers.THOUGHTDAG_ENV.exists(),
-        "pdfTier": s.get("pdf_tier") or "fast", "engine": engine.status(),
+        "pdfTier": s.get("pdf_tier") or "fast", "mineru": engine.status(),
     }
 
 
 class Jobs:
-    """Two queues, each worked one job at a time: generation (model calls: waits on the network) and the PDF engine
-    (installing it, converting a file: the computer's own GPU), so that one PDF converts while another is generated."""
+    """Two queues, each worked one job at a time: generation (model calls) and MinerU conversions (uploads and polling),
+    so that one document converts while another is generated."""
 
     def __init__(self):
-        self.items, self.q, self.eq = {}, queue.Queue(), queue.Queue()
+        self.items, self.q, self.cq = {}, queue.Queue(), queue.Queue()
         self.stops = {}   # job id -> threading.Event, set when the reader stops it (kept out of the job: it is sent as JSON)
-        self.pending = {}  # files that wait for the engine to be installed: pid -> (file, name, lang)
-        for side in (store.DATA / "uploads").glob("*.json"):   # (kept beside each, so a restart forgets none)
-            try:
-                w = json.loads(side.read_text())
-                f = side.parent / Path(w.get("file") or side.stem + ".pdf").name
-                if f.exists() and not (store.pdir(f.stem) / "meta.json").exists():
-                    lang = w["lang"] if w["lang"] in langs.LANGS else "en"   # (a sidecar written before a language was removed)
-                    self.pending[f.stem] = (str(f), w["name"], lang)
-            except (OSError, ValueError, KeyError, AttributeError):
-                pass
         threading.Thread(target=self.work, daemon=True).start()
-        threading.Thread(target=self.work_engine, daemon=True).start()
+        threading.Thread(target=self.work_convert, daemon=True).start()
 
     def _new(self, q, **kw):
         job = {"id": uuid.uuid4().hex[:10], "kind": "generate", "pid": "", "lang": "", "force": False, "status": "queued",
@@ -135,9 +126,9 @@ class Jobs:
     def _same(self, **kw):   # the same request already waiting or running is that job
         return next((j for j in self.items.values() if j["status"] in ("queued", "running") and all(j.get(k) == v for k, v in kw.items())), None)
 
-    def submit(self, ref, lang, force, attach=None):
+    def submit(self, ref, lang, force):
         pid = store.resolve(ref)
-        return self._same(kind="generate", pid=pid, lang=lang) or self._new(self.q, pid=pid, lang=lang, force=bool(force), attach=attach)
+        return self._same(kind="generate", pid=pid, lang=lang) or self._new(self.q, pid=pid, lang=lang, force=bool(force))
 
     def card(self, pid, lang):
         """A reading card draft (cards.py): its own job, so the reader sees its progress and can stop it, and so it is
@@ -145,27 +136,10 @@ class Jobs:
         return self._same(kind="card", pid=pid, lang=lang) or self._new(self.q, kind="card", pid=pid, lang=lang, title="Reading card")
 
     def convert(self, pid, file, name, lang, tier=None, replace=False):
-        """A file through the engine (then generated): file is on disk; replace converts a stored one again."""
+        """A file through MinerU's API (then generated): file is on disk; replace converts a stored one again."""
         tier = engine.tier_for(file, tier or models.load_settings().get("pdf_tier") or "fast")
-        return self._same(kind="convert", pid=pid) or self._new(self.eq, kind="convert", pid=pid, lang=lang, file=str(file), name=name,
+        return self._same(kind="convert", pid=pid) or self._new(self.cq, kind="convert", pid=pid, lang=lang, file=str(file), name=name,
                                                                 title=name, tier=tier, replace=bool(replace))
-
-    def wait_for_engine(self, pid, file, name, lang):
-        """A file kept until the engine is installed (then converted), with a note of its name and language beside it."""
-        self.pending[pid] = (str(file), name, lang)
-        # ASCII-escaped: a file's name can hold a character GBK lacks, and this is read with the system's encoding
-        Path(file).with_suffix(".json").write_text(json.dumps({"name": name, "lang": lang, "file": Path(file).name}))
-
-    def read_pdf(self, pid, file, name, lang):
-        """A PDF that has its words in it, read by TextFold itself while the engine is not installed (pdftext.py), the
-        file gone from uploads/ once it is stored: its levels' job, or None when it needs the engine (a scan)."""
-        if not pdftext.save(pid, file, name):
-            return None
-        Path(file).unlink(missing_ok=True)
-        return self.submit(pid, lang, False)
-
-    def install_engine(self):
-        return self._same(kind="install") or self._new(self.eq, kind="install", title="PDF engine")
 
     def stop(self, job_id):
         job = self.items.get(job_id)
@@ -190,14 +164,6 @@ class Jobs:
                     try:
                         job["title"] = json.loads((store.pdir(job["pid"]) / "meta.json").read_text())["title"]
                     except (OSError, ValueError, KeyError):
-                        pass
-                if job.get("attach") and not job.get("attached"):   # the reader's own copy of an online paper's PDF
-                    job["attached"] = True
-                    try:
-                        if not (store.pdir(job["pid"]) / "source.pdf").exists():
-                            pdf.keep(job["pid"], Path(job["attach"]).read_bytes())
-                        Path(job["attach"]).unlink()
-                    except OSError:
                         pass
         return progress
 
@@ -250,11 +216,8 @@ class Jobs:
                 job["status"] = "done"
             except Exception as e:  # shown in the app; the traceback stays in the job log
                 if str(e) == "no-html" and not stop.is_set():
-                    try:   # an arXiv paper without its HTML version: its PDF (the reader's, else arXiv's), read here
-                        if job.get("attach"):
-                            self._fallback(job)
-                        else:
-                            self._pdf_link(job, f"https://arxiv.org/pdf/{job['pid']}")
+                    try:   # an arXiv paper without its HTML version: its PDF, through MinerU
+                        self._pdf_link(job, f"https://arxiv.org/pdf/{job['pid']}")
                         continue
                     except Exception:   # arXiv's PDF out of reach too: the app's own sentence for no HTML
                         pass
@@ -287,62 +250,41 @@ class Jobs:
             job.update(status="moved", next=self.submit(pid, job["lang"], False)["id"])
         elif engine.available():
             job.update(status="moved", next=self.convert(pid, f, name, job["lang"])["id"])
-        elif nxt := self.read_pdf(pid, f, name, job["lang"]):
-            job.update(status="moved", next=nxt["id"])
         else:
-            self.wait_for_engine(pid, f, name, job["lang"])
-            job.update(status="error", error="needs-engine", upload=pid)
+            f.unlink(missing_ok=True)
+            job.update(status="error", error="needs-mineru-key")
 
-    def _fallback(self, job):
-        file = Path(job["attach"])
-        pid = file.stem
-        job.update(finished=time.time())
-        if engine.available():
-            nxt = self.convert(pid, file, job.get("name") or file.name, job["lang"])
-            job.update(status="moved", next=nxt["id"])
-        elif nxt := self.read_pdf(pid, file, job.get("name") or file.name, job["lang"]):
-            job.update(status="moved", next=nxt["id"])
-        else:
-            self.wait_for_engine(pid, file, job.get("name") or file.name, job["lang"])
-            job.update(status="error", error="needs-engine", upload=pid)
-
-    def work_engine(self):
+    def work_convert(self):
         while True:
-            job = self.items[self.eq.get()]
+            job = self.items[self.cq.get()]
             if job["status"] == "stopped":
                 continue
             job["status"] = "running"
             stop = self.stops[job["id"]]
             progress, log = self._progress(job, stop), self._log(job)
             try:
-                if job["kind"] == "install":
-                    engine.install(progress, log, stop)
-                    waiting, self.pending = self.pending, {}
-                    for pid, (file, name, lang) in waiting.items():
-                        self.convert(pid, file, name, lang)
-                else:
-                    out = store.DATA / "uploads" / f"{job['pid']}-{job['tier']}"
-                    try:
-                        engine.convert(job["file"], out, job["tier"], progress, log, stop)
-                    except Exception:   # a file the engine could not read: TextFold's own reader, if it has one
-                        if stop.is_set() or not office.reads(engine.kind_of(job["file"])):
-                            raise
-                        log("the engine could not read this file: TextFold reads it itself")
-                        office.convert(job["file"], out)
-                    pdfdoc.store_pdf(job["pid"], out, pdfdoc.read_output(out), job["name"], job["tier"], replace=job["replace"])
-                    src = store.pdir(job["pid"]) / pdfdoc.kept_name(job["pid"], job["file"])   # the file itself, kept
-                    if not src.exists():
-                        src.write_bytes(Path(job["file"]).read_bytes())
-                    shutil.rmtree(out, ignore_errors=True)
-                    if Path(job["file"]).parent == store.DATA / "uploads":
-                        Path(job["file"]).unlink(missing_ok=True)
-                        Path(job["file"]).with_suffix(".json").unlink(missing_ok=True)
-                    PAGES.pop(job["pid"], None)
-                    job["readable"] = True
-                    job["next"] = self.submit(job["pid"], job["lang"] or "en", False)["id"]   # its levels, in the other queue
+                out = store.DATA / "uploads" / f"{job['pid']}-{job['tier']}"
+                try:
+                    engine.convert(job["file"], out, job["tier"], progress, log, stop)
+                except Exception:   # a file MinerU could not read: TextFold's own reader, if it has one
+                    if stop.is_set() or not office.reads(engine.kind_of(job["file"])):
+                        raise
+                    log("MinerU could not read this file: TextFold reads it itself")
+                    office.convert(job["file"], out)
+                pdfdoc.store_pdf(job["pid"], out, pdfdoc.read_output(out), job["name"], job["tier"], replace=job["replace"])
+                src = store.pdir(job["pid"]) / pdfdoc.kept_name(job["pid"], job["file"])   # the file itself, kept
+                if not src.exists():
+                    src.write_bytes(Path(job["file"]).read_bytes())
+                shutil.rmtree(out, ignore_errors=True)
+                if Path(job["file"]).parent == store.DATA / "uploads":
+                    Path(job["file"]).unlink(missing_ok=True)
+                    Path(job["file"]).with_suffix(".json").unlink(missing_ok=True)
+                PAGES.pop(job["pid"], None)
+                job["readable"] = True
+                job["next"] = self.submit(job["pid"], job["lang"] or "en", False)["id"]   # its levels, in the other queue
                 job.update(status="done", finished=time.time())
             except Exception as e:
-                if job["kind"] == "convert":   # what the engine wrote before it failed
+                if job["kind"] == "convert":   # what MinerU wrote before it failed
                     shutil.rmtree(store.DATA / "uploads" / f"{job['pid']}-{job['tier']}", ignore_errors=True)
                 self._end(job, e, stop)
 
@@ -358,12 +300,10 @@ def _named(headers):
 
 
 def take_file(jobs, data, headers):
-    """A file from the landing, as (reply, status): a PDF (take_pdf), or another the engine reads (a Word, PowerPoint
-    or Excel file, an e-book, a saved web page, a picture: engine.FILES). With the engine installed, it reads them all
-    (most completely); without it, TextFold reads the ones it can itself, at once (office.py), and keeps the kinds only
-    the engine reads (a picture, OFD) until it is installed. New imports of RTF, OpenDocument and old Office files are
-    refused with
-    `legacy-format`; a file of one of those kinds converted before the rule still opens."""
+    """A file from the landing, as (reply, status): a PDF (take_pdf), or another kind. TextFold's own readers go first,
+    so Word, PowerPoint, Excel, EPUB, CSV, TSV, HTML and MHTML stay on this computer; a kind only MinerU reads goes to
+    its API and needs a key. New imports of RTF, OpenDocument and old Office files are refused with `legacy-format`;
+    a file of one of those kinds converted before the rule still opens."""
     name, lang = _named(headers)
     ext = engine.kind_of(name)
     if data[:5] == b"%PDF-" or ext == "pdf":
@@ -379,32 +319,30 @@ def take_file(jobs, data, headers):
     f.parent.mkdir(parents=True, exist_ok=True)
     if not f.exists():
         f.write_bytes(data)
-    if engine.readable(ext):   # (this kind: not every kind is the API's, and the office reader has its own)
-        return {"job": jobs.convert(pid, f, name, lang), "via": "file"}, 200
     if office.reads(ext):
         try:
             office.save(pid, f, name)
         except ValueError:
-            return {"error": "bad-file"}, 400
-        finally:
-            f.unlink(missing_ok=True)
+            if not engine.readable(ext):
+                f.unlink(missing_ok=True)
+                return {"error": "bad-file"}, 400
+            return {"job": jobs.convert(pid, f, name, lang), "via": "file"}, 200
+        f.unlink(missing_ok=True)
         # read: it opens now, as a converted PDF does, while its levels are written (no model is needed to read it)
         return {"job": jobs.submit(pid, lang, False), "paper": pid, "via": "file"}, 200
-    jobs.wait_for_engine(pid, f, name, lang)
-    return {"needs": "engine", "upload": pid, "name": name, "engine": engine.status()}, 200
+    if engine.readable(ext):
+        return {"job": jobs.convert(pid, f, name, lang), "via": "file"}, 200
+    f.unlink(missing_ok=True)
+    if ext in engine.API_FILES:
+        return {"error": "needs-mineru-key", "upload": pid, "name": name, "mineru": engine.status()}, 409
+    return {"error": "not-supported"}, 400
 
 
 def take_pdf(jobs, data, headers):
-    """A PDF from the landing, as (reply, status). The paper online when the page found one it names (an arXiv id, a
-    DOI) and it can be read there: faster and truer than a conversion, and the file is kept as its original. Else the
-    file through the PDF engine; without one, it waits for the reader to install it."""
+    """A PDF from the landing, as (reply, status): always through MinerU's API, or asks for a key."""
     if data[:5] != b"%PDF-":
         return {"error": "not-pdf"}, 400
     name, lang = _named(headers)
-    try:
-        refs = [r for r in json.loads(unquote(headers.get("X-Refs") or "[]")) if isinstance(r, str)][:6]
-    except ValueError:
-        refs = []
     pid = pdfdoc.pid_of(data)
     f = store.DATA / "uploads" / f"{pid}.pdf"
     f.parent.mkdir(parents=True, exist_ok=True)
@@ -413,20 +351,10 @@ def take_pdf(jobs, data, headers):
     if (store.pdir(pid) / "meta.json").exists():   # this file, converted before
         f.unlink()
         return {"job": jobs.submit(pid, lang, False), "via": "pdf"}, 200
-    for ref in refs:
-        try:
-            job = jobs.submit(ref, lang, False, attach=str(f))
-        except Exception:   # not a paper online (ValueError), or its server out of reach
-            continue
-        job.setdefault("name", name)
-        return {"job": job, "via": "online", "ref": ref}, 200
     if engine.available():
         return {"job": jobs.convert(pid, f, name, lang), "via": "pdf"}, 200
-    job = jobs.read_pdf(pid, f, name, lang)
-    if job:   # read: it opens now, as a converted PDF does, while its levels are written
-        return {"job": job, "paper": pid, "via": "pdf"}, 200
-    jobs.wait_for_engine(pid, f, name, lang)
-    return {"needs": "engine", "upload": pid, "name": name, "engine": engine.status()}, 200
+    f.unlink(missing_ok=True)
+    return {"error": "needs-mineru-key", "upload": pid, "name": name, "mineru": engine.status()}, 409
 
 
 PAGES = {}  # pid -> (signature of its layers and template, rendered page)
@@ -553,8 +481,8 @@ def make_handler(jobs):
                         except Exception:
                             pass
                     return self.json(pdfdoc.place(m.group(1)))
-                if u.path == "/api/engine":
-                    return self.json({**engine.status(), "pending": sorted(jobs.pending)})
+                if u.path in ("/api/mineru", "/api/engine"):
+                    return self.json(engine.status())
                 if u.path.startswith("/api/zotero"):
                     q = {k: v[0] for k, v in parse_qs(u.query).items()}
                     try:
@@ -603,7 +531,7 @@ def make_handler(jobs):
                     if size > pdf.LIMIT:
                         return self.json({"error": "too-large"}, 413)
                     return self.json({"ok": True}) if pdf.keep(m.group(1), self.rfile.read(size)) else self.json({"error": "not-pdf"}, 400)
-                if u.path in ("/api/files", "/api/pdfs"):   # a file dropped on the landing: its bytes (a PDF's X-Refs: what the page found in it)
+                if u.path in ("/api/files", "/api/pdfs"):   # a file dropped on the landing: its bytes
                     if size > pdf.LIMIT:
                         return self.json({"error": "too-large"}, 413)
                     return self.json(*take_file(jobs, self.rfile.read(size), self.headers))
@@ -626,7 +554,7 @@ def make_handler(jobs):
                     except ValueError as e:
                         return self.json({"error": str(e)}, 400)
                     return self.json(zotero.status())
-                if u.path == "/api/zotero/read":   # an item of the Zotero library: its paper online, or its file as a dropped one
+                if u.path == "/api/zotero/read":   # an item of the Zotero library: its file as a dropped one, or its paper online
                     lib, _, key = str(body.get("item") or "").rpartition("/")
                     lang = body.get("lang") if body.get("lang") in langs.LANGS else "en"
                     try:
@@ -639,26 +567,20 @@ def make_handler(jobs):
                         return self.json({"error": str(e)}, 503)
                     except ValueError as e:   # no file and no paper online; not a library or item
                         return self.json({"error": str(e) if str(e) in ("no-file", "no-fulltext", "bad-library", "bad-item") else "bad-ref"}, 400)
-                    named = {"X-Name": quote(got["name"]), "X-Lang": lang, "X-Refs": quote(json.dumps(got["refs"]))}
+                    named = {"X-Name": quote(got["name"]), "X-Lang": lang}
                     reply, code = take_file(jobs, got["data"], named)
                     pid = reply.get("paper") or reply.get("upload") or (reply.get("job") or {}).get("pid")
                     if code == 200 and pid:
                         zotero.link(lib, key, pid, got["title"], got["record"])
                         zotero.apply(pid)   # (read at once, or read before: its record now; else once converted)
                     return self.json({**reply, "name": got["name"]}, code)
-                if u.path == "/api/engine/install":
-                    return self.json(jobs.install_engine())
-                if u.path == "/api/engine/remove":
-                    if any(j["kind"] in ("install", "convert") and j["status"] in ("queued", "running") for j in jobs.items.values()):
-                        return self.json({"error": "busy"}, 409)
-                    return self.json(engine.uninstall())
                 if u.path == "/api/convert":   # a stored PDF (or picture) converted again, at another tier (its levels follow)
                     pid, tier = str(body.get("paper") or ""), str(body.get("tier") or "accurate")
                     src = pdfdoc.source_of(pid) if pid.startswith(("pdf-", "doc-")) and store.valid_id(pid) else None
                     if not src or tier not in engine.TIERS or engine.tier_for(src, tier) != tier:
                         return self.json({"error": "no such PDF"}, 404)
                     if not engine.readable(engine.kind_of(src) or "pdf"):
-                        return self.json({"error": "needs-engine"}, 409)
+                        return self.json({"error": "needs-mineru-key"}, 409)
                     name = json.loads((store.pdir(pid) / "meta.json").read_text()).get("source", {}).get("name") or "document.pdf"
                     lang = body.get("lang") if body.get("lang") in langs.LANGS else "en"
                     return self.json(jobs.convert(pid, src, name, lang, tier, replace=True))
@@ -824,6 +746,12 @@ def make_handler(jobs):
                         s["use_thoughtdag_env"] = bool(body["use_thoughtdag_env"])
                     if body.get("pdf_tier") in engine.TIERS:
                         s["pdf_tier"] = body["pdf_tier"]
+                    if "mineru_api_key" in body:
+                        key = body.get("mineru_api_key")
+                        key = key.strip() if isinstance(key, str) else ""
+                        if key and not engine.key_ok(key):
+                            return self.json({"error": "bad-mineru-key"}, 400)
+                        s["mineru_api_key"] = key
                     models.save_settings(s)
                     return self.json(models_payload())
                 if u.path == "/api/settings/test":

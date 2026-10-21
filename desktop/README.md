@@ -1,5 +1,10 @@
 # TextFold as an app
 
+> Migration note: `desktop-mygo/` is the new hybrid shell. It keeps this
+> Python server and replaces Electron with MyGo. The Electron code here stays
+> available as a fallback until the MyGo installer and update transition have
+> been validated.
+
 The same local server and reader in one window, with its own Python, so a reader needs nothing installed. Agents
 on the computer (Claude Code, Codex, Pi), the ChatGPT bridge and API providers work as they do in the browser.
 What you read is kept where `python -m textfold serve` keeps it, so the two share one library:
@@ -53,7 +58,7 @@ to the app alone: two such builds, an older and a newer, try an update from one 
 
 ## Windows
 
-The server runs with no console window of its own, and the programs it starts (agents, MinerU, npx) start without
+The server runs with no console window of its own, and the programs it starts (agents, npx) start without
 one either (`server._quiet_children`). An agent installed by npm is a `.cmd` shim, which would pass its arguments
 through cmd.exe; the script it names is run by node instead (`agents.argv`). The installer is per user, in
 `%LOCALAPPDATA%\Programs\TextFold`.

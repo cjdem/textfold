@@ -62,9 +62,9 @@ S = {
     "q3": ("How is it different from a summary?", "和摘要有什么不同？"),
     "a3": ("The text stays. The two finest levels are the author's own sentences, and every line a model writes points back to them.",
            "原文一直都在。最细的两层就是作者的原句，模型写的每一行都指回这些原句。"),
-    "q4": ("Does it upload my files?", "会上传我的文件吗？"),
-    "a4": ("No. Your library stays on your computer, and text goes only to the model you connect.",
-           "不会。文献库留在你自己的电脑上，文字只发给你连接的模型。"),
+    "q4": ("What leaves my computer?", "什么内容会离开我的电脑？"),
+    "a4": ("Your library stays on your computer. Text goes to the model you connect; every PDF and picture goes to MinerU's Cloud API for conversion, and the page tells you before files are sent.",
+           "文献库留在你自己的电脑上。文字会发送给你连接的模型；每个 PDF 和图片都会交给 MinerU Cloud API 转换，页面会在发送文件前说明。"),
 
     "foot_readme": ('README',
         'README'),

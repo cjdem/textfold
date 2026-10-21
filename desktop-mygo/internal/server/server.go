@@ -1,0 +1,237 @@
+package server
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"io"
+	"net"
+	"net/http"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"runtime"
+	"strings"
+	"sync"
+	"time"
+)
+
+type Config struct {
+	Python       string
+	Code         string
+	Data         string
+	Log          string
+	ReadyTimeout time.Duration
+}
+
+type Server struct {
+	URL        string
+	LogPath    string
+	cmd        *exec.Cmd
+	log        *os.File
+	done       chan struct{}
+	stopOnce   sync.Once
+	guardOnce  sync.Once
+	closeGuard func()
+	mu         sync.Mutex
+	waitErr    error
+}
+
+func Start(cfg Config) (*Server, error) {
+	if cfg.Python == "" || cfg.Code == "" || cfg.Data == "" {
+		return nil, errors.New("the Python runtime, code folder and data folder are required")
+	}
+	if cfg.ReadyTimeout <= 0 {
+		cfg.ReadyTimeout = 90 * time.Second
+	}
+	if cfg.Log == "" {
+		cfg.Log = filepath.Join(cfg.Data, "server.log")
+	}
+	if err := os.MkdirAll(cfg.Data, 0o755); err != nil {
+		return nil, err
+	}
+	if err := os.MkdirAll(filepath.Dir(cfg.Log), 0o755); err != nil {
+		return nil, err
+	}
+	logFile, err := os.OpenFile(cfg.Log, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
+	if err != nil {
+		return nil, err
+	}
+	port, err := freePort()
+	if err != nil {
+		logFile.Close()
+		return nil, err
+	}
+
+	cmd := exec.Command(cfg.Python, "-s", "-u", "-m", "textfold", "serve", "--port", fmt.Sprint(port))
+	cmd.Dir = cfg.Code
+	cmd.Env = environment(cfg.Data)
+	cmd.Stdout = logFile
+	cmd.Stderr = logFile
+	prepareCommand(cmd)
+	fmt.Fprintf(logFile, "\n[%s] starting TextFold on 127.0.0.1:%d\n", time.Now().Format(time.RFC3339), port)
+	if err := cmd.Start(); err != nil {
+		logFile.Close()
+		return nil, fmt.Errorf("starting %s: %w", cfg.Python, err)
+	}
+	closeGuard, err := guardProcess(cmd.Process.Pid)
+	if err != nil {
+		terminateProcess(cmd.Process)
+		_ = cmd.Wait()
+		logFile.Close()
+		return nil, fmt.Errorf("guarding the TextFold server process: %w", err)
+	}
+
+	s := &Server{
+		URL:        fmt.Sprintf("http://127.0.0.1:%d/", port),
+		LogPath:    cfg.Log,
+		cmd:        cmd,
+		log:        logFile,
+		done:       make(chan struct{}),
+		closeGuard: closeGuard,
+	}
+	go s.wait()
+
+	ctx, cancel := context.WithTimeout(context.Background(), cfg.ReadyTimeout)
+	defer cancel()
+	if err := s.ready(ctx); err != nil {
+		s.Stop()
+		return nil, fmt.Errorf("%w (see %s)", err, cfg.Log)
+	}
+	return s, nil
+}
+
+func (s *Server) ready(ctx context.Context) error {
+	client := &http.Client{Timeout: 3 * time.Second}
+	ticker := time.NewTicker(250 * time.Millisecond)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return fmt.Errorf("the TextFold server did not answer /api/models: %w", ctx.Err())
+		case <-s.done:
+			s.mu.Lock()
+			err := s.waitErr
+			s.mu.Unlock()
+			if err == nil {
+				err = errors.New("the TextFold server exited")
+			}
+			return err
+		case <-ticker.C:
+			req, err := http.NewRequestWithContext(ctx, http.MethodGet, s.URL+"api/models", nil)
+			if err != nil {
+				return err
+			}
+			resp, err := client.Do(req)
+			if err == nil {
+				io.Copy(io.Discard, resp.Body)
+				resp.Body.Close()
+				if resp.StatusCode == http.StatusOK {
+					return nil
+				}
+			}
+		}
+	}
+}
+
+func (s *Server) wait() {
+	err := s.cmd.Wait()
+	s.mu.Lock()
+	s.waitErr = err
+	s.mu.Unlock()
+	s.releaseGuard()
+	s.log.Close()
+	close(s.done)
+}
+
+func (s *Server) Stop() {
+	s.stopOnce.Do(func() {
+		if s.cmd.Process != nil {
+			terminateProcess(s.cmd.Process)
+		}
+		select {
+		case <-s.done:
+		case <-time.After(5 * time.Second):
+			if s.cmd.Process != nil {
+				_ = s.cmd.Process.Kill()
+			}
+			<-s.done
+		}
+	})
+}
+
+func (s *Server) releaseGuard() {
+	s.guardOnce.Do(func() {
+		if s.closeGuard != nil {
+			s.closeGuard()
+		}
+	})
+}
+
+func freePort() (int, error) {
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		return 0, err
+	}
+	defer ln.Close()
+	return ln.Addr().(*net.TCPAddr).Port, nil
+}
+
+func environment(data string) []string {
+	pathKey := "PATH"
+	pathValue := os.Getenv("PATH")
+	for _, item := range os.Environ() {
+		if i := strings.IndexByte(item, '='); i > 0 && strings.EqualFold(item[:i], "PATH") {
+			pathKey, pathValue = item[:i], item[i+1:]
+			break
+		}
+	}
+	home, _ := os.UserHomeDir()
+	extras := []string{filepath.Join(home, ".local", "bin")}
+	if runtime.GOOS == "windows" {
+		extras = nil
+		for _, item := range []struct{ base, child string }{
+			{os.Getenv("APPDATA"), "npm"},
+			{os.Getenv("ProgramFiles"), "nodejs"},
+			{home, filepath.Join(".local", "bin")},
+		} {
+			if item.base != "" {
+				extras = append(extras, filepath.Join(item.base, item.child))
+			}
+		}
+	}
+	for i := len(extras) - 1; i >= 0; i-- {
+		if extras[i] != "" {
+			pathValue = extras[i] + string(os.PathListSeparator) + pathValue
+		}
+	}
+	overrides := map[string]string{
+		pathKey:                   pathValue,
+		"TEXTFOLD_DATA":           data,
+		"PYTHONNOUSERSITE":        "1",
+		"PYTHONDONTWRITEBYTECODE": "1",
+		"PYTHONUTF8":              "1",
+	}
+	out := make([]string, 0, len(os.Environ())+len(overrides))
+	for _, item := range os.Environ() {
+		i := strings.IndexByte(item, '=')
+		if i < 0 {
+			continue
+		}
+		key := item[:i]
+		replaced := false
+		for want := range overrides {
+			if key == want || (runtime.GOOS == "windows" && strings.EqualFold(key, want)) {
+				replaced = true
+				break
+			}
+		}
+		if !replaced {
+			out = append(out, item)
+		}
+	}
+	for key, value := range overrides {
+		out = append(out, key+"="+value)
+	}
+	return out
+}

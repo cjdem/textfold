@@ -90,15 +90,17 @@ Open `http://localhost:3017`. The first time, [connect a model](#connect-a-model
 | A paper's link or DOI: arXiv, PubMed Central, bioRxiv, medRxiv | its text as the site structures it (an arXiv paper without an HTML version is read from its PDF; another DOI needs an open full text in Europe PMC) |
 | Any other web page | its article, without the menus, the adverts, or the text it hides from its readers |
 | A Wikipedia article, a GitHub repository | the article; the README, with its pictures |
-| A PDF | the paper online when the PDF names one, with your file beside it; any other PDF, on your computer: read by TextFold itself, figures included, or more completely by the PDF engine (MinerU, about 3.4 GB, installed once from the landing), which a scanned PDF needs |
-| A Word (DOCX), PowerPoint (PPTX) or Excel (XLSX) file, a CSV, an EPUB, a saved web page | the document with its headings, tables, pictures and formulas: read by TextFold itself, or more completely by the PDF engine once it is installed |
-| A picture | its text, read by the PDF engine |
+| A PDF | its text and structure, always through MinerU's Cloud API; the original stays beside it for the side-by-side view |
+| A Word (DOCX), PowerPoint (PPTX) or Excel (XLSX) file, a CSV, an EPUB, a saved web page | the document with its headings, tables, pictures and formulas: common Word, Excel, CSV, EPUB and HTML files are read on your computer |
+| A picture | its text, read by MinerU's Cloud API |
 | An item of your Zotero library | its arXiv paper, else its PDF or other file, else its DOI. [Works on your Zotero ↑](#works-on-your-zotero) |
 | A Markdown or text file | the file as written |
 
-With a MinerU API key (`mineru_api_key` in `~/.textfold/settings.json`), PDFs, Word/PowerPoint/Excel files, HTML and pictures are read on MinerU's servers instead: nothing to install, and the file leaves your computer. EPUB and CSV are read by TextFold itself, or by the engine once it is installed.
+Every PDF and picture is uploaded to MinerU's Cloud API. Add a key under **Settings › Advanced › MinerU API**. The key is kept in `~/.textfold/settings.json` and is never sent back to the page. Nothing is installed locally and there is no offline PDF fallback. Common Word, PowerPoint, Excel, EPUB, CSV and HTML files stay on your computer.
 
 New RTF, OpenDocument (.odt, .ods, .odp) and old Word, PowerPoint or Excel files (.doc, .ppt, .xls) are no longer accepted: save them as DOCX, PPTX, XLSX or PDF first. Documents already in the library keep opening, and their generated levels stay.
+
+New OFD and TIFF files are also refused after the local MinerU engine was removed. Documents already in the library remain readable.
 
 What you read is kept in your system's folder for app data, shared with the desktop app.
 
@@ -154,6 +156,7 @@ TextFold is a tool, and its license covers its code. When you share a file, foll
 ## What's new
 
 - **October 18, 2026: a reading card for every paper.** **Reading card**, at the top of a paper, keeps what it asks and contributes, how it works, what it measured and what it found, in four sections you can edit. Every point links back to the passage; a new draft waits as a candidate, and the card exports to Markdown.
+- **October 21, 2026: PDFs use MinerU's Cloud API only.** Every PDF now goes directly to MinerU, without first reading its text or looking for an online version. The local 3.4 GB engine and the offline PDF path are gone. Add a key in Settings; PDFs and pictures leave your computer for conversion.
 - **October 17, 2026: MinerU's servers read your files.** Put `mineru_api_key` in `~/.textfold/settings.json` and PDFs, Word/PowerPoint/Excel files, HTML and pictures are read by MinerU's cloud API: no 3.4 GB engine to install, and the file leaves your computer.
 - **October 17, 2026: English documents come with their Simplified Chinese.** An English document opened in the app is made with its Simplified Chinese version at the end of the same generation, so it reads in Chinese without a second request.
 - **October 15, 2026: PDFs open without the engine.** A PDF with its own text, as most papers have, opens at once, its figures cut from the page; only a scan still needs the PDF engine. An arXiv paper with no HTML version is read from its PDF. Thanks to [@sylvainHellin](https://github.com/sylvainHellin).
@@ -200,7 +203,7 @@ Contributions are welcome: start with [CONTRIBUTING.md](https://github.com/chenx
 
 <div align="center">
 
-<sub>Built on [trafilatura](https://github.com/adbar/trafilatura), which finds the article on a web page, [pdf-inspector](https://github.com/firecrawl/pdf-inspector), which reads a PDF's own text, [PDFium](https://pdfium.googlesource.com/pdfium/) by way of [pypdfium2](https://github.com/pypdfium2-team/pypdfium2), which cuts its figures, [MinerU](https://github.com/opendatalab/MinerU), the PDF engine, and [mammoth](https://github.com/mwilliamson/python-mammoth), which reads Word files; PDFs are shown with [PDF.js](https://github.com/mozilla/pdf.js) and formulas with [KaTeX](https://katex.org). Thanks to their authors.</sub>
+<sub>Built on [trafilatura](https://github.com/adbar/trafilatura), which finds the article on a web page, [PDFium](https://pdfium.googlesource.com/pdfium/) by way of [pypdfium2](https://github.com/pypdfium2-team/pypdfium2), which cuts figures from the original page, [MinerU](https://github.com/opendatalab/MinerU), whose Cloud API reads every PDF, and [mammoth](https://github.com/mwilliamson/python-mammoth), which reads Word files; PDFs are shown with [PDF.js](https://github.com/mozilla/pdf.js) and formulas with [KaTeX](https://katex.org). The desktop shell uses [MyGo](https://github.com/egoist/mygo). Thanks to their authors.</sub>
 
 [Apache 2.0](https://github.com/chenxiachan/textfold/blob/main/LICENSE) © 2026 Xia Chen · [Development](https://github.com/chenxiachan/textfold/blob/main/docs/DEVELOPMENT.md) · [Format](https://github.com/chenxiachan/textfold/blob/main/docs/format.md) · [Contributing](https://github.com/chenxiachan/textfold/blob/main/CONTRIBUTING.md) · [Security](https://github.com/chenxiachan/textfold/blob/main/SECURITY.md) · [Feedback](https://github.com/chenxiachan/textfold/issues)
 

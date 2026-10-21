@@ -58,6 +58,7 @@ class Fake:
         self.off = False
         self.items = {
             "ARXVKEY2": item("ARXVKEY2", "Chain of thought", url="https://arxiv.org/abs/2201.11903", extra="Citation Key: wei2022"),
+            "ARXPDF22": item("ARXPDF22", "An arXiv paper with its PDF", url="https://arxiv.org/abs/2201.11903", children=1),
             "HTMLKEY2": item("HTMLKEY2", "A saved page", itemType="webpage",
                              links={"attachment": {"attachmentType": "text/html"}}),
             "PDFSKEY2": item("PDFSKEY2", "A paper with its PDF", DOI="10.1234/abcd",
@@ -71,6 +72,7 @@ class Fake:
         self.children = {
             "HTMLKEY2": [attachment("ATTHTML2", "text/html", "imported_url", filename="snap.html")],
             "PDFSKEY2": [attachment("ATTPDFS2", "application/pdf", "imported_file", filename="paper.pdf")],
+            "ARXPDF22": [attachment("ATTARX22", "application/pdf", "imported_file", filename="arxiv.pdf")],
             "PLNPKEY2": [attachment("ATTPLNP2", "application/pdf", "imported_file", filename="plain.pdf")],
             "FAKEPDF2": [attachment("ATTFAKE2", "application/pdf", "imported_file", filename="fake.pdf")],
             "TRAVKEY2": [attachment("ATTTRAV2", "application/pdf", "imported_file", filename="../../secret.pdf")],
@@ -152,6 +154,8 @@ class Setup(unittest.TestCase):
         zdata = cls.tmp / "zotero-data"
         (zdata / "storage" / "ATTPDFS2").mkdir(parents=True)
         (zdata / "storage" / "ATTPDFS2" / "paper.pdf").write_bytes(PDF)
+        (zdata / "storage" / "ATTARX22").mkdir(parents=True)
+        (zdata / "storage" / "ATTARX22" / "arxiv.pdf").write_bytes(PDF)
         (zdata / "storage" / "ATTPLNP2").mkdir(parents=True)
         (zdata / "storage" / "ATTPLNP2" / "plain.pdf").write_bytes(PDF + b"%plain\n")
         (cls.tmp / "secret.pdf").write_bytes(PDF)   # what "../../secret.pdf" would reach from storage/<key>/
@@ -236,11 +240,16 @@ class ReadTest(Setup):
 
     def test_a_saved_page_is_its_file(self):
         got = zotero.read("users/0", "HTMLKEY2")
-        self.assertEqual((got["name"], got["data"].decode(), got["refs"]), ("snap.html", SNAPSHOT, []))
+        self.assertEqual((got["name"], got["data"].decode()), ("snap.html", SNAPSHOT))
 
-    def test_a_pdf_found_in_storage_carries_its_doi(self):
+    def test_a_pdf_found_in_storage_is_the_file_not_a_reference(self):
         got = zotero.read("users/0", "PDFSKEY2")   # (Zotero does not say where: found in its data folder)
-        self.assertEqual((got["name"], got["data"], got["refs"]), ("paper.pdf", PDF, ["10.1234/abcd"]))
+        self.assertEqual((got["name"], got["data"]), ("paper.pdf", PDF))
+
+    def test_a_stored_pdf_wins_over_the_items_arxiv_reference(self):
+        got = zotero.read("users/0", "ARXPDF22")
+        self.assertEqual((got["name"], got["data"]), ("arxiv.pdf", PDF))
+        self.assertNotIn("ref", got)
 
     def test_a_doi_alone_is_read_online(self):
         self.assertEqual(zotero.read("users/0", "DIGIKEY2")["ref"], "10.5555/only")
@@ -283,14 +292,13 @@ class ReadTest(Setup):
 
 
 class ServerTest(Setup):
-    """The routes, on a server of its own with this test's settings and data folder (and no engine: HOME is theirs)."""
+    """The routes, on a server of its own with this test's settings and data folder (and no MinerU key)."""
 
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
         cls.port = free_port()
-        # (the packages a user installed stay found: where they are is HOME's, unless PYTHONUSERBASE says; on Windows the
-        # home is USERPROFILE's, and the engine is under LOCALAPPDATA)
+        # (the packages a user installed stay found: where they are is HOME's, unless PYTHONUSERBASE says)
         env = {**os.environ, "HOME": str(cls.home), "USERPROFILE": str(cls.home), "LOCALAPPDATA": str(cls.home / "AppData" / "Local"),
                "TEXTFOLD_DATA": str(cls.data), "TEXTFOLD_NO_MODELS": "1", "PYTHONUSERBASE": site.getuserbase()}
         cls.proc = subprocess.Popen([sys.executable, "-m", "textfold", "serve", "--port", str(cls.port)], cwd=ROOT, env=env,
@@ -337,10 +345,10 @@ class ServerTest(Setup):
         listed = {p["id"]: p for p in self.call("/api/papers")[1]}
         self.assertEqual((listed[pid]["title"], listed[pid].get("zotero")), ("A saved page", True))
 
-    def test_a_pdf_waits_for_the_engine_as_a_dropped_one_does(self):
+    def test_a_scan_without_a_key_asks_for_one_and_leaves_no_upload(self):
         code, d = self.call("/api/zotero/read", {"item": "users/0/PLNPKEY2", "lang": "en"})   # (no DOI: nothing looked up online)
-        self.assertEqual((code, d.get("needs"), d["name"]), (200, "engine", "plain.pdf"), d)
-        self.assertTrue(d["upload"].startswith("pdf-"))
+        self.assertEqual((code, d.get("error"), d["name"]), (409, "needs-mineru-key", "plain.pdf"), d)
+        self.assertFalse(any((self.data / "uploads").glob("*.json")))
 
     def test_an_arxiv_item_comes_back_as_its_reference(self):
         self.assertEqual(self.call("/api/zotero/read", {"item": "users/0/ARXVKEY2", "lang": "en"}), (200, {"ref": "2201.11903", "title": "Chain of thought"}))

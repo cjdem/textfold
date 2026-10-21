@@ -29,10 +29,7 @@ dependencies = [
     "lxml_html_clean",   # trafilatura needs it (through justext's lxml[html_clean]), which an older pip leaves out
     "mammoth",
     "openpyxl",
-    # PDFs that have their words in them, read without the PDF engine; only where it comes built (elsewhere it would
-    # need Rust to install, and the engine reads those PDFs, as before)
-    'pdf-inspector>=1.25,<2; sys_platform == "darwin" or (sys_platform == "win32" and platform_machine == "AMD64") or (sys_platform == "linux" and (platform_machine == "x86_64" or platform_machine == "aarch64"))',
-    "pypdfium2>=4.30,<5.12",   # such a PDF's figures, cut from their pages; 5.11 is the last that runs on macOS 12
+    "pypdfium2>=4.30,<5.12",   # MinerU's block boxes turn into figures cut from the PDF's pages
 ]
 
 [project.optional-dependencies]

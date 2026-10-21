@@ -1,20 +1,13 @@
-# The app: Windows (not signed yet: SmartScreen asks once, More info › Run anyway).
-# It is built on its own system, since the Python it ships and its packages are that system's, and that Python runs
-# TextFold's tests and reads files before anything is packed (desktop/scripts/smoke.py).
-# A version tag (v0.10.2) builds it into a draft release, published once it has succeeded; run by hand
-# (Actions › desktop › Run workflow) it is kept as the run's artifacts.
-# The release also carries what the installed app updates from (desktop/main.js): latest.yml, and its blockmap,
-# for a download of what changed.
+# The MyGo app: Windows (not signed yet: SmartScreen asks once, More info › Run anyway).
+# It is built on its own system, since the Python it ships and its packages are that system's. The payload's Python
+# starts the server before anything is packed (desktop-mygo/scripts/smoke.py).
+# A version tag builds it into a draft release; run by hand (Actions › desktop › Run workflow) it is kept as the
+# run's artifacts. Signed MyGo update manifests are release work: the old Electron latest.yml is not compatible.
 name: desktop
 on:
   push:
     tags: ['v*']
   workflow_dispatch:
-    inputs:
-      version:
-        description: "The app's version alone, for a test of its updates (an older build and a newer one); empty: the code's"
-        required: false
-        default: ''
 
 permissions:
   contents: write
@@ -27,8 +20,8 @@ jobs:
       - name: One version, in the code, the app and the tag
         run: |
           code=$(sed -n 's/^__version__ = "\(.*\)"/\1/p' textfold/__init__.py)
-          app=$(node -p "require('./desktop/package.json').version")
-          test "$code" = "$app" || { echo "textfold $code, desktop/package.json $app"; exit 1; }
+          app=$(node -p "require('./desktop-mygo/mygo.json').version")
+          test "$code" = "$app" || { echo "textfold $code, desktop-mygo/mygo.json $app"; exit 1; }
           if [[ "$GITHUB_REF" == refs/tags/* ]]; then
             test "${GITHUB_REF_NAME#v}" = "$code" || { echo "tag $GITHUB_REF_NAME, code $code"; exit 1; }
           fi
@@ -53,38 +46,42 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: desktop-mygo/go.mod
+          cache-dependency-path: desktop-mygo/go.sum
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: npm ci
-        working-directory: desktop
-      - name: npm run ${{ matrix.script }}
-        working-directory: desktop
-        shell: bash
-        run: npm run ${{ matrix.script }} ${VERSION:+-- -c.extraMetadata.version=$VERSION}
+      - name: Prepare the bundled Python
+        run: node desktop-mygo/scripts/prepare-payload.mjs
         env:
-          VERSION: ${{ inputs.version }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}   # the payload script asks GitHub for the newest CPython build
-      - name: The bundled Python runs the tests, reads files and serves the reader
-        working-directory: desktop
-        shell: bash
-        run: payload/python/python.exe scripts/smoke.py
+      - name: Go shell tests
+        working-directory: desktop-mygo
+        run: |
+          go test ./...
+          go vet ./...
+      - name: Build TextFold
+        working-directory: desktop-mygo
+        run: go tool mygo build
+      - name: The bundled Python starts the server
+        run: desktop-mygo/resources/payload/python/python.exe desktop-mygo/scripts/smoke.py
+      - name: Give the installer the download page's stable name
+        shell: pwsh
+        run: |
+          $installer = Get-ChildItem desktop-mygo/build/windows-amd64 -Filter 'TextFold Setup *.exe' | Select-Object -First 1
+          if (-not $installer) { throw 'MyGo produced no installer' }
+          Copy-Item -LiteralPath $installer.FullName -Destination desktop-mygo/build/windows-amd64/TextFold-win-x64-setup.exe -Force
       - uses: actions/upload-artifact@v4
         with:
           name: textfold-${{ matrix.name }}
-          path: |
-            desktop/out/*.exe
-            desktop/out/*.blockmap
-            desktop/out/latest*.yml
+          path: desktop-mygo/build/windows-amd64/TextFold-win-x64-setup.exe
           if-no-files-found: error
       - name: Into the draft release
         if: startsWith(github.ref, 'refs/tags/')
-        shell: bash
-        run: |
-          shopt -s nullglob
-          files=(desktop/out/*.exe desktop/out/*.blockmap)
-          [ -f desktop/out/latest.yml ] && files+=(desktop/out/latest.yml)
-          gh release upload "$TAG" "${files[@]}" -R "$REPO" --clobber
+        shell: pwsh
+        run: gh release upload "$env:TAG" desktop-mygo/build/windows-amd64/TextFold-win-x64-setup.exe -R "$env:REPO" --clobber
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ github.ref_name }}

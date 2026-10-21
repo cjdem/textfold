@@ -90,15 +90,17 @@ python -m textfold serve
 | 论文的链接或 DOI：arXiv、PubMed Central、bioRxiv、medRxiv | 网站上结构化的正文（arXiv 论文没有 HTML 版本时读它的 PDF；其他 DOI 要在 Europe PMC 有开放全文） |
 | 其他任何网页 | 它的正文，去掉菜单、广告，以及网页对读者隐藏的文字 |
 | 维基百科条目、GitHub 仓库 | 条目；README，连同里面的图 |
-| PDF | 如果它是网上能读到的论文，就读网上的版本，你的文件放在旁边对照；其他 PDF 在你的电脑上读：不装引擎 TextFold 自己就能读，图也会裁出来；装了 PDF 引擎读得更完整（MinerU，约 3.4 GB，在首页安装一次即可），扫描件需要它 |
-| Word（DOCX）、PowerPoint（PPTX）、Excel（XLSX）文件，CSV、EPUB、保存的网页 | 文档本身，标题、表格、图片和公式都保留：不装引擎 TextFold 自己就能读，装了 PDF 引擎读得更完整 |
-| 图片 | 由 PDF 引擎识别出的文字 |
+| PDF | 正文和结构一律交给 MinerU Cloud API 解析；原 PDF 仍留在旁边供原文对照 |
+| Word（DOCX）、PowerPoint（PPTX）、Excel（XLSX）文件，CSV、EPUB、保存的网页 | 文档本身，标题、表格、图片和公式都保留：常见 Word、Excel、CSV、EPUB 和 HTML 在本机读取 |
+| 图片 | 由 MinerU Cloud API 识别出的文字 |
 | Zotero 文献库里的条目 | 有 arXiv 版本就读 arXiv，否则读它的 PDF 或其他附件，再没有就按 DOI 读。[直接读你的 Zotero ↑](#直接读你的-zotero) |
 | Markdown 或纯文本文件 | 原样的文件 |
 
-在 `~/.textfold/settings.json` 里写上 MinerU API 密钥（`mineru_api_key`），PDF、Word/PowerPoint/Excel 文件、HTML 和图片就改在 MinerU 的服务器上读：本机什么都不用装，文件会离开你的电脑。EPUB 和 CSV 由 TextFold 自己读取；装了引擎就交给引擎。
+所有 PDF 和图片都会上传到 MinerU Cloud API。密钥在 **设置 › 高级 › MinerU API** 中填写，保存在 `~/.textfold/settings.json`，不会回传到页面。本机不再安装 PDF 引擎，也没有离线 PDF 回退。常见的 Word、PowerPoint、Excel、EPUB、CSV 和 HTML 仍在本机读取。
 
 新的 RTF、OpenDocument（.odt、.ods、.odp）和旧版 Word、PowerPoint、Excel 文件（.doc、.ppt、.xls）不再接受导入：请先另存为 DOCX、PPTX、XLSX 或 PDF。已经在文库里的文档照常打开，已生成的层也保留。
+
+本地 MinerU 引擎移除后，新的 OFD 和 TIFF 文件也不再接受；已经在文库里的文档仍可阅读。
 
 读过的文档保存在系统存放应用数据的文件夹里，和桌面 App 共用。
 
@@ -154,6 +156,7 @@ TextFold 只是一个工具，它的许可证只管代码。分享文件时，�
 ## 最新
 
 - **2026 年 10 月 18 日：每篇论文一张阅读卡。** 阅读页顶部的 **阅读卡** 把研究问题与贡献、方法与前提、数据与实验设置、结果与局限放在一起，条目都能改，也都回到原文；重新生成先存为候选，卡片可导出 Markdown。
+- **2026 年 10 月 21 日：PDF 只走 MinerU Cloud API。** 每个 PDF 都直接交给 MinerU，不再先读本地文字，也不先查找在线版本。约 3.4 GB 的本地引擎和离线 PDF 路径已经删除。请先在设置里填写密钥；PDF 和图片会离开电脑，交给 MinerU 转换。
 - **2026 年 10 月 17 日：MinerU 的服务器读你的文件。** 在 `~/.textfold/settings.json` 里写上 `mineru_api_key`，PDF、Word/PowerPoint/Excel 文件、HTML 和图片就交给 MinerU 的云 API 读：不用装 3.4 GB 的引擎，文件会离开你的电脑。
 - **2026 年 10 月 17 日：英文文档默认带上简体中文版。** App 里打开一篇英文文档，会在同一次生成的最后顺便做出简体中文版，不用再请求一次就能读中文。
 - **2026 年 10 月 15 日：不装 PDF 引擎也能读 PDF。** 自带文字的 PDF（大多数论文都是）直接打开，图从原页上裁出来；只有扫描件还需要 PDF 引擎。没有 HTML 版本的 arXiv 论文改读它的 PDF。感谢 [@sylvainHellin](https://github.com/sylvainHellin)。
@@ -200,7 +203,7 @@ TextFold 只是一个工具，它的许可证只管代码。分享文件时，�
 
 <div align="center">
 
-<sub>TextFold 建立在这些开源项目之上：[trafilatura](https://github.com/adbar/trafilatura) 从网页中找出正文，[pdf-inspector](https://github.com/firecrawl/pdf-inspector) 读取 PDF 自带的文字，[PDFium](https://pdfium.googlesource.com/pdfium/)（经由 [pypdfium2](https://github.com/pypdfium2-team/pypdfium2)）裁出图，[MinerU](https://github.com/opendatalab/MinerU) 作为 PDF 引擎转换 PDF，[mammoth](https://github.com/mwilliamson/python-mammoth) 读取 Word 文件，[PDF.js](https://github.com/mozilla/pdf.js) 显示 PDF，[KaTeX](https://katex.org) 排版公式。感谢它们的作者。</sub>
+<sub>TextFold 建立在这些开源项目之上：[trafilatura](https://github.com/adbar/trafilatura) 从网页中找出正文，[PDFium](https://pdfium.googlesource.com/pdfium/)（经由 [pypdfium2](https://github.com/pypdfium2-team/pypdfium2)）从原页裁出图，[MinerU](https://github.com/opendatalab/MinerU) 的 Cloud API 读取每个 PDF，[mammoth](https://github.com/mwilliamson/python-mammoth) 读取 Word 文件，[PDF.js](https://github.com/mozilla/pdf.js) 显示 PDF，[KaTeX](https://katex.org) 排版公式。桌面外壳使用 [MyGo](https://github.com/egoist/mygo)。感谢它们的作者。</sub>
 
 [Apache 2.0](https://github.com/chenxiachan/textfold/blob/main/LICENSE) © 2026 Xia Chen · [开发文档](https://github.com/chenxiachan/textfold/blob/main/docs/DEVELOPMENT.md) · [格式](https://github.com/chenxiachan/textfold/blob/main/docs/format.md) · [参与贡献](https://github.com/chenxiachan/textfold/blob/main/CONTRIBUTING.md) · [安全](https://github.com/chenxiachan/textfold/blob/main/SECURITY.md) · [反馈](https://github.com/chenxiachan/textfold/issues)
 

@@ -5,7 +5,7 @@
   python -m textfold notes.md [--lang zh] ...           the same for a Markdown file
   python -m textfold export <arxiv id>                   one self-contained HTML file in out/<id>/
   python -m textfold get <link or file> [--level topic] [--section 3] [--json]   a document at one level (for a person or an agent)
-  python -m textfold engine status | install | remove              the PDF engine (MinerU, about 3.4 GB)
+  python -m textfold mineru status                        MinerU's Cloud API and its key
 """
 import argparse
 import shutil
@@ -22,9 +22,9 @@ def _say(*a):
 
 def get(a):
     """A document at one level, on stdout: written first when it has no levels yet (a model is called), unless
-    --no-generate. A PDF (or a Word, PowerPoint, Excel, EPUB or HTML file, a picture) goes through the PDF engine; a
-    Markdown or text file is read as it is. New RTF, OpenDocument and old Office files are refused."""
-    from . import agents, engine, fold, langs, models, office, pdfdoc, pdftext, store
+    --no-generate. Common Office/E-book/CSV/HTML files are read here; every PDF and every picture goes through MinerU's
+    Cloud API. New RTF, OpenDocument and old Office files are refused."""
+    from . import agents, engine, fold, langs, models, office, pdfdoc, store
     if a.lang not in langs.LANGS:
         _say(f"unknown language {a.lang}: " + ", ".join(langs.LANGS))
         return 2
@@ -39,30 +39,34 @@ def get(a):
             _say("TextFold no longer opens new RTF, OpenDocument or old Word, PowerPoint or Excel files: "
                  "save it as DOCX, PPTX, XLSX or PDF first.")
             return 2
-        if not (store.pdir(pid) / "meta.json").exists() and not engine.readable(ext) and ext != "pdf" and office.reads(ext):
-            office.save(pid, f, f.name)   # (the engine reads it more completely, when it is installed)
-        elif not (store.pdir(pid) / "meta.json").exists() and not engine.readable(ext) and ext == "pdf" and pdftext.save(pid, f, f.name):
-            pass   # a PDF with its words in it, read by TextFold itself (a scan still needs the engine)
-        elif not (store.pdir(pid) / "meta.json").exists():
-            if not engine.readable(ext):
+        if not (store.pdir(pid) / "meta.json").exists():
+            read_here = False
+            if ext != "pdf" and office.reads(ext):
+                try:
+                    office.save(pid, f, f.name)
+                    read_here = True
+                except ValueError:
+                    pass
+            if not read_here and not engine.readable(ext):
                 what = "PDF" if ext == "pdf" else "picture" if ext in engine.PICTURES else f"{engine.FILES[ext]} file"
-                how = "python -m textfold engine install" + (
-                    ", or a MinerU API key (mineru_api_key in ~/.textfold/settings.json)" if ext in engine.API_FILES else "")
-                _say(f"This {what} needs the PDF engine: {how}")
+                how = ("set mineru_api_key in ~/.textfold/settings.json"
+                       if ext in engine.API_FILES else "MinerU's API does not read this kind")
+                _say(f"This {what} cannot be read here: {how}")
                 return 2
-            tier = engine.tier_for(f"x.{ext}", models.load_settings().get("pdf_tier") or "fast")
-            out = store.DATA / "uploads" / f"{pid}-{tier}"
-            src = f
-            if f.suffix.lower() != f".{ext}":   # (an extension the engine knows by another: .tif)
-                src = store.DATA / "uploads" / f"{pid}.{ext}"
-                src.parent.mkdir(parents=True, exist_ok=True)
-                src.write_bytes(data)
-            engine.convert(src, out, tier, progress=lambda s, d, t: _say(f"  converting {d}/{t}") if t else None, log=lambda line: None)
-            pdfdoc.store_pdf(pid, out, pdfdoc.read_output(out), f.name, tier)
-            (store.pdir(pid) / pdfdoc.kept_name(pid, src)).write_bytes(data)
-            shutil.rmtree(out, ignore_errors=True)   # the engine's output (and its copy of the file), stored
-            if src != f:
-                src.unlink(missing_ok=True)
+            if not read_here:
+                tier = engine.tier_for(f"x.{ext}", models.load_settings().get("pdf_tier") or "fast")
+                out = store.DATA / "uploads" / f"{pid}-{tier}"
+                src = f
+                if f.suffix.lower() != f".{ext}":   # (an extension the engine knows by another: .tif)
+                    src = store.DATA / "uploads" / f"{pid}.{ext}"
+                    src.parent.mkdir(parents=True, exist_ok=True)
+                    src.write_bytes(data)
+                engine.convert(src, out, tier, progress=lambda s, d, t: _say(f"  converting {d}/{t}") if t else None, log=lambda line: None)
+                pdfdoc.store_pdf(pid, out, pdfdoc.read_output(out), f.name, tier)
+                (store.pdir(pid) / pdfdoc.kept_name(pid, src)).write_bytes(data)
+                shutil.rmtree(out, ignore_errors=True)   # MinerU's output (and its copy of the file), stored
+                if src != f:
+                    src.unlink(missing_ok=True)
     elif f.is_file():
         pid = local.import_file(f)
     else:
@@ -90,20 +94,15 @@ def get(a):
     return 0
 
 
-def engine_cmd(args):
+def mineru_cmd(args):
     from . import engine
     what = args[0] if args else "status"
-    if what == "install":
-        engine.install(progress=lambda s, d, t: _say(f"  {s} ({d}/{t})"), log=_say)
-    elif what == "remove":
-        engine.uninstall()
-    elif what != "status":
-        _say("python -m textfold engine status | install | remove")
+    if what != "status":
+        _say("python -m textfold mineru status")
         return 2
     st = engine.status()
-    print(f"PDF engine: {'installed' if st['installed'] else 'not installed'} (MinerU {st['version']})"
-          + (f", {st['bytes'] / 1e9:.1f} GB in {st['path']}" if st["installed"] else "")
-          + (", MinerU API key set" if st["api"] else ""))
+    print("MinerU API key: " + ("set" if st["api"] else "not set")
+          + " (mineru_api_key in ~/.textfold/settings.json)")
     return 0
 
 
@@ -130,8 +129,8 @@ def main():
         ap.add_argument("--json", action="store_true", help="the whole document in the TextFold format (docs/format.md)")
         ap.add_argument("--no-generate", action="store_true", help="call no model: the levels already written, or the local ones")
         return sys.exit(get(ap.parse_args(sys.argv[2:])))
-    if len(sys.argv) > 1 and sys.argv[1] == "engine":
-        return sys.exit(engine_cmd(sys.argv[2:]))
+    if len(sys.argv) > 1 and sys.argv[1] in ("mineru", "engine"):
+        return sys.exit(mineru_cmd(sys.argv[2:]))
     if len(sys.argv) > 1 and sys.argv[1] == "export":
         print(build.export(sys.argv[2]))
         return

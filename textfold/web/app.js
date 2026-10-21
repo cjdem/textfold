@@ -70,7 +70,7 @@
   };
   const stopBtn = (j, T) => `<button type="button" class="sb-stop" data-stop="${j.id}" title="${esc(T.stop)}" aria-label="${esc(T.stop)}"${j.stopping ? ' disabled' : ''}><i></i></button>`;
   const progress = (j, T) => `<span class="sb-prog"><i style="width:${pct(j)}%"></i></span><span class="sb-stage">${esc(stageOf(j, T))}${j.lang ? ` · ${esc(I18N.NATIVE[j.lang])}` : ''}</span>`;
-  const jobName = (j, T) => (j.kind === 'install' ? T.engine : j.title || j.pid);
+  const jobName = (j, T) => j.title || j.pid;
   let lastSidebar = '';
   function renderSidebar() {
     stale = false;
@@ -504,42 +504,20 @@
   async function submit(paper, lang, force, onUpdate) {
     return watch(await api('/api/generate', { paper, lang, force: !!force }), onUpdate);
   }
-  // what a PDF says it is, read in the browser: an arXiv id from its margin stamp, a DOI from its metadata or its
-  // first page. Only the first page: the second is often the references, full of other papers' ids.
-  async function refsOf(file) {
-    const lib = await import('/static/vendor/pdfjs/pdf.min.mjs');
-    lib.GlobalWorkerOptions.workerSrc = '/static/vendor/pdfjs/pdf.worker.min.mjs';
-    const loading = lib.getDocument({ data: new Uint8Array(await file.arrayBuffer()), isEvalSupported: false });
-    try {
-      const doc = await loading.promise;
-      const meta = await doc.getMetadata().catch(() => ({}));
-      const info = meta.info || {}, xmp = meta.metadata;
-      const said = [info.Subject, info.Keywords, info.doi, xmp && xmp.get && xmp.get('prism:doi'), xmp && xmp.get && xmp.get('dc:identifier')]
-        .filter((x) => typeof x === 'string').join(' ');
-      const page = (await (await doc.getPage(1)).getTextContent()).items.map((i) => i.str).join(' ');
-      const refs = [];
-      const add = (r) => { if (r && !refs.includes(r)) refs.push(r); };
-      for (const m of `${said} ${page}`.matchAll(/arXiv:\s?(\d{4}\.\d{4,5})(?:v\d+)?|arxiv\.org\/(?:abs|pdf)\/(\d{4}\.\d{4,5})/gi)) add(m[1] || m[2]);
-      for (const m of `${said} ${page}`.matchAll(/\b(10\.\d{4,9}\/[^\s"<>]+)/g)) add(m[1].replace(/[.,;:)\]]+$/, ''));
-      return refs.slice(0, 4);
-    } finally { loading.destroy(); }
-  }
-  // a file to the server: a PDF with what it says it is (the paper online, or a conversion, or a wait for the engine);
-  // a Word file, an e-book, a picture, converted the same way
+  // A file to the server: a PDF always through MinerU; a Word file, an e-book or a picture through its local reader or
+  // MinerU.
   async function uploadFile(file, lang) {
-    let refs = [];
-    if (isPdf(file)) try { refs = await refsOf(file); } catch { /* a PDF pdf.js cannot open: the engine may still read it */ }
     const r = await fetch('/api/files', { method: 'POST', body: file, headers: { 'Content-Type': file.type || 'application/octet-stream',
-      'X-Name': encodeURIComponent(file.name), 'X-Lang': lang, 'X-Refs': encodeURIComponent(JSON.stringify(refs)) } });
+      'X-Name': encodeURIComponent(file.name), 'X-Lang': lang } });
     const d = await r.json();
     if (!r.ok || d.error) throw new Error(d.error || r.statusText);
     return d;
   }
   const isPdf = (file) => /\.pdf$/i.test(file.name) || file.type === 'application/pdf';
-  // what TextFold still takes: the engine's kinds minus the legacy ones (engine.FILES, engine.LEGACY), and Markdown
-  // and text, read as they are
+  // What the picker and drop zone take. OFD and TIFF are absent: their only reader was the removed local engine and
+  // MinerU's API does not take them.
   const ENGINE_EXT = ['pdf', 'docx', 'pptx', 'xlsx', 'epub', 'html', 'htm', 'mhtml', 'mht',
-    'csv', 'tsv', 'ofd', 'png', 'jpg', 'jpeg', 'webp', 'gif', 'bmp', 'tif', 'tiff', 'jp2'];
+    'csv', 'tsv', 'png', 'jpg', 'jpeg', 'webp', 'gif', 'bmp', 'jp2'];
   // not offered in the picker, but uploaded so the server answers: a PDF renamed .odt still opens as a PDF
   const LEGACY_EXT = ['doc', 'ppt', 'xls', 'rtf', 'odt', 'ods', 'odp'];
   const TEXT_EXT = ['md', 'markdown', 'mdown', 'txt'];
@@ -561,8 +539,8 @@
   const errText = (msg) => (msg === 'no-html' ? t().no_html : msg === 'bad-ref' ? t().bad_ref : msg === 'no-model' ? t().no_model
     : msg === 'not-markdown' || msg === 'empty' || msg === 'not-supported' ? t().md_only : msg === 'legacy-format' ? t().legacy_format
     : msg === 'no-fulltext' ? t().no_fulltext
-    : msg === 'no-readme' ? t().no_readme : msg === 'github-limit' ? t().github_limit : msg === 'needs-engine' ? t().pdf_needs
-    : msg === 'busy' ? t().engine_busy : msg === 'not-pdf' ? t().not_pdf : msg === 'too-large' ? t().pdf_large
+    : msg === 'no-readme' ? t().no_readme : msg === 'github-limit' ? t().github_limit : msg === 'needs-mineru-key' ? t().mineru_needed
+    : msg === 'bad-mineru-key' ? t().mineru_bad_key : msg === 'busy' ? t().busy : msg === 'not-pdf' ? t().not_pdf : msg === 'too-large' ? t().pdf_large
     : msg === 'bad-file' ? t().file_bad : msg === 'no-file' ? t().no_file : msg === 'not-running' ? t().z_off : msg === 'api-off' ? t().z_api_off
     : msg === 'web-notext' ? t().web_notext : msg === 'web-pdf' ? t().web_pdf : msg === 'web-blocked' ? t().web_blocked : msg);
 
@@ -586,7 +564,7 @@
     const D = window.desktop, box = h('div', 'gen-toast upd-toast');
     let last = null, fade = 0;
     box.hidden = true; toasts.append(box);
-    const SAID = { latest: 'up_latest', 'check-failed': 'up_check_failed', dev: 'up_dev' };   // answers to a check by hand
+    const SAID = { latest: 'up_latest', 'check-failed': 'up_check_failed', dev: 'up_dev', disabled: 'up_disabled' };   // answers to a check by hand
     const show = (s) => {
       last = s;
       clearTimeout(fade);
@@ -636,9 +614,7 @@
         try {
           const d = await uploadFile(file, uiLang);
           if (d.paper) { location.href = `/p/${d.paper}?lang=${encodeURIComponent(d.job.lang)}`; return; }   // read already
-          const q = new URLSearchParams({ t: file.name });
-          if (d.needs === 'engine') q.set('engine', d.upload); else { q.set('follow', d.job.id); if (d.via === 'online') q.set('ref', d.ref); }
-          location.href = `/?${q}`;
+          location.href = `/?${new URLSearchParams({ t: file.name, follow: d.job.id })}`;
         } catch (x) { say(errText(x.message), 4000); }
         return;
       }
@@ -811,7 +787,6 @@
         if (latest !== mine) return;
         const T = t(), name = esc(label || jobName(j, T)), in_ = j.lang ? ` · ${esc(I18N.NATIVE[j.lang])}` : '';
         if (j.status === 'moved' && j.next) { watchers.set(j.next, cb); startPolling(); return; }   // (an arXiv paper without HTML: its PDF converts)
-        if (j.status === 'error' && j.error === 'needs-engine') { engineCard(j.upload, label || j.title || j.pid); return; }
         if (j.status === 'error') { card.innerHTML = `<div class="jc-t">${esc(T.failed)} · ${name}</div><div class="jc-e">${esc(errText(j.error))}</div>`; return; }
         if (j.status === 'stopped') {
           card.innerHTML = `<div class="jc-head"><div class="jc-t">${name}${in_}</div>${j.kind === 'generate' ? `<button type="button" class="jc-go">${esc(T.resume)}</button>` : ''}</div>
@@ -837,26 +812,14 @@
         await submit(ref, lang, false, onCard(label, mine));
       } catch (x) { card.hidden = true; fail(errText(x.message)); }
     }
-    // a file that needs the engine: what it is and what it takes, and its install, in the card; once installed, the
-    // file waiting for it converts (the server starts that), and the card follows the conversion
-    function engineCard(upload, name) {
-      const T = t(), other = /^doc-/.test(upload);   // not a PDF: a Word file, an e-book, a picture
+    // MinerU has no local fallback: a PDF, picture or other MinerU-only file needs a key before it can be read.
+    function mineruCard(name) {
+      const T = t();
       card.hidden = false;
-      card.innerHTML = `<div class="jc-t">${esc(other ? T.file_needs : T.pdf_needs)}</div><div class="jc-s">${esc(name)}</div><p class="jc-why">${esc(other ? T.file_needs_why : T.pdf_needs_why)}</p>
-        <div class="jc-acts"><button type="button" class="primary jc-install">${esc(T.engine_install)}</button><button type="button" class="jc-later">${esc(T.not_now)}</button></div>`;
+      card.innerHTML = `<div class="jc-t">${esc(T.mineru_needed)}</div><div class="jc-s">${esc(name)}</div><p class="jc-why">${esc(T.mineru_needed_why)}</p>
+        <div class="jc-acts"><button type="button" class="primary jc-mineru">${esc(T.mineru_settings)}</button><button type="button" class="jc-later">${esc(T.not_now)}</button></div>`;
       card.querySelector('.jc-later').onclick = () => { card.hidden = true; };
-      card.querySelector('.jc-install').onclick = async () => {
-        const mine = {};
-        latest = mine;
-        try {
-          const show = onCard(t().engine, mine);
-          watch(await api('/api/engine/install', {}), (j) => {
-            if (j.status !== 'done') { show(j); return; }
-            const conv = jobs.find((x) => x.kind === 'convert' && x.pid === upload);
-            if (conv) watch(conv, onCard(name, mine)); else card.hidden = true;
-          });
-        } catch (x) { fail(errText(x.message)); }
-      };
+      card.querySelector('.jc-mineru').onclick = () => { card.hidden = true; openSettings({ mineru: true }); };
     }
     async function openUpload(file) {
       if (file.size > 100 * 1024 * 1024) { fail(isPdf(file) ? t().pdf_large : t().file_large); return; }
@@ -868,16 +831,18 @@
         const d = await uploadFile(file, lang);
         if (latest !== mine) return;
         took(d, file.name, mine, lang);
-      } catch (x) { card.hidden = true; fail(errText(x.message)); }
+      } catch (x) {
+        if (x.message === 'needs-mineru-key') mineruCard(file.name);
+        else { card.hidden = true; fail(errText(x.message)); }
+      }
     }
-    // the server's reply to a file: the engine it waits for, the document read already, or the job that reads it
+    // the server's reply to a file: the document read already, or the job that reads it
     function took(d, name, mine, lang) {
-      if (d.needs === 'engine') { engineCard(d.upload, name); return; }
       if (d.paper) { location.href = `/p/${d.paper}?lang=${encodeURIComponent(lang)}`; return; }   // read already
-      watch(d.job, onCard(d.via === 'online' ? null : name, mine, d.via === 'online' ? t().pdf_online.replace('{ref}', d.ref) : ''));
+      watch(d.job, onCard(name, mine, ''));
     }
-    // an item of the Zotero library (zotero.py): its paper online, generated as a link is; else its file, read as a
-    // file dropped here is
+    // an item of the Zotero library (zotero.py): its file, read as one dropped here is; else its paper online,
+    // generated as a link is
     async function readItem(item, title) {
       err.hidden = true;
       const lang = sel.value, mine = {};
@@ -893,7 +858,10 @@
           return;
         }
         took(d, d.name || title, mine, lang);
-      } catch (x) { card.hidden = true; fail(errText(x.message)); }
+      } catch (x) {
+        if (x.message === 'needs-mineru-key') mineruCard(title);
+        else { card.hidden = true; fail(errText(x.message)); }
+      }
     }
     pickItem = readItem;
     document.getElementById('zlib-open').onclick = () => openLibrary();
@@ -905,8 +873,8 @@
       if (!modelName) { fail(t().no_model); return; }   // connect a model first (the card below)
       start(ref);
     };
-    // a file, from the drop zone or dropped anywhere on the page: one the engine reads is converted (no model is
-    // needed to read it); a Markdown or text file is stored by the server, then generated
+    // a file, from the drop zone or dropped anywhere on the page: a PDF/picture goes through MinerU, a common Office or
+    // e-book file through TextFold's own reader; a Markdown or text file is stored, then generated
     async function openFile(file) {
       err.hidden = true;
       if (!file) return;
@@ -944,8 +912,7 @@
       if (modelName) start(started.get('start'), started.get('t')); else fail(t().no_model);
     }
     if (started.get('zotero')) { history.replaceState(null, '', '/'); readItem(started.get('zotero'), started.get('t') || ''); }
-    // a PDF dropped on a paper's page, uploaded there: its job followed here, or the engine it waits for
-    if (started.get('engine')) { history.replaceState(null, '', '/'); engineCard(started.get('engine'), started.get('t') || ''); }
+    // a PDF dropped on a paper's page, uploaded there: its job followed here
     if (started.get('follow')) {
       history.replaceState(null, '', '/');
       const job = jobs.find((j) => j.id === started.get('follow')), mine = {};
@@ -1052,7 +1019,7 @@
     let data = await api('/api/models');
     const app = window.desktop && window.desktop.checkForUpdates ? await window.desktop.version() : null;   // in the app: its version
     let form = null;          // the provider being added or edited: {key?, preset, name, base, api_key, found, picked}
-    let advancedOpen = !!(opts && (opts.add || opts.minted));   // (adding a provider or back from OpenRouter: its form is in Advanced)
+    let advancedOpen = !!(opts && (opts.add || opts.minted || opts.mineru));   // (provider forms and MinerU live in Advanced)
     const tests = {};         // the last connection test of each model: the levels' (gen), the questions' (ask)
     let bridgeStarting = false;
     const dlg = h('dialog', 'settings prefs'); document.body.append(dlg);
@@ -1177,51 +1144,61 @@
           <section>${askSection()}</section>
           <section><h3>${esc(t.st_agents)}</h3>${agentSection()}</section>
           <section><h3>${esc(t.st_providers)}</h3>${providerSection()}</section>
-          <section class="st-engine"></section>
+          <section class="st-mineru"></section>
         </details>
         </div>
         <footer class="stp-foot"><p>${esc(t.key_note)}</p><button type="button" class="primary st-close">${esc(t.st_close)}</button></footer></div>`;
       wire();
-      renderEngine();
+      renderMineru();
       const adv = q('.st-adv');
       if (adv) { adv.open = advancedOpen; adv.addEventListener('toggle', () => { advancedOpen = adv.open; }); }
-      q('.stp-body').scrollTop = y;   // (after the engine's part, which makes the sections their full height)
+      q('.stp-body').scrollTop = y;   // (after MinerU's part, which makes the sections their full height)
       if (form && !formShown) q('.st-form').scrollIntoView({ block: 'nearest' });   // adding or editing a provider: the form in view
       formShown = !!form;
     }
     const q = (sel) => dlg.querySelector(sel);
-    // the PDF engine's own part of the dialog, drawn again on its own while it installs
-    const gb = (b) => (b ? `${(b / 1e9).toFixed(1)} GB` : '');
-    function renderEngine() {
-      const box = q('.st-engine');
+    // MinerU's Cloud API: the only PDF reader, and the fallback for a picture.
+    function renderMineru() {
+      const box = q('.st-mineru');
       if (!box) return;
-      const t = T(), e = data.engine || {}, job = jobs.find((j) => j.kind === 'install' && live(j));
-      const act = job ? '' : e.installed ? `<button type="button" class="st-btn danger st-engine-rm">${esc(t.engine_remove)}</button>`
-        : e.api ? '' : `<button type="button" class="st-btn st-engine-in">${esc(t.engine_install)}</button>`;
-      const viaApi = e.api ? `<div class="st-item"><i class="st-dot"></i><div class="st-main"><b>MinerU API</b><span class="st-meta">${esc(t.engine_api)}</span></div></div>` : '';
-      const here = e.installed ? `<div class="st-item"><i class="st-dot"></i><div class="st-main"><b>MinerU ${esc(e.version)}</b><span class="st-meta">${esc(t.engine_on.replace('{size}', gb(e.bytes)))} · <code title="${esc(e.path)}">${esc(e.path.split(/[\\/]/).slice(-3).join('/'))}</code></span></div>${act}</div>`
-        : e.api ? '' : `<div class="st-item"><div class="st-main st-meta st-desc">${esc(t.engine_off)}</div>${act}</div>`;
-      const state = job ? `<div class="st-item"><i class="st-dot busy"></i><div class="st-main"><b>${esc(t.engine)}</b><span class="st-meta">${esc(stageOf(job, t))}</span></div></div>`
-        : viaApi + here;
-      const tier = `<div class="st-item"><label class="st-main" for="st-tier"><b>${esc(t.tier)}</b></label><select class="st-tiersel" id="st-tier">${['fast', 'accurate'].map((k) =>
-        `<option value="${k}"${(data.pdfTier || 'fast') === k ? ' selected' : ''}>${esc(t['tier_' + k])}</option>`).join('')}</select></div>`;
-      box.innerHTML = `<h3>${esc(t.engine)}</h3><div class="st-list">${state}${tier}</div>`;
-      box.querySelector('.st-tiersel').onchange = async (ev) => { data = await api('/api/settings', { pdf_tier: ev.target.value }); renderEngine(); };
-      const inst = box.querySelector('.st-engine-in');
-      if (inst) inst.onclick = async () => { inst.disabled = true; watch(await api('/api/engine/install', {}), () => {}); follow(); };
-      const rm = box.querySelector('.st-engine-rm');
-      if (rm) rm.onclick = async () => {
-        if (!confirm(t.engine_remove_q.replace('{size}', gb(e.bytes)))) return;
-        try { data.engine = await api('/api/engine/remove', {}); } catch (x) { alert(errText(x.message)); }
-        renderEngine();
+      const t = T(), m = data.mineru || {};
+      box.innerHTML = `<h3>${esc(t.st_mineru)}</h3><div class="st-list">
+        <div class="st-item"><i class="st-dot${m.api ? '' : ' bad'}"></i><div class="st-main"><b>MinerU Cloud API</b><span class="st-meta">${esc(m.api ? t.mineru_connected : t.mineru_not_connected)}</span></div></div>
+        <div class="st-item st-key"><label class="st-main" for="st-mineru-key"><b>${esc(t.mineru_key)}</b><span class="st-meta">${esc(t.mineru_key_note)}</span></label>
+          <input id="st-mineru-key" class="st-mineru-key" type="password" autocomplete="off" spellcheck="false" placeholder="${esc(m.api ? t.mineru_key_kept : t.mineru_key_ph)}">
+          <button type="button" class="st-btn st-mineru-save">${esc(t.save)}</button>
+          ${m.api ? `<button type="button" class="st-btn danger st-mineru-clear">${esc(t.mineru_clear)}</button>` : ''}</div>
+        <div class="st-item"><div class="st-main"><b>${esc(t.mineru_privacy_h)}</b><span class="st-meta">${esc(t.mineru_privacy)}</span></div></div>
+        <div class="st-item"><label class="st-main" for="st-tier"><b>${esc(t.tier)}</b></label><select class="st-tiersel" id="st-tier">${['fast', 'accurate'].map((k) =>
+          `<option value="${k}"${(data.pdfTier || 'fast') === k ? ' selected' : ''}>${esc(t['tier_' + k])}</option>`).join('')}</select></div>
+      </div>`;
+      const save = box.querySelector('.st-mineru-save'), input = box.querySelector('.st-mineru-key');
+      const put = async (key) => {
+        save.disabled = true;
+        try {
+          const next = await api('/api/settings', { mineru_api_key: key });
+          data.mineru = next.mineru; data.pdfTier = next.pdfTier;
+          renderMineru();
+        } catch (x) {
+          save.disabled = false;
+          input.setCustomValidity(errText(x.message));
+          input.reportValidity();
+        }
       };
-    }
-    function follow() {   // while it installs: its stage here, then what it found
-      const tick = setInterval(async () => {
-        if (!dlg.open) { clearInterval(tick); return; }
-        if (!jobs.some((j) => j.kind === 'install' && live(j))) { clearInterval(tick); data = await api('/api/models'); }
-        renderEngine();
-      }, 1500);
+      save.onclick = () => {
+        const key = input.value.trim();
+        if (!key) { input.setCustomValidity(t.mineru_key_empty); input.reportValidity(); return; }
+        input.setCustomValidity('');
+        put(key);
+      };
+      input.oninput = () => input.setCustomValidity('');
+      const clear = box.querySelector('.st-mineru-clear');
+      if (clear) clear.onclick = () => { if (confirm(t.mineru_clear_q)) put(''); };
+      box.querySelector('.st-tiersel').onchange = async (ev) => {
+        const next = await api('/api/settings', { pdf_tier: ev.target.value });
+        data.mineru = next.mineru; data.pdfTier = next.pdfTier;
+        renderMineru();
+      };
     }
     const update = (d) => { data = d; modelName = d.models.length ? (d.selectedName || '') : ''; askName = d.askName || ''; renderSidebar(); if (landing) renderLanding(); render(); };
 
@@ -1233,7 +1210,7 @@
         up.disabled = true; msg.textContent = '…';
         const r = await window.desktop.checkForUpdates().catch(() => ({ kind: 'check-failed' }));
         up.disabled = false;
-        msg.textContent = r.kind === 'latest' ? t.up_latest : r.kind === 'dev' ? t.up_dev : r.kind === 'check-failed' ? t.up_check_failed
+        msg.textContent = r.kind === 'latest' ? t.up_latest : r.kind === 'dev' ? t.up_dev : r.kind === 'disabled' ? t.up_disabled : r.kind === 'check-failed' ? t.up_check_failed
           : r.kind === 'ready' ? t.up_ready.replace('{v}', r.version) : t.up_new.replace('{v}', r.version || '');
       };
       q('.st-ui').onchange = (e) => { setUiLang(e.target.value); render(); };
@@ -1333,8 +1310,8 @@
     render();
     dlg.showModal();
     if (form) q('.st-form')?.scrollIntoView({ block: 'nearest' });   // (the render's call runs before the dialog is shown)
+    if (opts && opts.mineru) q('.st-mineru')?.scrollIntoView({ block: 'nearest' });
     if (opts && opts.minted) fetchModels();
-    if (jobs.some((j) => j.kind === 'install' && live(j))) follow();   // an install started on the landing
     // the startup scan may still be running: show what it finds as it lands
     const wait = async () => { if (!dlg.isConnected) return; if (data.scanning) { await new Promise((r) => setTimeout(r, 800)); update(await api('/api/models')); wait(); } };
     wait();

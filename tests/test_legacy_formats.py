@@ -1,9 +1,8 @@
 """New imports of RTF, OpenDocument and old Office files are refused with their own message, from the
 landing and from `textfold get`; a PDF renamed to one of those extensions still opens as a PDF.
 
-The kinds stay known to the engine, so a document converted before the rule still opens, and can be
-converted again where the engine reads it. Zotero prefers an attachment of a kind still imported, and
-falls back to a DOI before offering a legacy-only file.
+The kinds stay known to the file router, so a document converted before the rule still opens. Zotero
+prefers an attachment of a kind still imported, and falls back to a DOI before offering a legacy-only file.
 
 Run from the repo root:
     python -m unittest discover tests
@@ -48,9 +47,22 @@ class LegacyImports(unittest.TestCase):
             self.assertIn(ext, engine.LEGACY)
 
     def test_the_kinds_the_reader_still_takes_are_not_legacy(self):
-        for ext in ("docx", "pptx", "xlsx", "csv", "tsv", "html", "htm", "mhtml", "mht", "epub", "ofd", "pdf"):
+        for ext in ("docx", "pptx", "xlsx", "csv", "tsv", "html", "htm", "mhtml", "mht", "epub", "pdf"):
             self.assertNotIn(ext, engine.LEGACY, ext)
             self.assertEqual(engine.kind_of(f"paper.{ext}"), ext)
+
+    def test_ofd_stays_known_for_a_stored_document_but_is_not_taken_new(self):
+        self.assertEqual(engine.kind_of("paper.ofd"), "ofd")
+        self.assertNotIn("ofd", engine.API_FILES)
+        with tempfile.TemporaryDirectory() as folder:
+            old = store.DATA
+            store.DATA = Path(folder)
+            try:
+                reply, code = server.take_file(None, b"not an ofd", {"X-Name": "paper.ofd", "X-Lang": "en"})
+                self.assertEqual((reply, code), ({"error": "not-supported"}, 400))
+                self.assertFalse(any((store.DATA / "uploads").iterdir()))
+            finally:
+                store.DATA = old
 
     def test_a_pdf_named_odt_still_goes_to_the_pdf_route(self):
         with mock.patch.object(server, "take_pdf", return_value=({"paper": "p"}, 200)) as pdf:
@@ -118,18 +130,24 @@ class LegacyCli(unittest.TestCase):
             finally:
                 store.DATA = old
 
-    def test_get_reads_a_pdf_named_odt_as_a_pdf(self):
+    def test_get_sends_a_pdf_named_odt_to_mineru_as_a_pdf(self):
         with tempfile.TemporaryDirectory() as folder:
             old = store.DATA
             store.DATA = Path(folder)
             try:
                 f = Path(folder) / "paper.odt"
-                f.write_bytes(b"%PDF-1.7\nnot really a pdf")
-                with mock.patch.object(engine, "readable", return_value=False), \
-                     mock.patch("textfold.pdftext.save", return_value=True):
+                data = b"%PDF-1.7\nnot really a pdf"
+                f.write_bytes(data)
+                store.pdir(pdfdoc.pid_of(data, "pdf")).mkdir(parents=True)
+                with mock.patch.object(engine, "readable", return_value=True), \
+                     mock.patch.object(engine, "convert") as convert, \
+                     mock.patch.object(pdfdoc, "read_output", return_value={}), \
+                     mock.patch.object(pdfdoc, "store_pdf"), \
+                     mock.patch.object(pdfdoc, "kept_name", return_value="original.pdf"):
                     code, generate = self.run_get(str(f))
                 self.assertEqual(code, 0)
                 self.assertTrue(generate.called)
+                convert.assert_called_once()
             finally:
                 store.DATA = old
 

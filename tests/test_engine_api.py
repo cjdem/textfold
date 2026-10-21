@@ -1,5 +1,5 @@
-"""The MinerU cloud API's output as the structured content the engine on this computer writes (engine._structured):
-pages of blocks, boxes 0-1, the types pdfdoc reads. Nothing here calls the API: the zip's own JSON is stood in.
+"""The MinerU cloud API's output as structured content (engine._structured): pages of blocks, boxes 0-1, the types
+pdfdoc reads. Nothing here calls the API: the zip's own JSON is stood in.
 
 Run from the repo root:
     python -m unittest discover tests
@@ -65,7 +65,7 @@ class Structured(unittest.TestCase):
         (d / name).write_text(json.dumps(data), encoding="utf-8")
         return d
 
-    def test_v2_becomes_engine_blocks(self):
+    def test_v2_becomes_reader_blocks(self):
         sc = engine._structured(self.folder("x_content_list_v2.json", V2), "pdf")
         self.assertEqual(sc["metadata"]["file_suffix"], "pdf")
         self.assertEqual([p["page_idx"] for p in sc["pages"]], [0, 1])
@@ -74,7 +74,7 @@ class Structured(unittest.TestCase):
         self.assertEqual(first[0]["type"], "doc_title")
         self.assertEqual(first[0]["content"], "A paper")
         self.assertEqual(first[0]["bbox"], [0.07, 0.232, 0.766, 0.288])
-        # a run of the page's words (a header is kept as the engine's, which pdfdoc drops)
+        # a run of the page's words (a header is kept as MinerU's, which pdfdoc drops)
         self.assertEqual(first[1]["type"], "header")
         self.assertEqual(first[2]["type"], "text")
         self.assertEqual(first[2]["content"], "It holds, for $x=1$ every x.")
@@ -127,6 +127,21 @@ class OldPages(unittest.TestCase):
             self.assertIn("中文", words)
         finally:
             store.DATA = old
+
+
+class ApiOnly(unittest.TestCase):
+    def test_status_describes_the_api_not_a_local_install(self):
+        st = engine.status()
+        self.assertEqual(set(st), {"api", "service", "version", "tiers"})
+        self.assertEqual((st["service"], st["version"]), ("MinerU API", "v4"))
+        self.assertNotIn("installed", st)
+        self.assertNotIn("path", st)
+
+    def test_a_key_is_one_printable_word(self):
+        self.assertTrue(engine.key_ok("abc-123"))
+        self.assertFalse(engine.key_ok(""))
+        self.assertFalse(engine.key_ok("two words"))
+        self.assertFalse(engine.key_ok("line\nbreak"))
 
 
 if __name__ == "__main__":

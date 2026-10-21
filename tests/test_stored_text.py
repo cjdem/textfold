@@ -13,10 +13,9 @@ import tempfile
 import unittest
 import urllib.parse
 from pathlib import Path
-from types import SimpleNamespace
 from unittest import mock
 
-from textfold import build, fetch, library, local, server, store, webpage, zotero
+from textfold import build, fetch, library, local, store, webpage, zotero
 
 STAR = "✩"
 TITLE = f"Fuzzy controller design of micro-unmanned helicopter {STAR}"
@@ -98,12 +97,6 @@ class StoredText(unittest.TestCase):
                 (abs_html.encode("utf-8"), "https://arxiv.org/abs/2512.00001")]):
             d = fetch.fetch("2512.00001", self.tmp_path())
         self.assertEqual(self.ascii_json(d / "meta.json")["title"], f"A title {STAR}")
-
-    def test_a_file_waiting_for_the_engine_keeps_an_ascii_name(self):
-        f = self.tmp_path() / f"论文 · A {STAR}.pdf"
-        f.write_bytes(b"%PDF-1.7")
-        server.Jobs.wait_for_engine(SimpleNamespace(pending={}), f.stem, str(f), f.name, "en")
-        self.assertEqual(self.ascii_json(f.with_suffix(".json"))["name"], f.name)
 
     def test_an_svg_with_chinese_keeps_its_text(self):
         f = self.tmp_path() / "图.svg"

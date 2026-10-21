@@ -6,9 +6,12 @@
 //
 //   node scripts/prepare-payload.mjs                  for this computer
 //   PBS_URL=<tar.gz url> node scripts/...             a given build
+//   PBS_FILE=<local tar.gz> PBS_SHA256=<digest>       an offline or pre-downloaded build
+//   TEXTFOLD_PAYLOAD=<folder>                         write somewhere other than desktop/payload (desktop-mygo)
 // A Windows payload is made on Windows: the packages are installed by the Python it ships.
 import { execFileSync } from 'node:child_process';
-import { cpSync, existsSync, mkdirSync, readdirSync, rmSync, writeFileSync, createWriteStream } from 'node:fs';
+import { copyFileSync, cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync, createWriteStream } from 'node:fs';
+import { createHash } from 'node:crypto';
 import path from 'node:path';
 import { pipeline } from 'node:stream/promises';
 import { Readable } from 'node:stream';
@@ -16,7 +19,7 @@ import { fileURLToPath } from 'node:url';
 
 const desktop = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const root = path.dirname(desktop);
-const payload = path.join(desktop, 'payload');
+const payload = process.env.TEXTFOLD_PAYLOAD ? path.resolve(process.env.TEXTFOLD_PAYLOAD) : path.join(desktop, 'payload');
 const [platform = process.platform, arch = process.arch] = process.argv.slice(2);
 const TARGETS = { 'win32-x64': 'x86_64-pc-windows-msvc' };
 const TARGET = TARGETS[`${platform}-${arch}`];
@@ -40,11 +43,22 @@ async function cpythonUrl() {
 rmSync(payload, { recursive: true, force: true });
 mkdirSync(payload, { recursive: true });
 
-const url = await cpythonUrl();
-console.log('CPython:', url);
-const res = await fetch(url);
-if (!res.ok) throw new Error(`download: HTTP ${res.status}`);
-await pipeline(Readable.fromWeb(res.body), createWriteStream(path.join(payload, 'python.tar.gz')));
+const url = process.env.PBS_FILE ? null : await cpythonUrl();
+console.log('CPython:', process.env.PBS_FILE || url);
+const archive = path.join(payload, 'python.tar.gz');
+if (process.env.PBS_FILE) {
+  copyFileSync(path.resolve(process.env.PBS_FILE), archive);
+} else {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`download: HTTP ${res.status}`);
+  await pipeline(Readable.fromWeb(res.body), createWriteStream(archive));
+}
+if (process.env.PBS_SHA256) {
+  const digest = createHash('sha256').update(readFileSync(archive)).digest('hex');
+  if (digest.toLowerCase() !== process.env.PBS_SHA256.toLowerCase()) {
+    throw new Error(`CPython archive SHA-256 is ${digest}, expected ${process.env.PBS_SHA256}`);
+  }
+}
 // a relative name, run from the folder: Windows' own tar and Git's GNU tar both read it (GNU tar takes C:\… for a host)
 execFileSync('tar', ['-xzf', 'python.tar.gz'], { cwd: payload, stdio: 'inherit' });
 rmSync(path.join(payload, 'python.tar.gz'));
@@ -80,5 +94,5 @@ for (const d of ['textfold']) {
 writeFileSync(path.join(app, 'requirements.txt'), '# installed into ../python\n');
 
 // a quick check that the runtime imports what the server needs (trafilatura: web pages and HTML files)
-run(['-s', '-c', 'import bs4, lxml, PIL, trafilatura, mammoth, openpyxl, pdf_inspector, pypdfium2, textfold.server; print("payload ok")'], { cwd: app, stdio: 'inherit' });
+run(['-s', '-c', 'import bs4, lxml, PIL, trafilatura, mammoth, openpyxl, pypdfium2, textfold.server; print("payload ok")'], { cwd: app, stdio: 'inherit' });
 if (!existsSync(path.join(app, 'textfold', 'web', 'reader.js'))) throw new Error('web/ missing from the payload');
