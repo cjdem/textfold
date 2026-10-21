@@ -4,7 +4,7 @@
   python -m textfold <arxiv id or url> [--lang zh] ...   generate from the command line, then export
   python -m textfold notes.md [--lang zh] ...           the same for a Markdown file
   python -m textfold export <arxiv id>                   one self-contained HTML file in out/<id>/
-  python -m textfold get <link or file> [--level topic] [--section 3] [--json]   a document at one level (for a person or an agent)
+  python -m textfold get <link or file> [--level topic] [--section 3] [--json]   a document at one level
   python -m textfold mineru status                        MinerU's Cloud API and its key
 """
 import argparse
@@ -24,7 +24,7 @@ def get(a):
     """A document at one level, on stdout: written first when it has no levels yet (a model is called), unless
     --no-generate. Common Office/E-book/CSV/HTML files are read here; every PDF and every picture goes through MinerU's
     Cloud API. New RTF, OpenDocument and old Office files are refused."""
-    from . import agents, engine, fold, langs, models, office, pdfdoc, store
+    from . import engine, fold, langs, models, office, pdfdoc, store
     if a.lang not in langs.LANGS:
         _say(f"unknown language {a.lang}: " + ", ".join(langs.LANGS))
         return 2
@@ -71,10 +71,6 @@ def get(a):
         pid = local.import_file(f)
     else:
         pid = store.resolve(a.ref)
-    if not a.no_generate:
-        chosen = models.load_settings().get("model") or ""
-        if not chosen or agents.runtime_of(chosen):   # an agent's model (or none chosen): the agents on this computer
-            agents.scan()                             # found first, as the server finds them when it starts
     try:
         spec = None if a.no_generate else models.resolve(None)
     except RuntimeError:
@@ -84,7 +80,7 @@ def get(a):
     except RuntimeError as e:   # fetched and parsed; its levels need a model: the local ones, said so
         if "No model" not in str(e):
             raise
-        _say("No model: the written levels are the author's first sentences (connect one with python -m textfold serve, Settings).")
+        _say("No API model: the written levels are the author's first sentences (connect one in Settings).")
     d = fold.document(pid, a.lang)
     if a.json:
         import json
@@ -137,19 +133,20 @@ def main():
     ap = argparse.ArgumentParser(prog="textfold", description="Generate a zoomable reader for an arXiv paper or a Markdown file.")
     ap.add_argument("paper", help="arXiv id or URL, e.g. 2512.23916, or a Markdown file")
     ap.add_argument("--lang", action="append", default=[], help="also generate this language (zh); repeatable")
-    ap.add_argument("--model", default="sonnet", help="model alias for `claude -p` (default: sonnet)")
+    ap.add_argument("--model", help="API model id (defaults to the model selected in TextFold settings)")
     ap.add_argument("--jobs", type=int, default=4, help="parallel model calls")
     ap.add_argument("--force", action="store_true", help="regenerate (ignore what is stored and cached)")
     a = ap.parse_args()
-    from . import langs
+    from . import langs, models
     unknown = [l for l in a.lang if l not in langs.LANGS]
     if unknown:
         ap.error(f"unknown language {unknown[0]}: " + ", ".join(langs.LANGS))
     t0 = time.time()
+    spec = models.resolve(a.model)   # the chosen API model, or the default provider's
     ref = local.import_file(a.paper) if Path(a.paper).suffix.lower() in local.KINDS and Path(a.paper).is_file() else a.paper
     pid = None
     for lang in ["en"] + a.lang:
-        pid = pipeline.generate(ref, lang, a.model, force=a.force, jobs=a.jobs, log=print,
+        pid = pipeline.generate(ref, lang, spec, force=a.force, jobs=a.jobs, log=print,
                                 progress=lambda s, d, t: print(f"  {s} {d}/{t}", end="\r"))
     print(f"\n  → {build.export(pid)}  ({time.time() - t0:.0f}s)")
 

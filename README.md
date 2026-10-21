@@ -126,16 +126,16 @@ What you read is then kept in the clone.
 
 ## Connect a model
 
-TextFold uses a model you already have, and there is no account to create. It looks for one when it starts; if it finds none, the first page offers the ways in.
+TextFold sends model requests through API providers. It does not scan for or run Claude Code, Codex or Pi CLI agents. If the optional [Magpie gateway](https://github.com/yetone/magpie) is already running on your computer, TextFold discovers its models from `http://127.0.0.1:3425/v1/models`; Magpie stays an external service and is not installed by TextFold. Its model IDs are read dynamically. An explicitly selected available model stays selected; otherwise the first Magpie model becomes the default when Magpie is available.
 
 | You have | What to do |
 |---|---|
-| Claude Code, Codex or Pi | Nothing. TextFold finds it and uses it. |
-| A ChatGPT plan | Click **Use my ChatGPT plan**. A small bridge starts on your computer and signs in with your account (needs Node.js). |
+| Magpie running locally | Nothing. TextFold connects to its OpenAI-compatible API and lists the models Magpie reports. |
+| A ChatGPT plan | Click **Use my ChatGPT plan**. A small Node.js bridge starts on your computer and signs in with your Codex login; this uses the login, not the Codex CLI runtime. |
 | Nothing yet | Click **OpenRouter in one click**. Authorize once, and free models are ready. |
 | An API key | **Settings › Advanced › Add provider**: Anthropic, OpenAI, DeepSeek, Qwen, Zhipu GLM, Kimi, MiniMax, Google, Ollama, or any OpenAI-compatible endpoint. |
 
-Your questions can go to a stronger model than the one that writes the levels: **Settings › Advanced › Answering questions**, with how hard it reasons.
+If Magpie is unavailable, TextFold uses the other available providers. Your questions can go to a stronger model than the one that writes the levels: **Settings › Advanced › Answering questions**, with how hard it reasons.
 
 ## In the reader
 
@@ -171,7 +171,7 @@ TextFold is a tool, and its license covers its code. When you share a file, foll
 - **October 17, 2026: English documents come with their Simplified Chinese.** An English document opened in the app is made with its Simplified Chinese version at the end of the same generation, so it reads in Chinese without a second request.
 - **October 15, 2026: PDFs open without the engine.** A PDF with its own text, as most papers have, opens at once, its figures cut from the page; only a scan still needs the PDF engine. An arXiv paper with no HTML version is read from its PDF. Thanks to [@sylvainHellin](https://github.com/sylvainHellin).
 - **October 15, 2026: your library, and your questions.** Search the library, keep documents in folders, and list them by when they came in or were last opened. A question has its own send and stop, any turn of a conversation can be deleted, and questions can go to a stronger model than the one that writes the levels. Thanks to [@suhyungJang](https://github.com/suhyungJang).
-- **October 14, 2026: an app for Mac and Windows.** Download TextFold for macOS (Apple silicon or Intel, signed and notarized by Apple) or Windows, with everything it needs inside. It finds Claude Code, Codex or Pi on your computer, and updates itself when you say so. [Download ↓](#get-started)
+- **October 14, 2026: an app for Mac and Windows.** Download TextFold for macOS (Apple silicon or Intel, signed and notarized by Apple) or Windows, with everything it needs inside. The desktop app updates itself when you say so. [Download ↓](#get-started)
 
 <details>
 <summary>Earlier</summary>

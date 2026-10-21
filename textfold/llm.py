@@ -1,10 +1,7 @@
-"""The model call, behind one function, for every model in the catalog (models.py):
+"""The API model call, behind one function, for every model in the catalog (models.py):
 
-  agent  claude-code  `claude -p --json-schema`               (structured output)
-         codex        `codex exec --output-schema`            (structured output)
-         pi           `pi -p --mode json`                     (JSON asked for in the prompt)
-  api    anthropic    the official SDK (`pip install anthropic`), structured output
-         openai       any OpenAI-compatible endpoint (llm_openai.py), JSON mode
+  anthropic  the official SDK (`pip install anthropic`), structured output
+  openai     any OpenAI-compatible endpoint (llm_openai.py), JSON mode
 
 Replies are cached on disk by a hash of everything that shapes them, so a rebuild costs nothing until
 the prompt, the schema, the model or its effort changes. `force` skips the cache read: that is what
@@ -13,11 +10,7 @@ the prompt, the schema, the model or its effort changes. `force` skips the cache
 import hashlib
 import json
 import re
-import subprocess
-import tempfile
 from pathlib import Path
-
-from . import agents
 
 SYSTEM = ("You compress the sections of research papers into nested zoom levels for a reading interface. "
           "You are precise about what each passage claims, keep the authors' terminology, and answer with JSON only. "
@@ -38,7 +31,7 @@ _FALLBACK_OK = {"claude-fable-5-1", "claude-opus-5-5", "claude-opus-5", "claude-
 
 
 def spec_of(model):
-    """A model id (or a resolved spec) to a spec; a bare 'sonnet' is Claude Code's, as the command line has always meant."""
+    """A model id (or a resolved spec) to a provider spec."""
     if isinstance(model, dict) and "kind" in model:
         return model
     from .models import resolve
@@ -70,10 +63,7 @@ def call(prompt, schema, model, cache_dir: Path, force=False, timeout=900, syste
     """(system: the generation's role unless a caller has another, as the questions about a paper do)"""
     spec = spec_of(model)
     effort = spec.get("effort")
-    if spec.get("runtime") == "claude-code" and not effort:
-        parts = [system, prompt, schema, spec["model"]]  # the key the cache was first written with stays valid
-    else:
-        parts = [system, prompt, schema, spec["id"]] + ([effort] if effort else [])
+    parts = [system, prompt, schema, spec["id"]] + ([effort] if effort else [])
     key = hashlib.sha256(json.dumps(parts).encode()).hexdigest()[:24]
     cache_dir.mkdir(parents=True, exist_ok=True)
     f = cache_dir / f"{key}.json"
@@ -102,50 +92,10 @@ def call(prompt, schema, model, cache_dir: Path, force=False, timeout=900, syste
 
 
 def _once(prompt, schema, spec, timeout, system):
-    effort = spec.get("effort")
-    if spec["kind"] == "agent":
-        if spec["runtime"] == "claude-code":
-            return _claude(prompt, schema, spec["model"], effort, timeout, system)
-        if spec["runtime"] == "codex":
-            return agents.run_codex(spec["model"], prompt, schema, system, effort, timeout)
-        return agents.run_pi(spec["model"], prompt, schema, system, effort, timeout)
     if spec["protocol"] == "anthropic":
         return _anthropic(prompt, schema, spec, timeout, system)
     from .llm_openai import call as openai_call
     return openai_call(prompt, schema, spec, system, timeout)
-
-
-def _claude(prompt, schema, model, effort, timeout, system=SYSTEM):
-    path = agents.path_of("claude-code")
-    if not path:
-        raise RuntimeError("Claude Code was not found on this computer")
-    cmd = [*agents.argv(path), "-p", "--model", model, "--tools", "", "--strict-mcp-config", "--no-session-persistence",
-           "--output-format", "json", "--json-schema", json.dumps(schema), "--system-prompt", system]
-    env = agents.child_env()
-    if effort == "off":   # Claude Code has no such level: no thinking is a thinking budget of nothing
-        env = {**env, "MAX_THINKING_TOKENS": "0"}
-    elif effort:
-        cmd += ["--effort", effort]
-    # The reader's own Claude Code settings and CLAUDE.md stay out (instructions for their work, ~900 tokens a call,
-    # and a default effort meant for coding); a scratch folder has no project ones. Where Claude Code needs the user
-    # settings to sign in, the call is made again with them.
-    with tempfile.TemporaryDirectory() as tmp:
-        r = subprocess.run(cmd + ["--setting-sources", "project,local"], input=prompt, capture_output=True, text=True,
-                           timeout=timeout, env=env, cwd=tmp, **agents.TEXT)
-        if r.returncode:
-            r = subprocess.run(cmd, input=prompt, capture_output=True, text=True, timeout=timeout, env=env, cwd=tmp, **agents.TEXT)
-    if r.returncode:
-        raise RuntimeError(f"claude -p exited {r.returncode}: {(r.stderr or r.stdout)[-1500:]}")
-    d = json.loads(r.stdout)
-    if d.get("is_error"):
-        raise RuntimeError(f"claude -p error: {str(d.get('result'))[:1500]}")
-    out = d.get("structured_output")
-    if out is None:
-        m = re.search(r"\{.*\}", d.get("result") or "", re.S)
-        out = json.loads(m.group(0)) if m else None
-    if out is None:
-        raise RuntimeError("no JSON in reply")
-    return out, d.get("total_cost_usd")
 
 
 def _closed(schema):

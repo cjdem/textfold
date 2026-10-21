@@ -55,7 +55,7 @@
   const CHEV = '<svg class="sb-chev" viewBox="0 0 20 20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6l4 4-4 4"/></svg>';
   // a paper opens in the reader's language, else the one last read in, else its first
   const pick = (p) => [uiLang, store.get('dr-lang')].find((l) => l && p.langs.includes(l)) || p.langs[0] || 'en';
-  const modelLabel = () => {   // and the one for questions, when it is another (its agent's name said once: Claude Code · Sonnet · answers: Opus)
+  const modelLabel = () => {   // and the one for questions, when it is another
     if (!askName) return modelName;
     const head = modelName.split(' · ')[0], short = askName.startsWith(`${head} · `) ? askName.slice(head.length + 3) : askName;
     return `${modelName} · ${t().sb_ask_with.replace('{m}', short)}`;
@@ -735,7 +735,7 @@
     document.getElementById('model-label').textContent = modelLabel();
     renderConnect();
   }
-  // No model yet (no agent on this computer, no provider): the ways in, on the landing itself. OpenRouter's one-click
+  // No model yet: the ways in, on the landing itself. OpenRouter's one-click
   // authorisation (free models); the ChatGPT plan through the local bridge, started from here; or the settings.
   let bridgeStarting = false;
   function renderConnect() {
@@ -902,6 +902,19 @@
       openFile(e.dataTransfer.files[0]);
     });
     renderLanding();
+    // the landing is built before a local provider's background probe answers: look again for a moment, so a model
+    // found a second later is shown without a reload
+    if (!modelName) {
+      let tries = 0;
+      const discover = async () => {
+        const d = await api('/api/models').catch(() => null);
+        if (d && d.models.length) {
+          modelName = d.selectedName || ''; askName = d.askName || '';
+          renderSidebar(); renderLanding();
+        } else if (++tries < 6) setTimeout(discover, 1500);
+      };
+      setTimeout(discover, 600);
+    }
     // a first visit: how TextFold works, once (not when arriving mid-way: a file to generate, or back from OpenRouter)
     if (window.TFTutorial && !window.TFTutorial.seen() && !/[?&]start=/.test(location.search) && !location.hash.startsWith('#or-'))
       setTimeout(() => { if (!document.querySelector('dialog[open]')) window.TFTutorial.open(uiLang); }, 350);
@@ -1014,7 +1027,7 @@
     load();
   }
 
-  // ── settings: the model, the agents on this computer, the API providers (ThoughtDAG's model access) ──
+  // ── settings: the model and its API providers ──
   async function openSettings(opts) {
     let data = await api('/api/models');
     const app = window.desktop && window.desktop.checkForUpdates ? await window.desktop.version() : null;   // in the app: its version
@@ -1025,15 +1038,15 @@
     const dlg = h('dialog', 'settings prefs'); document.body.append(dlg);
     const T = () => t();
     const host = (u) => { try { return new URL(u).host; } catch { return u; } };
-    const groupName = (g) => (data.agents.find((a) => a.runtime === g) || {}).label || (data.providers.find((p) => p.key === g) || {}).name || g;
+    const groupName = (g) => (data.providers.find((p) => p.key === g) || {}).name || g;
     const modelOptions = (chosen) => {
       const groups = [];
       for (const m of data.models) {
         let g = groups.find((x) => x.key === m.group);
-        if (!g) groups.push(g = { key: m.group, agent: m.kind === 'agent', items: [] });
+        if (!g) groups.push(g = { key: m.group, items: [] });
         g.items.push(m);
       }
-      return groups.map((g) => `<optgroup label="${esc(groupName(g.key))}${g.agent ? ' · agent' : ''}">${g.items.map((m) =>
+      return groups.map((g) => `<optgroup label="${esc(groupName(g.key))}">${g.items.map((m) =>
         `<option value="${esc(m.id)}"${m.id === chosen ? ' selected' : ''}>${esc(m.name)}</option>`).join('')}</optgroup>`).join('');
     };
     const testBtn = (k) => {
@@ -1077,25 +1090,13 @@
         `</div>${failed}`;
     }
 
-    function agentSection() {
-      const t = T();
-      const found = data.agents.filter((a) => a.path);
-      const missing = data.agents.filter((a) => !a.path && !a.error);
-      const rows = found.map((a) => `<div class="st-item"><i class="st-dot"></i><div class="st-main"><b>${esc(a.label)}</b>
-        <span class="st-meta">${a.version ? `${esc(a.version)} · ` : ''}<code title="${esc(a.path)}">${esc(a.binary)}</code></span></div>
-        <span class="st-aside">${esc(t.st_models.replace('{n}', a.models))}</span></div>`).join('');
-      return `<div class="st-list">${rows}<div class="st-item st-foot-line"><span class="st-main st-meta">${missing.length ? `${esc(t.st_notfound)}: ${missing.map((a) => esc(a.label)).join(', ')}` : ''}</span>
-        <button type="button" class="st-btn st-scan"${data.scanning ? ' disabled' : ''}>${esc(data.scanning ? t.st_scanning : t.st_rescan)}</button></div></div>`;
-    }
-
     function providerSection() {
       const t = T();
-      const src = (p) => p.source === 'thoughtdag' ? t.st_from_td : p.source === 'env' ? t.st_from_env : p.source === 'bridge' ? t.st_auto : t.st_added;
+      const src = (p) => p.source === 'thoughtdag' ? t.st_from_td : p.source === 'env' ? t.st_from_env : p.source === 'bridge' || p.source === 'local' ? t.st_auto : t.st_added;
       const rows = data.providers.map((p) => `<div class="st-item"><div class="st-main"><b>${esc(p.name)}<span class="st-src ${p.source}">${esc(src(p))}</span></b>
         <span class="st-meta">${esc(host(p.base))}</span></div><span class="st-aside">${esc(t.st_models.replace('{n}', p.models.length))}</span>
         ${p.source === 'ui' ? `<span class="st-acts"><button type="button" class="st-btn st-edit" data-key="${esc(p.key)}">${esc(t.st_edit)}</button><button type="button" class="st-btn danger st-del" data-key="${esc(p.key)}">${esc(t.st_remove)}</button></span>` : ''}</div>`).join('');
-      const td = '';   // (ThoughtDAG's .env is no longer read: its providers were copied into these settings once, v0.8.3)
-      return `<div class="st-list">${rows}${td}${form ? providerForm() : `<button type="button" class="st-addrow st-add"><span aria-hidden="true">＋</span>${esc(t.st_add)}</button>`}</div>`;
+      return `<div class="st-list">${rows}${form ? providerForm() : `<button type="button" class="st-addrow st-add"><span aria-hidden="true">＋</span>${esc(t.st_add)}</button>`}</div>`;
     }
 
     function providerForm() {
@@ -1142,7 +1143,6 @@
         <section><h3>${esc(t.st_models_h)}</h3>${connectionSection()}${modelSection()}</section>
         <details class="st-adv"><summary>${esc(t.st_advanced)}</summary>
           <section>${askSection()}</section>
-          <section><h3>${esc(t.st_agents)}</h3>${agentSection()}</section>
           <section><h3>${esc(t.st_providers)}</h3>${providerSection()}</section>
           <section class="st-mineru"></section>
         </details>
@@ -1229,7 +1229,6 @@
           render();
         };
       });
-      q('.st-scan').onclick = async () => { data.scanning = true; render(); update(await api('/api/agents/scan', {})); };
       const td = q('.st-td');
       if (td) td.onchange = async () => update(await api('/api/settings', { use_thoughtdag_env: td.checked }));
       dlg.querySelectorAll('.st-del').forEach((b) => { b.onclick = async () => update(await api('/api/providers/remove', { key: b.dataset.key })); });
@@ -1248,7 +1247,7 @@
         if (dlg.isConnected) update(await api('/api/models'));
       };
       const add = q('.st-add');
-      if (add) add.onclick = () => { const p = data.presets[0]; form = { preset: p.id, name: '', base: p.base }; render(); };
+      if (add) add.onclick = () => { const p = data.presets.find((x) => x.id === 'magpie') || data.presets[0]; form = { preset: p.id, name: '', base: p.base }; render(); };
       if (!form) return;
       const ps = q('.pf-preset');
       ps.onchange = () => { const p = data.presets.find((x) => x.id === ps.value); form = { preset: p.id, name: '', base: p.base }; render(); };   // another kind: a new provider, the edited one stays
@@ -1301,7 +1300,7 @@
     }
 
     dlg.addEventListener('close', () => dlg.remove());
-    if (opts && opts.add) { advancedOpen = true; form = { preset: data.presets[0].id, name: '', base: data.presets[0].base }; }   // straight to adding one
+    if (opts && opts.add) { const p = data.presets.find((x) => x.id === 'magpie') || data.presets[0]; advancedOpen = true; form = { preset: p.id, name: '', base: p.base }; }   // Magpie is the default local provider
     if (opts && opts.minted) {   // back from OpenRouter with a key: the models to pick, free ones first
       advancedOpen = true;
       const p = data.presets.find((x) => x.id === 'openrouter');
@@ -1309,12 +1308,18 @@
     }
     render();
     dlg.showModal();
+    if (!data.models.length && !form) {   // (a local provider's probe may still be answering)
+      let tries = 0;
+      const look = async () => {
+        const d = await api('/api/models').catch(() => null);
+        if (d && d.models.length && dlg.isConnected) { update(d); return; }
+        if (++tries < 6 && dlg.isConnected) setTimeout(look, 1500);
+      };
+      setTimeout(look, 600);
+    }
     if (form) q('.st-form')?.scrollIntoView({ block: 'nearest' });   // (the render's call runs before the dialog is shown)
     if (opts && opts.mineru) q('.st-mineru')?.scrollIntoView({ block: 'nearest' });
     if (opts && opts.minted) fetchModels();
-    // the startup scan may still be running: show what it finds as it lands
-    const wait = async () => { if (!dlg.isConnected) return; if (data.scanning) { await new Promise((r) => setTimeout(r, 800)); update(await api('/api/models')); wait(); } };
-    wait();
   }
 
   renderSidebar();

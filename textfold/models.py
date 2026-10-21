@@ -1,18 +1,21 @@
-"""One catalog of every model this computer can reach, and the settings that choose one.
+"""One catalog of API models this computer can reach, and the settings that choose one.
 
-  agent models  claude/claude-code/opus, codex/codex/<m>, pi/<provider>/<m>   (agents.py, scanned at startup)
-  API models    <model id> from an env provider or a provider added in the settings (providers.py)
-
-ThoughtDAG's rules: an API id that two providers share belongs to the env provider; the default is the
-reader's choice, else Claude Code's sonnet when Claude Code is here, else the first model there is.
+Provider models come from environment settings, providers added in the reader, or a running local service. Magpie is
+first so a shared model id resolves to its local OpenAI-compatible endpoint; the reader's saved choice wins, else its
+first model is the default, then the existing ChatGPT and OpenRouter defaults.
 """
 import json
 import os
 import shutil
+import tempfile
+import threading
 import time
+from pathlib import Path
 
-from . import agents, bridges, providers
+from . import bridges, providers
 from .store import HOME, OLD_HOMES
+
+_SETTINGS_LOCK = threading.RLock()
 
 SETTINGS = HOME / "settings.json"
 # How much the model may think, per task, in levels every caller maps onto its own (llm.py). Not a setting: a reader is
@@ -20,13 +23,12 @@ SETTINGS = HOME / "settings.json"
 TASKS = ("ladder", "translate", "ask", "card")
 LEVELS = ("default", "off", "low", "medium", "high")
 DEFAULT_THINKING = {"ladder": "off", "translate": "off", "ask": "low", "card": "low"}
-LEGACY_ALIASES = {"fable", "opus", "sonnet", "haiku"}
 # the Anthropic API spoken natively (official SDK), offered as one more preset in the settings
 ANTHROPIC_PRESET = {"id": "anthropic", "name": "Anthropic", "base": "https://api.anthropic.com", "protocol": "anthropic",
                     "fixed": ["claude-opus-5-5", "claude-sonnet-5-5", "claude-haiku-4-5"], "keyUrl": "https://console.anthropic.com/settings/keys"}
 
 
-def load_settings():
+def _load_settings_locked():
     s = {"model": None, "ask_model": None, "ask_effort": None, "efforts": {}, "providers": [], "use_thoughtdag_env": False,
          "pdf_tier": "fast", "mineru_api_key": "", "zotero": {}}
     old_home = next((h for h in OLD_HOMES if (h / "settings.json").exists()), None)
@@ -35,14 +37,18 @@ def load_settings():
         shutil.copy2(old_home / "settings.json", SETTINGS)
         os.chmod(SETTINGS, 0o600)
     if SETTINGS.exists():
-        old = json.loads(SETTINGS.read_text())
+        old = json.loads(SETTINGS.read_text(encoding="utf-8"))
         s.update({k: v for k, v in old.items() if k in s})
-        if not s["model"] and old.get("backend") == "claude-cli":  # the settings of v0.4
-            s["model"] = f"claude/claude-code/{old.get('cli_model') or 'sonnet'}"
+        # Older model ids remain in settings; resolve() treats ids outside the provider catalog as unavailable.
         if old.get("use_thoughtdag_env", True):  # still reading ThoughtDAG's .env: copy its providers once, then stop
             import_thoughtdag_env(s)
-            save_settings(s)
+            _write_settings_locked(s)
     return s
+
+
+def load_settings():
+    with _SETTINGS_LOCK:
+        return _load_settings_locked()
 
 
 def import_thoughtdag_env(s):
@@ -57,12 +63,33 @@ def import_thoughtdag_env(s):
     s["use_thoughtdag_env"] = False
 
 
-def save_settings(s):
+def _write_settings_locked(s):
     SETTINGS.parent.mkdir(parents=True, exist_ok=True)
-    # ASCII-escaped, UTF-8: a provider's name may hold a character GBK lacks, and ensure_ascii=False failed the save
-    SETTINGS.write_text(json.dumps(s, indent=1), encoding="utf-8")
-    os.chmod(SETTINGS, 0o600)
-    _clear_provider_cache()   # (a provider that was just added or removed is in the next list, not ten seconds later)
+    fd, name = tempfile.mkstemp(prefix="settings-", suffix=".tmp", dir=SETTINGS.parent)
+    os.close(fd)
+    tmp = Path(name)
+    try:
+        # ASCII-escaped, UTF-8: provider names may contain characters absent from a Chinese Windows code page.
+        tmp.write_text(json.dumps(s, indent=1), encoding="utf-8")
+        os.chmod(tmp, 0o600)
+        os.replace(tmp, SETTINGS)
+    finally:
+        tmp.unlink(missing_ok=True)   # (the replace consumed it; a failed write leaves nothing behind)
+    _clear_provider_cache()
+
+
+def save_settings(s):
+    with _SETTINGS_LOCK:
+        _write_settings_locked(s)
+
+
+def update_settings(change):
+    """Apply one settings change to the latest saved version."""
+    with _SETTINGS_LOCK:
+        settings = _load_settings_locked()
+        change(settings)
+        _write_settings_locked(settings)
+        return settings
 
 
 _PROVIDERS = {"key": None, "at": 0.0, "rows": []}   # (a page asks more than once; the probes below are not free)
@@ -72,44 +99,51 @@ def _clear_provider_cache():
     _PROVIDERS.update(key=None, at=0.0, rows=[])
 
 
-def provider_list(s):
-    if os.environ.get("TEXTFOLD_NO_MODELS"):   # (agents.scan): no provider, no bridge
+def provider_list(s, wait=False):
+    if os.environ.get("TEXTFOLD_NO_MODELS"):
         return []
-    key = json.dumps([s.get("providers"), s.get("use_thoughtdag_env", True),
-                      providers.environment(s.get("use_thoughtdag_env", True)), providers.ollama_models(), bridges.bridge_status()],
-                     sort_keys=True, default=str)
-    if _PROVIDERS["key"] == key and time.time() - _PROVIDERS["at"] < 10:
-        return _PROVIDERS["rows"]   # (the same rows for a moment; the key carries the env and the local servers' answers)
-    env = providers.env_providers(s.get("use_thoughtdag_env", True), providers.ollama_models())
-    ui = []
-    for p in providers.ui_providers(s):
-        raw = next(x for x in s["providers"] if x["key"] == p["key"])
+    ui = providers.ui_providers(s)
+    for p in ui:
+        raw = next((x for x in s.get("providers", []) if x["key"] == p["key"] or
+                    ((x.get("preset") == "magpie" or x["key"] == "magpie") and p["key"] == "magpie")), {})
         if raw.get("protocol") == "anthropic":
             p["protocol"] = "anthropic"
-        ui.append(p)
-    # the ChatGPT bridge, when it runs, joins without being added (unless it was added by hand)
+    manual_magpie = next((p for p in ui if p["key"] == "magpie"), None)
+    if manual_magpie:   # a configured Magpie is the one to call: no need to ask the default local port
+        magpie, magpie_base, magpie_models = manual_magpie, manual_magpie["base"], manual_magpie["models"]
+    else:
+        # one snapshot for both the row and the cache key: a probe that answers between two reads would otherwise
+        # cache rows that disagree with the key for ten seconds
+        magpie_base, magpie_models = providers.magpie_models(wait)
+        magpie = ({"key": "magpie", "name": "Magpie", "protocol": "openai", "base": magpie_base, "api_key": "magpie",
+                   "source": "local", "preset": "magpie", "models": magpie_models} if magpie_models else None)
+    key = json.dumps([s.get("providers"), s.get("use_thoughtdag_env", True),
+                      providers.environment(s.get("use_thoughtdag_env", True)), magpie_base, magpie_models,
+                      providers.ollama_models(), bridges.bridge_status()], sort_keys=True, default=str)
+    if _PROVIDERS["key"] == key and time.time() - _PROVIDERS["at"] < 10:
+        return _PROVIDERS["rows"]
+    env = providers.env_providers(s.get("use_thoughtdag_env", True), providers.ollama_models())
+    # The ChatGPT bridge joins automatically unless it has already been configured by hand.
     bridge = bridges.bridge_provider(providers.NOT_TEXT)
     if bridge and not any(p["base"].rstrip("/") == bridges.BRIDGE for p in ui):
         env.append(bridge)
-    rows = env + ui
+    rows = ([magpie] if magpie else []) + [p for p in env if p["key"] != "magpie"] + [
+        p for p in ui if p["key"] != "magpie"]
     _PROVIDERS.update(key=key, at=time.time(), rows=rows)
     return rows
 
 
-def catalog(s=None):
+def catalog(s=None, wait=False):
     s = s or load_settings()
     out, seen = [], set()
-    for m in agents.models():
-        out.append({"id": m["id"], "name": m["name"], "kind": "agent", "group": m["runtime"],
-                    "efforts": m.get("efforts") or [], "defaultEffort": m.get("defaultEffort")})
-        seen.add(m["id"])
-    provs = provider_list(s)
+    provs = provider_list(s, wait)
     for p in provs:
         for m in p["models"]:
             if m["id"] in seen:
                 continue
             seen.add(m["id"])
-            out.append({"id": m["id"], "name": m["name"], "kind": "api", "group": p["key"], "efforts": [], "defaultEffort": None})
+            out.append({"id": m["id"], "name": m["name"], "kind": "api", "group": p["key"],
+                        "efforts": m.get("efforts") or [], "defaultEffort": None})
     return out, provs
 
 
@@ -119,32 +153,28 @@ def default_model(s=None, cat=None):
     ids = [m["id"] for m in cat]
     if s.get("model") in ids:
         return s["model"]
-    for pref in ("claude/claude-code/sonnet", "gpt-5.5", "openrouter/free"):   # Claude Code, the ChatGPT plan, OpenRouter's free models
+    magpie = next((m["id"] for m in cat if m.get("group") == "magpie"), None)
+    if magpie:
+        return magpie
+    for pref in ("gpt-5.5", "openrouter/free"):
         if pref in ids:
             return pref
     return ids[0] if ids else None
 
 
 def resolve(model_id=None, s=None):
-    """A model id to what it takes to call it."""
+    """A model id to what it takes to call it. A default asks the providers once more if a local probe is under way:
+    generation must not begin without the model that a page will show a moment later."""
     s = s or load_settings()
     if not model_id:
-        model_id = default_model(s)
+        model_id = default_model(s, catalog(s, wait=True)[0])
         if not model_id:
-            raise RuntimeError("No model is available: install Claude Code, Codex or Pi, or add an API provider in the settings")
-    if model_id in LEGACY_ALIASES:  # the command line's --model sonnet
-        model_id = f"claude/claude-code/{model_id}"
-    effort = None   # set per task (for_task); the per-model efforts of v0.9 and before are no longer read
-    rt = agents.runtime_of(model_id)
-    if rt:
-        rest = model_id[len(agents.PREFIX[rt]):]
-        model = rest.split("/", 1)[1] if rt in ("claude-code", "codex") else rest  # pi keeps provider/model
-        return {"id": model_id, "kind": "agent", "runtime": rt, "model": model, "effort": effort}
-    for p in provider_list(s):
+            raise RuntimeError("No model is available: add an API provider in Settings")
+    for p in provider_list(s, wait=True):
         if any(m["id"] == model_id for m in p["models"]):
             return {"id": model_id, "kind": "api", "protocol": p["protocol"], "base": p["base"], "api_key": p["api_key"],
                     "provider": p["name"], "model": model_id, "effort": None}
-    raise RuntimeError(f"Model {model_id} is not available (its agent or provider is gone)")
+    raise RuntimeError(f"Model {model_id} is not available (its provider is gone)")
 
 
 def for_task(spec, task, s=None):

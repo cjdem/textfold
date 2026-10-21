@@ -1,66 +1,70 @@
-"""Only the agents the reader can drive are scanned and listed: a tool that is found but cannot run a generation is
-not offered, so no scan row has a `runnable` flag any more and no other runtime is registered.
-
-Run from the repo root:
-    python -m unittest discover tests
-"""
-import os
+"""API-only model catalog and server contract regressions."""
+import threading
 import unittest
+import urllib.error
+import urllib.request
+from http.server import ThreadingHTTPServer
 from unittest import mock
 
-from textfold import agents, bridges, engine, models, server
+from textfold import bridges, engine, models, providers, server
 
 
-class Registry(unittest.TestCase):
-    def test_only_the_three_drivable_agents_are_registered(self):
-        self.assertEqual([r[0] for r in agents.REGISTRY], ["claude-code", "codex", "pi"])
+class ProviderOnly(unittest.TestCase):
+    def test_catalog_has_only_api_models(self):
+        with mock.patch.object(models, "provider_list", return_value=[
+            {"key": "magpie", "models": [{"id": "auto/model", "name": "Auto model"}]}
+        ]):
+            catalog, _ = models.catalog({"providers": [], "use_thoughtdag_env": False})
+        self.assertEqual([row["kind"] for row in catalog], ["api"])
 
-    def test_a_scan_returns_only_those_three(self):
-        old = dict(agents.STATE)
-        try:
-            with mock.patch.dict(os.environ, {"TEXTFOLD_NO_MODELS": "1"}):
-                state = agents.scan()
-            self.assertEqual([a["runtime"] for a in state["agents"]], ["claude-code", "codex", "pi"])
-            self.assertTrue(all(a["path"] is None for a in state["agents"]))
-            self.assertTrue(all("runnable" not in a for a in state["agents"]))
-        finally:
-            agents.STATE.clear()
-            agents.STATE.update(old)
+    def test_server_payload_has_no_agent_scan_state(self):
+        with mock.patch.object(models, "load_settings", return_value={}), \
+             mock.patch.object(models, "catalog", return_value=([], [])), \
+             mock.patch.object(bridges, "bridge_status", return_value={"running": False}), \
+             mock.patch.object(engine, "status", return_value={}):
+            payload = server.models_payload()
+        self.assertNotIn("agents", payload)
+        self.assertNotIn("scanning", payload)
+        self.assertNotIn("scannedAt", payload)
 
-    def test_a_found_agent_is_asked_for_its_models(self):
-        old = dict(agents.STATE)
-        catalog = {rt: (lambda path, rt=rt: [{"id": rt, "name": rt}]) for rt in ("claude-code", "codex", "pi")}
-        try:
-            with mock.patch.dict(os.environ, {"TEXTFOLD_NO_MODELS": ""}), \
-                 mock.patch.object(agents, "locate", side_effect=lambda binary, extra: f"/fake/{binary}"), \
-                 mock.patch.object(agents, "_run", return_value=mock.Mock(stdout="1.0", stderr="")), \
-                 mock.patch.dict(agents.CATALOG, catalog):
-                state = agents.scan()
-            self.assertEqual([len(a["models"]) for a in state["agents"]], [1, 1, 1])
-            self.assertTrue(all("runnable" not in a for a in state["agents"]))
-            self.assertEqual([m["id"] for m in agents.models()], ["claude-code", "codex", "pi"])
-        finally:
-            agents.STATE.clear()
-            agents.STATE.update(old)
+    def test_agent_scan_route_returns_404(self):
+        jobs = mock.Mock()
+        httpd = ThreadingHTTPServer(("127.0.0.1", 0), server.make_handler(jobs))
+        thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+        thread.start()
+        self.addCleanup(thread.join, 2)
+        self.addCleanup(httpd.server_close)
+        self.addCleanup(httpd.shutdown)
+        req = urllib.request.Request(f"http://127.0.0.1:{httpd.server_port}/api/agents/scan", data=b"{}",
+                                     headers={"Content-Type": "application/json"}, method="POST")
+        with self.assertRaises(urllib.error.HTTPError) as cm:
+            urllib.request.urlopen(req, timeout=2)
+        self.assertEqual(cm.exception.code, 404)
+        cm.exception.close()
 
+    def test_no_models_suppresses_local_provider_probes(self):
+        with mock.patch.dict("os.environ", {"TEXTFOLD_NO_MODELS": "1"}), \
+             mock.patch.object(providers, "magpie_models", side_effect=AssertionError("probed")):
+            self.assertEqual(models.provider_list({}), [])
 
-class Payload(unittest.TestCase):
-    def test_agent_rows_carry_no_runnable_flag(self):
-        old = dict(agents.STATE)
-        try:
-            agents.STATE.update(agents=[{"runtime": "pi", "label": "Pi", "binary": "pi", "path": "/fake/pi",
-                                         "version": "1.0", "models": [{"id": "pi/x", "name": "Pi · x"}], "error": None}],
-                                scanning=False, scanned_at=1.0)
-            with mock.patch.object(models, "load_settings", return_value={}), \
-                 mock.patch.object(models, "catalog", return_value=([], [])), \
-                 mock.patch.object(bridges, "bridge_status", return_value={"running": False}), \
-                 mock.patch.object(engine, "status", return_value={}):
-                payload = server.models_payload()
-            self.assertEqual(payload["agents"], [{"runtime": "pi", "label": "Pi", "binary": "pi", "path": "/fake/pi",
-                                                 "version": "1.0", "error": None, "models": 1}])
-        finally:
-            agents.STATE.clear()
-            agents.STATE.update(old)
+    def test_startup_launches_no_agent_scan_thread(self):
+        self.assertFalse(hasattr(server, "agents"))
+        with mock.patch.object(server, "Jobs"), \
+             mock.patch.object(server, "ThreadingHTTPServer") as httpd, \
+             mock.patch.object(server.threading, "Thread") as thread:
+            httpd.return_value.serve_forever.side_effect = KeyboardInterrupt
+            server.serve(0)
+        thread.assert_not_called()
+
+    def test_cli_runtime_module_is_absent(self):
+        from pathlib import Path
+        self.assertFalse((Path(server.__file__).parent / "agents.py").exists())
+
+    def test_development_workflow_agents_remain(self):
+        from pathlib import Path
+        root = Path(server.__file__).parent.parent
+        self.assertTrue((root / ".claude" / "agents" / "textfold-scout.md").exists())
+        self.assertTrue((root / ".claude" / "agents" / "textfold-verifier.md").exists())
 
 
 if __name__ == "__main__":

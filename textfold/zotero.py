@@ -61,10 +61,8 @@ def settings():
 def choose(lib):
     """The library the reader browses, kept for next time: the one setting a page may change."""
     _check(lib)
-    from .models import load_settings, save_settings
-    s = load_settings()
-    s["zotero"] = {**(s.get("zotero") or {}), "library": lib}
-    save_settings(s)
+    from .models import update_settings
+    update_settings(lambda s: s.update(zotero={**(s.get("zotero") or {}), "library": lib}))
 
 
 # ── the local API ─────────────────────────────────────────────────────

@@ -9,10 +9,9 @@
   POST /api/generate          {paper, lang, force}: queue a generation; one runs at a time. paper: an arXiv id or
                               link, a PMC or PPR id, a DOI (Europe PMC, epmc.py), or a stored document's id
   POST /api/import            {name, text}: store a Markdown file as a paper (local.py); its id, to generate
-  GET  /api/models            every model this computer can reach: local agents and API providers
+  GET  /api/models            every API model this computer can reach
   POST /api/models/select     {model, effort}: the model generations use; {task: "ask", model, effort}: the one questions
                               are answered with (none: the same) and its reasoning level (none: the default)
-  POST /api/agents/scan       look for agents again (also done at startup)
   POST /api/providers/probe   {base, api_key | key, preset}: a provider's /models
   POST /api/providers/save    {key?, preset, name, base, api_key?, models}  ·  POST /api/providers/remove {key}
   POST /api/settings          {use_thoughtdag_env, pdf_tier, mineru_api_key}: one change; the models after it
@@ -65,7 +64,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, quote, unquote, urlparse
 
-from . import agents, bridges, build, cards, engine, fetch, langs, library, llm, local, models, notes, office, pdf, pdfdoc, pipeline, providers, store, zotero
+from . import bridges, build, cards, engine, fetch, langs, library, llm, local, models, notes, office, pdf, pdfdoc, pipeline, providers, store, zotero
 
 STATIC = {"app.js": "text/javascript", "app.css": "text/css", "reader.js": "text/javascript",
           "card.js": "text/javascript", "card.css": "text/css", "reader.css": "text/css",
@@ -93,9 +92,6 @@ def models_payload():
         "models": cat, "selected": selected, "selectedName": name(selected),
         "askModel": ask, "askEffort": ask_effort, "askName": name(ask) if ask and ask != selected else "",
         "efforts": s.get("efforts") or {}, "bridge": bridges.bridge_status(),
-        "agents": [{k: a[k] for k in ("runtime", "label", "binary", "path", "version", "error")} | {"models": len(a["models"])}
-                   for a in agents.STATE["agents"]],
-        "scanning": agents.STATE["scanning"], "scannedAt": agents.STATE["scanned_at"],
         "providers": [{"key": p["key"], "name": p["name"], "source": p["source"], "base": p["base"], "protocol": p["protocol"],
                        "preset": p.get("preset"), "models": [m["id"] for m in p["models"]],
                        "hasKey": bool(p["api_key"]) and p["api_key"] not in ("none", "ollama")} for p in provs],
@@ -205,7 +201,7 @@ class Jobs:
                     spec = None
                 if job["kind"] == "card":
                     if spec is None:
-                        raise RuntimeError("No model is available: install Claude Code, Codex or Pi, or add an API provider in the settings")
+                        raise RuntimeError("No model is available: add an API provider in Settings")
                     cards.generate(job["pid"], job["lang"] or "en", models.for_task(spec, "card"),
                                    progress=self._card_progress(job, stop), log=self._log(job), stop=stop)
                     job["status"] = "done"
@@ -689,26 +685,25 @@ def make_handler(jobs):
                     except Exception as e:  # the model failed: the note keeps its question, the reader can ask again
                         return self.json({"error": str(e)[:600]}, 502)
                 if u.path == "/api/models/select" and body.get("task") == "ask":
-                    s["ask_model"] = body.get("model") or None
-                    s["ask_effort"] = body.get("effort") or None
-                    models.save_settings(s)
+                    models.update_settings(lambda current: current.update(
+                        ask_model=body.get("model") or None, ask_effort=body.get("effort") or None))
                     return self.json(models_payload())
                 if u.path == "/api/models/select":
-                    s["model"] = body.get("model") or None
-                    if "effort" in body and s["model"]:
-                        if body["effort"]:
-                            s["efforts"][s["model"]] = body["effort"]
-                        else:
-                            s["efforts"].pop(s["model"], None)
-                    models.save_settings(s)
-                    return self.json(models_payload())
-                if u.path == "/api/agents/scan":
-                    agents.scan()
+                    def select_model(current):
+                        current["model"] = body.get("model") or None
+                        if "effort" in body and current["model"]:
+                            if body["effort"]:
+                                current.setdefault("efforts", {})[current["model"]] = body["effort"]
+                            else:
+                                current.setdefault("efforts", {}).pop(current["model"], None)
+                    models.update_settings(select_model)
                     return self.json(models_payload())
                 if u.path == "/api/providers/probe":
                     key = (bridges.minted() if body.get("minted") else None) or body.get("api_key") or \
                         next((p.get("api_key") for p in s["providers"] if p["key"] == body.get("key")), "")
                     preset = next((p for p in providers.PRESETS + [models.ANTHROPIC_PRESET] if p["id"] == body.get("preset")), None)
+                    if (preset or {}).get("id") == "magpie":
+                        key = "magpie"
                     if preset and preset.get("fixed"):  # MiniMax and Anthropic have no /models a key can list
                         found = [{"id": i} for i in preset["fixed"]]
                     else:
@@ -727,32 +722,35 @@ def make_handler(jobs):
                     preset = body.get("preset") or "custom"
                     known = providers.PRESETS + [models.ANTHROPIC_PRESET]
                     name = (body.get("name") or "").strip() or next((p["name"] for p in known if p["id"] == preset), "") or "Custom"
-                    key = body.get("key") or re.sub(r"[^a-z0-9]+", "-", f"{preset}-{name}".lower()).strip("-")
-                    old = next((p for p in s["providers"] if p["key"] == key), {})
-                    row = {"key": key, "preset": preset, "name": name, "base": (body.get("base") or "").strip().rstrip("/"),
-                           "api_key": (bridges.take_minted() if body.get("minted") else None) or body.get("api_key") or old.get("api_key", ""),
-                           "models": [{"id": i} for i in (body.get("models") or [])][:providers.MAX_MODELS]}
-                    if preset == "anthropic":
-                        row["protocol"] = "anthropic"
-                    s["providers"] = ([p for p in s["providers"] if p["key"] != key] + [row])[-providers.MAX_PROVIDERS:]
-                    models.save_settings(s)
+                    key = "magpie" if preset == "magpie" else body.get("key") or re.sub(r"[^a-z0-9]+", "-", f"{preset}-{name}".lower()).strip("-")
+                    def save_provider(current):
+                        old = next((p for p in current["providers"] if p["key"] == key), {})
+                        row = {"key": key, "preset": preset, "name": name, "base": (body.get("base") or "").strip().rstrip("/"),
+                               "api_key": (bridges.take_minted() if body.get("minted") else None) or body.get("api_key") or
+                                          old.get("api_key") or ("magpie" if preset == "magpie" else ""),
+                               "models": [{"id": i} for i in (body.get("models") or [])][:providers.MAX_MODELS]}
+                        if preset == "anthropic":
+                            row["protocol"] = "anthropic"
+                        current["providers"] = ([p for p in current["providers"] if p["key"] != key] + [row])[-providers.MAX_PROVIDERS:]
+                    models.update_settings(save_provider)
                     return self.json(models_payload())
                 if u.path == "/api/providers/remove":
-                    s["providers"] = [p for p in s["providers"] if p["key"] != body.get("key")]
-                    models.save_settings(s)
+                    models.update_settings(lambda current: current.update(
+                        providers=[p for p in current["providers"] if p["key"] != body.get("key")]))
                     return self.json(models_payload())
                 if u.path == "/api/settings":
-                    if "use_thoughtdag_env" in body:
-                        s["use_thoughtdag_env"] = bool(body["use_thoughtdag_env"])
-                    if body.get("pdf_tier") in engine.TIERS:
-                        s["pdf_tier"] = body["pdf_tier"]
-                    if "mineru_api_key" in body:
-                        key = body.get("mineru_api_key")
-                        key = key.strip() if isinstance(key, str) else ""
-                        if key and not engine.key_ok(key):
-                            return self.json({"error": "bad-mineru-key"}, 400)
-                        s["mineru_api_key"] = key
-                    models.save_settings(s)
+                    key = body.get("mineru_api_key")
+                    key = key.strip() if isinstance(key, str) else ""
+                    if key and not engine.key_ok(key):
+                        return self.json({"error": "bad-mineru-key"}, 400)
+                    def update_general(current):
+                        if "use_thoughtdag_env" in body:
+                            current["use_thoughtdag_env"] = bool(body["use_thoughtdag_env"])
+                        if body.get("pdf_tier") in engine.TIERS:
+                            current["pdf_tier"] = body["pdf_tier"]
+                        if "mineru_api_key" in body:
+                            current["mineru_api_key"] = key
+                    models.update_settings(update_general)
                     return self.json(models_payload())
                 if u.path == "/api/settings/test":
                     schema = {"type": "object", "properties": {"ok": {"type": "boolean"}}, "required": ["ok"]}
@@ -775,8 +773,7 @@ def make_handler(jobs):
 
 
 def _quiet_children():
-    """Windows: the app starts the server without a console, and every console program it starts in turn (an agent,
-    MinerU, npx) would open a window of its own for as long as it runs. They start without one."""
+    """Windows: console children (MinerU, npx) start without opening a window of their own."""
     init = subprocess.Popen.__init__
 
     def quiet(self, *a, **kw):
@@ -788,8 +785,6 @@ def _quiet_children():
 def serve(port=3017):
     _quiet_children()
     jobs = Jobs()
-    # look for the agents on this computer while the server comes up
-    threading.Thread(target=agents.scan, kwargs={"log": print}, daemon=True).start()
     httpd = ThreadingHTTPServer(("127.0.0.1", port), make_handler(jobs))
     print(f"TextFold on http://localhost:{port}")
     try:

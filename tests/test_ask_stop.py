@@ -37,7 +37,7 @@ class AskStop(unittest.TestCase):
         return next(n for n in notes.read(PID)["notes"] if n["id"] == NOTE["id"])["thread"]
 
     def ask(self, req):
-        return notes.ask(PID, NOTE["id"], "What is asked next?", {"id": "claude/claude-code/sonnet"}, req=req)
+        return notes.ask(PID, NOTE["id"], "What is asked next?", {"id": "magpie/auto"}, req=req)
 
     def test_an_answer_not_stopped_is_kept(self):
         with mock.patch.object(llm, "call", return_value=(REPLY, None)):

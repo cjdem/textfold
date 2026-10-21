@@ -15,7 +15,6 @@ import threading
 import time
 import urllib.error
 import urllib.request
-from pathlib import Path
 
 from .store import HOME, OLD_HOMES, ROOT
 
@@ -66,6 +65,7 @@ PRESETS = [
      "recommend": ["gemini-2.5-flash", "gemini-2.5-flash-lite"]},
     {"id": "moonshot-intl", "name": "Moonshot", "region": "en", "base": "https://api.moonshot.ai/v1"},
     {"id": "moonshot", "name": "Moonshot", "region": "zh", "base": "https://api.moonshot.cn/v1"},
+    {"id": "magpie", "name": "Magpie", "base": "http://127.0.0.1:3425/v1", "nokey": True},
     {"id": "ollama", "name": "Ollama", "base": "http://localhost:11434/v1", "nokey": True},
     {"id": "chatgpt-bridge", "name": "ChatGPT (local bridge)", "base": "http://127.0.0.1:10531/v1", "nokey": True, "bridge": True,
      "recommend": ["gpt-5.5", "gpt-5.6-luna", "gpt-5.6-sol"]},
@@ -77,7 +77,7 @@ MAX_PROVIDERS, MAX_MODELS = 12, 60
 def _read_env_file(f):
     out = {}
     if f.exists():
-        for line in f.read_text(errors="replace").splitlines():
+        for line in f.read_text(encoding="utf-8", errors="replace").splitlines():
             m = re.match(r"^\s*([\w.]+)\s*=\s*(.*?)\s*$", line)
             if m and not line.lstrip().startswith("#"):
                 out[m.group(1)] = m.group(2).strip().strip('"').strip("'")
@@ -128,8 +128,10 @@ def env_providers(use_thoughtdag=True, ollama_live=None):
 def ui_providers(settings):
     out = []
     for p in (settings.get("providers") or [])[:MAX_PROVIDERS]:
-        out.append({"key": p["key"], "name": p.get("name") or p["key"], "protocol": "openai", "base": p["base"].rstrip("/"),
-                    "api_key": p.get("api_key") or "none", "source": "ui", "preset": p.get("preset", "custom"),
+        magpie = p.get("preset") == "magpie" or p["key"] == "magpie"
+        out.append({"key": "magpie" if magpie else p["key"], "name": p.get("name") or p["key"], "protocol": "openai",
+                    "base": p["base"].rstrip("/"), "api_key": p.get("api_key") or ("magpie" if magpie else "none"),
+                    "source": "ui", "preset": p.get("preset", "custom"),
                     "models": [{"id": m["id"], "name": f"{short(m['id'])} ({p.get('name') or p['key']})"}
                                for m in (p.get("models") or [])[:MAX_MODELS]]})
     return out
@@ -162,6 +164,95 @@ def ollama_models(base="http://localhost:11434"):
         except Exception:
             _OLLAMA_PROBING.release()   # (no thread: the last answer stands, and the next call tries again)
     return list(_OLLAMA["ids"])
+
+
+MAGPIE = {"base": None, "at": 0.0, "models": []}
+_MAGPIE_LOCK = threading.Lock()       # one background probe at a time
+_MAGPIE_STATE = threading.Lock()      # publishes and reads the answer as one
+_MAGPIE_DONE = threading.Event()      # set when no probe is in flight
+_MAGPIE_DONE.set()
+
+
+def _magpie_snapshot():
+    with _MAGPIE_STATE:
+        return MAGPIE["base"], MAGPIE["at"], list(MAGPIE["models"])
+
+
+def _magpie_set(base, at=None, models=None):
+    with _MAGPIE_STATE:
+        MAGPIE.update(base=base, at=time.time() if at is None else at,
+                      models=list(MAGPIE["models"]) if models is None else models)
+
+
+MAGPIE_BASE = "http://127.0.0.1:3425/v1"
+
+
+def _magpie_config():
+    env = environment(False)
+    base = (env.get("MAGPIE_BASE_URL") or MAGPIE_BASE).rstrip("/")
+    override = [m.strip() for m in env.get("MAGPIE_MODELS", "").split(",") if m.strip()]
+    return base, override
+
+
+def _magpie_probe(base):
+    models = []
+    try:
+        req = urllib.request.Request(f"{base}/models", headers={"Authorization": "Bearer magpie"})
+        with urllib.request.urlopen(req, timeout=1.5) as r:
+            body = json.loads(r.read())
+        rows = body.get("data")
+        models = []
+        if isinstance(rows, list):
+            for row in rows:
+                if not isinstance(row, dict) or not row.get("id"):
+                    continue
+                mid = str(row["id"])
+                name = row.get("display_name") or row.get("magpie_label") or mid
+                levels = row.get("supported_reasoning_levels") or row.get("reasoning_levels") or []
+                efforts = [x.get("effort") or x.get("name") for x in levels if isinstance(x, dict)] if isinstance(levels, list) else []
+                model = {"id": mid, "name": str(name)}
+                if efforts:
+                    model["efforts"] = [e for e in efforts if e]
+                models.append(model)
+    except Exception:
+        models = []
+    finally:
+        try:
+            current_base, override = _magpie_config()
+            if current_base == base and not override:   # (the address or an override changed while this probe ran)
+                _magpie_set(base, models=models)
+        finally:
+            _MAGPIE_LOCK.release()
+            _MAGPIE_DONE.set()
+
+
+def magpie_models(wait=False):
+    """A running local Magpie, checked in the background so a closed port never holds up a page. A caller that needs
+    a model now (`wait=True`) waits for a probe already under way, at most its 1.5 s timeout plus a moment."""
+    base, override = _magpie_config()
+    if override:
+        found = [{"id": mid, "name": f"{short(mid)} (Magpie)"} for mid in override]
+        old_base, _, old = _magpie_snapshot()
+        if old_base != base or old != found:
+            _magpie_set(base, models=found)
+        return base, found
+    known_base, at, found = _magpie_snapshot()
+    if known_base != base:
+        _magpie_set(base, at=0.0, models=[])
+        at, found = 0.0, []
+    if time.time() - at >= 10 and _MAGPIE_LOCK.acquire(blocking=False):
+        _MAGPIE_DONE.clear()
+        try:
+            threading.Thread(target=_magpie_probe, args=(base,), daemon=True).start()
+        except Exception:
+            _MAGPIE_LOCK.release()
+            _MAGPIE_DONE.set()
+    if wait and not _MAGPIE_DONE.is_set():
+        _MAGPIE_DONE.wait(2.0)
+        known_base, at, found = _magpie_snapshot()
+        if known_base != base:
+            return base, []
+    return base, found
 
 
 def probe(base, api_key, timeout=15):

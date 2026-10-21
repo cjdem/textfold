@@ -45,7 +45,7 @@ class Generation(unittest.TestCase):
         d.mkdir(parents=True)
         (d / "source.html").write_text(PAGE, encoding="utf-8")
         (d / "meta.json").write_text(json.dumps({"id": self.pid}), encoding="utf-8")
-        self.cfg = {"kind": "agent", "runtime": "claude-code", "model": "haiku", "id": "test/model"}
+        self.cfg = {"kind": "api", "protocol": "openai", "model": "test/model", "id": "test/model"}
 
     def tearDown(self):
         store.DATA = self.old

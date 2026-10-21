@@ -64,21 +64,22 @@ class Providers(unittest.TestCase):
         return mock.patch.object(providers, "env_providers", return_value=[]), \
             mock.patch.object(providers, "ui_providers", return_value=[]), \
             mock.patch.object(providers, "ollama_models", return_value=[]), \
+            mock.patch.object(providers, "magpie_models", return_value=("http://127.0.0.1:3425/v1", [])), \
             mock.patch.object(bridges, "bridge_provider", return_value=None), \
             mock.patch.object(bridges, "bridge_status", return_value={"running": False})
 
     def test_the_provider_list_is_reused_for_a_moment(self):
         s = {"providers": [], "use_thoughtdag_env": False}
-        a, b, c, d, e = self.probe()
-        with a as env, b, c, d, e:
+        a, b, c, d, e, f = self.probe()
+        with a as env, b, c, d, e, f:
             models.provider_list(s)
             models.provider_list(s)
         self.assertEqual(env.call_count, 1)
 
     def test_a_changed_live_answer_rebuilds_the_list(self):
         s = {"providers": [], "use_thoughtdag_env": False}
-        a, b, c, d, e = self.probe()
-        with a as env, b, c, d, e:
+        a, b, c, d, e, f = self.probe()
+        with a as env, b, c, d, e, f:
             models.provider_list(s)
             providers.ollama_models.return_value = ["llama3:8b"]   # (a background probe answered between the calls)
             models.provider_list(s)
@@ -87,8 +88,8 @@ class Providers(unittest.TestCase):
     def test_the_list_is_rebuilt_after_ten_seconds(self):
         s = {"providers": [], "use_thoughtdag_env": False}
         clock = [1000.0]
-        a, b, c, d, e = self.probe()
-        with a as env, b, c, d, e, mock.patch.object(models.time, "time", side_effect=lambda: clock[0]):
+        a, b, c, d, e, f = self.probe()
+        with a as env, b, c, d, e, f, mock.patch.object(models.time, "time", side_effect=lambda: clock[0]):
             models.provider_list(s)
             clock[0] += 11
             models.provider_list(s)
@@ -99,8 +100,8 @@ class Providers(unittest.TestCase):
         old = models.SETTINGS
         try:
             models.SETTINGS = Path(tempfile.mkdtemp()) / "settings.json"
-            a, b, c, d, e = self.probe()
-            with a as env, b, c, d, e:
+            a, b, c, d, e, f = self.probe()
+            with a as env, b, c, d, e, f:
                 models.provider_list(s)
                 models.save_settings(s)
                 models.provider_list(s)

@@ -61,60 +61,37 @@ itself. The Windows app is built by `.github/workflows/desktop.yml` on a `v*` ta
 `MYGO_UPDATER_PRIVATE_KEY` secret, and stops before it leaves a draft release without it.
 
 Models (⚙ Settings): the current connection, the default model and its test, plus the ChatGPT bridge and the
-OpenRouter one-click entry. Agents, API providers, the questions' model and reasoning, and the MinerU API key are under
-**Advanced**. Ported from ThoughtDAG's model access:
+OpenRouter one-click entry. API providers, the questions' model and reasoning, and the MinerU API key are under
+**Advanced**. TextFold makes model calls through API providers only; it does not scan for or run Claude Code, Codex or Pi
+CLI runtimes.
 
-- **Agents on this computer**, found at startup (and on Rescan) on PATH, the usual install
-  directories and the node version managers. Claude Code, Codex and Pi run generations, each listing its own models
-  (Pi brings whatever providers it is configured with); only these three are scanned and listed, since an agent the
-  reader cannot drive is not offered. Claude Code is called without the
-  user's settings and CLAUDE.md (`--setting-sources project,local` in a scratch folder; again with them if that fails
-  to sign in).
-- **Two easy ways in** (`textfold/bridges.py`, as in ThoughtDAG):
-  - **ChatGPT plan, local bridge**: openai-oauth (npm) serves the plan as an OpenAI-compatible endpoint on
-    127.0.0.1:10531, signed in with Codex's login (or a browser sign-in). Running, it joins the providers on its own
-    (as a running Ollama does), with its text models; not running, the settings' main view has a row to start it (`npx -y openai-oauth@2 --detach`; `npx openai-oauth stop` stops it). On the test
-    paper: 174 s with gpt-5.5 at the recommended levels, nothing failed, no cost beyond the plan; a section takes about
-    8 s against 13 s through `codex exec`.
-  - **OpenRouter in one click**: OAuth with PKCE. The server makes the verifier, OpenRouter's consent page sends the
-    reader back to `/oauth/openrouter` with a code, the code and verifier become a key, and the key waits in memory
-    until the reader picks models and saves. Free models are listed first (the free router, then known makers, never an
-    anonymous "stealth" model by default) and a new connection picks five of them. (Their limits, not shown to the
-    reader: 20 a minute; 50 a day until $10 of credit has been bought, then 1,000; a paper takes about 40 calls.)
-  - **The model list** of a provider shows the picked models first, and a search box narrows a long list (OpenRouter
-    lists 466) as you type, keeping what is ticked. Changing the kind of a provider being edited makes a new one.
-  - **Rate limits**: a 429, 502, 503 or 529 is waited out (Retry-After, else 5, 15, 30, 45 s) and asked again.
-- **Thinking, per task**, set by the reader's tools and not by the reader (a reader is here to read):
-  `models.DEFAULT_THINKING` gives the levels and takeaways off, the translation off, the questions low, the
-  reading card low, from the model bench.
-  Each caller spells a level its own way: Claude Code `--effort`, and off as `MAX_THINKING_TOKENS=0`; Codex
-  `model_reasoning_effort` (off as `none`, else `low`); Pi `--thinking`; the Claude API thinking and effort by model
-  (off is `between_tools` on Sonnet 5.x, `disabled` on older models, the least effort where thinking cannot be
-  switched off, no thinking on Haiku); OpenAI-compatible APIs the provider's field (OpenRouter `reasoning`, GLM and
-  DeepSeek and Kimi `thinking`, Qwen `enable_thinking`), then OpenAI's `reasoning_effort` (off as none, minimal, low:
-  some models always think).
-- **A level is a request, never a condition.** These spellings change as APIs change, so a request refused for one
-  (a 400 or 422, or an answer left in the reasoning) is sent the next way, and last without any reasoning field; the
-  way that worked is remembered for the run. Under every caller, a call that fails with a level set is made once more
-  at the model's default, and the reply records why (`note`). Tested against a fake endpoint that refuses the fields,
-  answers empty, refuses JSON mode or takes one spelling only, and live on Zhipu and OpenRouter.
-- **Reasoning costs time, hardly quality, for this work** (measured on one paper, 2026-10-04): DeepSeek flash
-  through Pi took 44 s without thinking and 386 s at xhigh, with the same blind grades; Sonnet 108 s against 395 s,
-  +0.14 on a 5-point scale; Haiku 163 s against 1545 s. A weaker model costs more quality than switching thinking off.
-  Without thinking a reply's JSON fails to parse now and then (asked for once more), and a long section's
-  translation came back short: translations are made in parts of about 5,000 characters.
-- **API providers**: keys from the environment, or a `.env` here or in `~/.textfold/`: Zhipu, Qwen, OpenAI,
-  Anthropic, Google, DeepSeek, Kimi, OpenRouter, Ollama. (Until v0.9 ThoughtDAG's `.env` was read too; its providers
-  were copied once into the settings.) Others are added in the dialog
-  from ThoughtDAG's presets (OpenRouter, Z.ai, 智谱, GLM Coding, Kimi Code, MiniMax, DeepSeek, OpenAI, Google AI Studio,
-  Moonshot, Ollama, a ChatGPT bridge, Anthropic, custom): the endpoint's `/models` is fetched and you pick which to offer.
-  Keys added here stay in `~/.textfold/settings.json` (mode 600), outside the project folder. (Under earlier
-  names they were in `~/.paperfold/` (PaperFold) or `~/.dynamic-reader/`: copied from there once, and left in place.)
-- **The home page does not wait on a local port.** `landing_page` builds the model catalog once, and the Ollama and
-  bridge probes answer from their last result at once while a background thread refreshes them; `provider_list`
-  caches the rows for ten seconds, keyed by the settings, the environment and the probes' answers, and
-  `save_settings` clears them. A synchronous probe is for the settings dialog (`bridge_status(fresh=True)`). On a
-  computer that drops a closed local port rather than refusing it, four catalog builds made the landing take 16 s.
+- **Magpie**, an optional external local gateway ([project](https://github.com/yetone/magpie)), is discovered from
+  `http://127.0.0.1:3425/v1/models`; model ids are dynamic and labels use `display_name`, then `magpie_label`, then the id.
+  `MAGPIE_BASE_URL` overrides the `/v1` base, and `MAGPIE_MODELS` can supply a comma-separated local override. Calls use
+  OpenAI-compatible `/chat/completions` with the `magpie` token. TextFold does not install Magpie. It is listed first and
+  its first model becomes the default unless Settings selects another available model; a collision resolves to Magpie.
+  Probes run in the background with a short-lived cache, so an unavailable gateway does not delay the page or server.
+- **ChatGPT plan, local bridge** (`textfold/bridges.py`): openai-oauth (npm) serves an OpenAI-compatible endpoint at
+  `127.0.0.1:10531`, authenticated with the user's Codex login or browser sign-in. TextFold uses the login through the
+  bridge and does not run the Codex CLI. It starts on request (`npx -y openai-oauth@2 --detach`; `npx openai-oauth stop`
+  stops it); Node.js is required.
+- **OpenRouter in one click**: OAuth with PKCE. The server makes the verifier, OpenRouter returns a code, and the code
+  and verifier become a key kept in memory until the reader picks models and saves. Free models are listed first and a
+  new connection picks five of them.
+- **API providers** include environment and `.env` keys for Zhipu, Qwen, OpenAI, Anthropic, Google, DeepSeek, Kimi and
+  OpenRouter, plus Ollama and Magpie as local API gateways. Other services can be added in Settings from presets or as
+  custom OpenAI-compatible endpoints. Provider model lists are fetched from `/models`; keys added in Settings stay in
+  `~/.textfold/settings.json` (mode 600), outside the project folder.
+- **Thinking, per task** is selected by the reader's task settings: `models.DEFAULT_THINKING` sets levels and takeaways
+  off, translation off, questions low, and reading cards low. API providers use supported fields: the Claude API's
+  thinking and effort by model; OpenAI-compatible APIs use provider-specific fields such as `reasoning`, `thinking`,
+  `enable_thinking` or `reasoning_effort`. Magpie reports supported reasoning levels with its dynamic model list.
+  If an API refuses a spelling, TextFold tries supported alternatives and then retries without a reasoning field; a
+  failure with a level set is retried at the model default and explained in `note`.
+- **The home page does not wait on local ports.** Magpie, Ollama and bridge probes refresh in the background; the last
+  result is returned at once. `provider_list` caches rows for ten seconds, keyed by settings, environment and probe
+  results, and `save_settings` clears the cache. A stopped local gateway does not prevent other providers from appearing
+  or working.
 
 Command line, without the server:
 
@@ -323,8 +300,8 @@ lists among the papers. The page may change the library chosen and
 nothing else: Zotero's address and data folder (`"zotero": {"base", "data_dir"}`) are set in the settings file only.
 `tests/test_zotero.py` runs it all against a fake Zotero.
 
-`TEXTFOLD_NO_MODELS=1` makes a server find no model at all (no agent, no bridge, no provider): for test servers and CI,
-so that nothing calls a model by accident. Without a model a document is still fetched and parsed, and reads as written.
+`TEXTFOLD_NO_MODELS=1` makes a server find no model at all (no bridge or API provider): for test servers and CI, so
+that nothing calls a model by accident. Without a model a document is still fetched and parsed, and reads as written.
 
 ## No other server
 
@@ -380,10 +357,11 @@ textfold/translate.py  a language the reader offers: sentence-aligned translatio
 textfold/store.py    versioned layers per paper; assembling a reader from them
 textfold/pipeline.py fetch → parse → English ladder (once) → translation, with progress
 textfold/server.py   local server: pages, /api/papers, /api/jobs (and /api/jobs/stop), /api/generate, /api/card, /api/settings
-textfold/agents.py   local agents: the scan, model catalogs, one-shot runs (claude -p, codex exec, pi -p)
-textfold/providers.py API providers: ThoughtDAG's env registry and presets, /models probing
-textfold/models.py   one catalog of agent and API models; settings; resolving a model id
-textfold/llm.py      the call (cached) for every kind of model; llm_openai.py: OpenAI-compatible endpoints
+textfold/providers.py API providers: environment registry, presets, dynamic Magpie and /models probing
+textfold/models.py   API model catalog; settings; resolving a model id
+textfold/bridges.py  ChatGPT bridge using Codex login; OpenRouter one-click authorization
+textfold/procenv.py Windows child environment and UTF-8 text settings for the ChatGPT bridge
+textfold/llm.py     cached API model calls; llm_openai.py: OpenAI-compatible endpoints
 textfold/build.py    reader pages: app mode (served) and static mode (one file)
 textfold/library.py  the sidebar's library: folders, when each document came in and was last opened (library.json)
 textfold/notes.py    the reader's notes (docs/notes-format.md) and questions answered by the model
@@ -392,7 +370,7 @@ textfold/fold.py     the TextFold format (docs/format.md) and a document at one 
 textfold/web/   reader.js (render + FLIP morph), card.js/card.css (the reading card drawer), app.js (sidebar, landing,
                 settings, jobs), i18n.js, CSS, templates
 tests/          python -m unittest discover tests: the arXiv page's safety pass, the Zotero library (a fake Zotero),
-                agents on Windows
+                API providers and the ChatGPT bridge on Windows
 desktop-mygo/  the app (its README): Go/MyGo window around the same Python server, native dialogs, lifecycle and signed updates
 tools/zoombench.py  zoom smoothness as the screen sees it (Windows' d3d11 GPU backend, 2x, Chrome's frame trace), on
                 out/compare/<id>/ pages; needs playwright and an exported page
@@ -403,21 +381,10 @@ them by number. A parser change that reads more of a page (description lists, Oc
 the new ones, so a paper generated before it needs its layers made again, or its atom numbers mapped from the old parse
 to the new one by content and order.
 
-Everything exchanged with a coding agent is UTF-8 (`agents.TEXT`): the pipes of `claude -p`, `codex exec`, `pi -p`
-and the scan's JSON-RPC, the reply file `codex exec -o` writes, `~/.codex/config.toml`, and the reply cache
-`llm.py` keeps, which is ASCII-escaped for the same reason. A text-mode pipe or a `read_text()` with no encoding
-uses the system's — GBK on a Chinese Windows — where a prompt holding `▶` (the outline's mark for the section being
-read) dies in subprocess's writer thread before the agent sees it, a reply holding `⟦a1⟧` markers fails at the cache
-write after the model has answered, and a typographic quote in a config dies in a reader thread: the generation
-hangs or fails with no trace of the model call. New calls that exchange text with a model CLI take the same
-encoding, and a cache file that failed to write — or that was written before replies were ASCII-escaped, in an
-encoding no marker identifies — is made again rather than breaking a retry or feeding mojibake into a document. What
-a model's work is saved into follows the rule: a layer (`store.write`) and a note's answer (`notes.py`) are written
-ASCII-escaped as UTF-8, and the settings file is written the same way, since Korean or Hindi, or a provider named in
-either, are not in GBK at all. The JSON the reader keeps about a document and its library — `meta.json`, `library.json`,
-`zotero.json`, the name beside a file waiting for the engine — is ASCII-escaped for the same reason: those files are
-read with the system's encoding, and a title or a folder's name can hold a character GBK lacks (an Elsevier paper's
-title ends in ✩, and storing it failed after MinerU had read the whole PDF). A stored address (`url.txt`) is written
-UTF-8 with a byte-order mark, so `store.read_url` reads an address stored before the mark in the system's encoding
-rather than guessing UTF-8 from its bytes (GBK's `一` is also valid UTF-8); an exported page and the CLI's stdout are
-written UTF-8 too, the encodings their readers expect.
+The ChatGPT bridge's Windows child environment and text-pipe helper live in `procenv.py`. The child environment adds the
+usual Node.js locations to `PATH`; the UTF-8 text settings remain for any text a bridge child exchanges, so a Chinese
+Windows code page cannot corrupt it. JSON generated by API providers remains UTF-8 in and out: model replies in
+`llm.py`, layers in `store.write`, notes in `notes.py`, and settings in `models.py` are written as ASCII-escaped UTF-8.
+Document metadata and library JSON are ASCII-escaped for the same reason: titles and folder names may contain
+characters absent from GBK. Stored web addresses use a UTF-8 byte-order mark so earlier text can still be read
+correctly; exported pages and CLI output use UTF-8 as well.

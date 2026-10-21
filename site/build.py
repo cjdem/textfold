@@ -89,7 +89,7 @@ def app_ld(lang):
         "inLanguage": UI_LANGS,
         "featureList": ["Five levels per paragraph, from a map of the sections to every word", "Reads beside the original PDF",
                         "Answers about what you read, citing its paragraphs", "Notes that stay as you zoom out", "English and Simplified Chinese"],
-        "keywords": "research papers, project material, reading, students, PDF reader, sources, Claude Code, Codex, Zotero",
+        "keywords": "research papers, project material, reading, students, PDF reader, sources, Magpie, API provider, Zotero",
         "author": {"@type": "Person", "name": "cjdem", "url": "https://github.com/cjdem"},
         "contributor": {"@type": "Person", "name": "Xia Chen"},
         "sameAs": [REPO],
@@ -156,7 +156,7 @@ TextFold keeps the whole text and lets each reader take it at the level of detai
 
 - Five levels per paragraph. Full and Brief keep the author's own words; Key, Takeaway and Topic are written by a model, each line anchored to the author's sentences it rests on.
 - Reads arXiv, PubMed Central, bioRxiv, medRxiv, DOIs whose full text is open in Europe PMC, Wikipedia, GitHub READMEs, any web page, PDF, Word (DOCX), PowerPoint (PPTX), Excel (XLSX), EPUB, HTML, CSV, pictures, Markdown, text, and a Zotero 7 library. Every PDF and picture is parsed by MinerU's Cloud API; the file leaves the computer for conversion.
-- Uses a model the reader already has: Claude Code, Codex or Pi on the computer, a ChatGPT plan, free models on OpenRouter, or an API key (Anthropic, OpenAI, DeepSeek, Qwen, Zhipu GLM, Kimi, MiniMax, Google, Ollama, any OpenAI-compatible endpoint).
+- Uses a model the reader already has: a running local Magpie gateway, a ChatGPT plan through the local bridge, free models on OpenRouter, or an API key (Anthropic, OpenAI, DeepSeek, Qwen, Zhipu GLM, Kimi, MiniMax, Google, Ollama, any OpenAI-compatible endpoint).
 - Two languages, translated sentence by sentence: {LANGS_NATIVE}.
 - The library stays on the reader's computer, and there is no account.
 - Systems: Windows 10 and 11 (64-bit); the Python package needs Python 3.9 or newer. Current version: {VERSION}.

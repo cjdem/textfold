@@ -124,16 +124,16 @@ python -m textfold serve
 
 ## 连接模型
 
-TextFold 用你已有的模型，不需要注册账号。启动时它会自己去找；一个都没找到时，首页会给出接入的方式。
+TextFold 通过 API 供应商发送模型请求，不会扫描或运行 Claude Code、Codex、Pi 命令行 Agent。如果你已经在电脑上运行可选的 [Magpie 网关](https://github.com/yetone/magpie)，TextFold 会从 `http://127.0.0.1:3425/v1/models` 动态读取它提供的模型。Magpie 是独立的外部服务，TextFold 不会安装它。你明确选择且当前可用的模型会继续作为默认；否则 Magpie 可用时，默认选择它列出的第一个模型。
 
 | 你有 | 怎么做 |
 |---|---|
-| Claude Code、Codex 或 Pi | 什么都不用做，TextFold 会自动找到并使用。 |
-| ChatGPT 订阅 | 点 **使用我的 ChatGPT 订阅**。电脑上会启动一个小的本地桥，用你的账号登录（需要 Node.js）。 |
-| 什么都还没有 | 点 **OpenRouter 一键授权**。授权一次，免费模型马上可用。 |
+| 正在运行的本地 Magpie | 不用设置。TextFold 会连接它的 OpenAI 兼容 API，并列出 Magpie 返回的模型。 |
+| ChatGPT 订阅 | 点 **使用我的 ChatGPT 订阅**。电脑上会启动一个需要 Node.js 的小型本地桥，并使用 Codex 登录；这里用的是登录凭据，不会运行 Codex 命令行程序。 |
+| 还没有模型 | 点 **OpenRouter 一键授权**。授权一次，免费模型马上可用。 |
 | 一个 API key | **设置 › 高级 › 添加供应商**：Anthropic、OpenAI、DeepSeek、通义千问、智谱 GLM、Kimi、MiniMax、Google、Ollama，或任何 OpenAI 兼容接口。 |
 
-回答问题可以用比生成层级更强的模型：**设置 › 高级 › 回答问题**，还可以选推理强度。
+Magpie 不可用时，TextFold 会使用其他可用供应商。回答问题可以用比生成层级更强的模型：**设置 › 高级 › 回答问题**，还可以选推理强度。
 
 ## 阅读时的操作
 
@@ -168,7 +168,7 @@ TextFold 只是一个工具，它的许可证只管代码。分享文件时，�
 - **2026 年 10 月 17 日：英文文档默认带上简体中文版。** App 里打开一篇英文文档，会在同一次生成的最后顺便做出简体中文版，不用再请求一次就能读中文。
 - **2026 年 10 月 15 日：不装 PDF 引擎也能读 PDF。** 自带文字的 PDF（大多数论文都是）直接打开，图从原页上裁出来；只有扫描件还需要 PDF 引擎。没有 HTML 版本的 arXiv 论文改读它的 PDF。感谢 [@sylvainHellin](https://github.com/sylvainHellin)。
 - **2026 年 10 月 15 日：你的文献库和你的提问。** 文献库可以搜索、建文件夹，按添加时间或最近打开排序。提问有了发送和停止键，对话里任何一轮都可以删掉，回答问题还可以用比生成层级更强的模型。感谢 [@suhyungJang](https://github.com/suhyungJang)。
-- **2026 年 10 月 14 日：Mac 和 Windows 软件。** 下载 TextFold 的 macOS 版（Apple 芯片或 Intel，已签名并经苹果公证）或 Windows 版，需要的东西都在里面。它会找到你电脑上的 Claude Code、Codex 或 Pi，有新版本时经你同意自己更新。[下载 ↓](#开始使用)
+- **2026 年 10 月 14 日：Mac 和 Windows 软件。** 下载 TextFold 的 macOS 版（Apple 芯片或 Intel，已签名并经苹果公证）或 Windows 版，需要的东西都在里面。桌面版会在你同意后自行更新。[下载 ↓](#开始使用)
 
 <details>
 <summary>更早</summary>

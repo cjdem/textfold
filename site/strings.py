@@ -43,8 +43,8 @@ S = {
              "同样的阅读器也有 Python 包，从本 fork 安装，在 Windows 上使用，需要 Python 3.9 或更新版本。"),
     "py_links": ('<a href="https://github.com/cjdem/textfold/blob/main/docs/format.md">The TextFold format</a>',
         '<a href="https://github.com/cjdem/textfold/blob/main/docs/format.md">TextFold 格式</a>'),
-    "app_p": ('Windows 11 already has the WebView2 runtime; on Windows 10, install it if the app asks. It finds Claude Code, Codex or Pi on your computer, or connects a free model in one click.',
-        'Windows 11 自带 WebView2；Windows 10 如果提示就先装上。它会找到你电脑上的 Claude Code、Codex 或 Pi，也能一键连上免费模型。'),
+    "app_p": ('Windows 11 already has the WebView2 runtime; on Windows 10, install it if the app asks. Connect an API provider, use a running local Magpie gateway, or connect a free model in one click.',
+        'Windows 11 自带 WebView2；Windows 10 如果提示就先装上。可以连接 API 供应商、使用已运行的本地 Magpie 网关，或一键连接免费模型。'),
 
     "app_meta": (f'Version {VERSION} · Windows 10 and 11, 64-bit · The app updates itself.',
         f'版本 {VERSION} · Windows 10 和 11，64 位 · 软件会自己更新。'),

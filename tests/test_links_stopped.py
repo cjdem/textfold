@@ -18,7 +18,7 @@ from textfold import build, fold, links, models, pipeline, store
 
 PAGE = ('<article class="ltx_document"><p class="ltx_p">First paragraph here.</p>'
         '<p class="ltx_p">Second paragraph here.</p></article>')
-CFG = {"kind": "agent", "runtime": "claude-code", "model": "haiku", "id": "test/model"}
+CFG = {"kind": "api", "protocol": "openai", "model": "test/model", "id": "test/model"}
 
 
 class ArgumentLinks(unittest.TestCase):

@@ -23,12 +23,12 @@
 
 ## 2. 确认删除（按实施顺序）
 
-### 2.1 只检测、不能实际调用的 Agent 展示
+### 2.1 API-only 模型接入与可选 Magpie 网关
 
-- 删除设置里 Gemini CLI、Qwen Code、opencode、Cursor Agent、Kimi CLI、Amp、Goose、Crush、
-  Droid、Copilot CLI、iFlow、Aider 等“已找到但不能驱动”的展示行。
-- 保留 Claude Code、Codex、Pi 的安装扫描和模型目录——它们是真正能生成内容的三个运行时。
-- 失去：不再提示这些工具是否安装；没有调用能力可失。
+- 移除所有产品侧命令行 Agent 的发现、模型目录和运行时，包括 Claude Code、Codex 和 Pi。
+- 保留 API providers 和 ChatGPT 本地桥。桥通过 Codex 登录凭据进行授权；TextFold 不运行 Codex CLI。
+- 增加可选的外部 Magpie 网关：从 `http://127.0.0.1:3425/v1/models` 动态读取模型，通过 OpenAI 兼容 API 调用；Magpie 可用时优先列出并默认选择其第一个模型。TextFold 不安装或打包 Magpie。
+- 失去：文档和产品不再发现、列出或调用本机的 Claude Code、Codex、Pi CLI 运行时；这些 CLI 的产品侧集成不再可用。ChatGPT bridge 仍使用 Codex 登录，但不启动 Codex CLI。
 
 ### 2.2 公开画廊与宣传素材管线，官网压缩
 
@@ -44,7 +44,7 @@
 - 删除 `plugins/textfold/`、`plugins/pi-textfold/` 及安装宣传。
 - 同时删除两份 `fold.ts` 必须逐字节相同的不变式与 `tests/test_pi_textfold_same_fold.py`，
   更新 `CLAUDE.md`、`docs/DEVELOPMENT.md`、README 和 `invariants.md`。
-- **不删除**模型接入、摘要、翻译、问答：插件只是显示层，和本机模型调用是两件事。
+- **不删除**摘要、翻译、问答等阅读功能；模型请求通过 API providers 完成，和插件显示功能相互独立。
 - 失去：在 Claude Code / Pi 里折叠助手回复；论文阅读器的五级缩放不受影响。
 
 ### 2.4 自动段落论证关系（第一步：停止默认生成）
@@ -100,7 +100,7 @@
 
 每一项单独 worktree、单独提交、单独记录，完成后 ff-only 合回本地 main；不推送。
 
-- [x] 1. 移除只检测不能调用的 Agent 展示（保留 Claude Code/Codex/Pi）。
+- [x] 1. 移除产品侧 Claude Code/Codex/Pi CLI Agent 接入，改为 API-only 并支持可选 Magpie 网关。
 - [x] 2. 移除画廊/宣传素材管线，官网压缩为一页（含 README demo 链接与文档同步）。
 - [x] 3. 移除 Claude Code / Pi 折叠插件（含 fold-engine 不变式与测试）。
 - [x] 4. 停止默认生成段落论证关系（界面暂时保留旧数据）。

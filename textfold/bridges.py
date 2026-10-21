@@ -23,7 +23,7 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 
-from . import agents
+from . import procenv
 from .store import HOME
 
 BRIDGE = "http://127.0.0.1:10531/v1"
@@ -41,7 +41,7 @@ def _probe():
             ids = [m.get("id") for m in json.loads(r.read()).get("data", []) if m.get("id")]
         return {"running": True, "models": ids}
     except Exception:
-        npx = shutil.which("npx", path=agents.child_env()["PATH"])
+        npx = procenv.which("npx")
         return {"running": False, "node": bool(npx), "codexLogin": (Path.home() / ".codex" / "auth.json").exists()}
 
 
@@ -68,7 +68,7 @@ def bridge_status(fresh=False):
             threading.Thread(target=_refresh, args=(started,), daemon=True).start()
         except Exception:
             _PROBING.release()   # (no thread: the last answer stands, and the next call tries again)
-    return _SEEN["status"] or {"running": False, "node": bool(shutil.which("npx", path=agents.child_env()["PATH"])),
+    return _SEEN["status"] or {"running": False, "node": bool(procenv.which("npx")),
                                "codexLogin": (Path.home() / ".codex" / "auth.json").exists()}
 
 
@@ -84,7 +84,7 @@ def bridge_provider(text_only):
 
 def bridge_start():
     """Start the bridge detached (a browser opens to sign in when Codex has no login); the caller polls the status."""
-    env = agents.child_env()
+    env = procenv.child_env()
     npx = shutil.which("npx", path=env["PATH"])
     if not npx:
         raise RuntimeError("Node.js (npx) was not found on this computer")
