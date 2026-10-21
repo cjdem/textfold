@@ -559,7 +559,7 @@
   const sign = (k, tone) => `<span class="g-ico${tone ? ` ${tone}` : ''}">${k === 'mark' ? MARK : svg(k)}</span>`;
   const shut = (label) => `<button type="button" class="g-x" aria-label="${esc(label)}" title="${esc(label)}">${svg('x')}</button>`;
 
-  // ── the app's own updates (desktop/main.js): a newer release, downloaded and installed when the reader says ──
+  // ── the app's own updates (desktop-mygo): a newer release, downloaded and installed when the reader says ──
   if (window.desktop && window.desktop.onUpdate) {
     const D = window.desktop, box = h('div', 'gen-toast upd-toast');
     let last = null, fade = 0;

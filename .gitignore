@@ -16,11 +16,7 @@ tools/modelbench/
 tools/zoombench_ext.py
 research/
 launch/
-# the app: its build tools, the runtime it ships, and the packages it makes
-desktop/node_modules/
-desktop/payload/
-desktop/out/
-# the MyGo shell and the shared Python payload it packages
+# the MyGo shell and the Python payload it packages
 desktop-mygo/.mygo/
 desktop-mygo/build/
 desktop-mygo/resources/payload/
@@ -28,7 +24,7 @@ desktop-mygo/resources/payload/
 STATUS.md
 WINDOWS-ONLY.md
 
-# a pip build from the clone (desktop/build/ is the app's icon)
+# a pip build from the clone
 /build/
 /dist/
 *.egg-info/

@@ -51,11 +51,11 @@ Where things are kept: the code in the project (`textfold/`, with the reader's p
 project, or wherever `TEXTFOLD_DATA` points (`PAPERFOLD_DATA`, its earlier name, is read too); settings and keys in
 `~/.textfold/`.
 
-The app is a hybrid: `desktop-mygo/` is a Go/MyGo window around the same Python server, with its own CPython
+The app is `desktop-mygo/`: a Go/MyGo window around the same Python server, with its own CPython
 (python-build-standalone) and packages, so a reader installs nothing. MyGo owns the window, Python lifecycle, native
-dialogs, external links and update hooks; it does not reimplement the reader or document pipeline in Go. The older
-Electron shell remains in `desktop/` as a fallback until the MyGo installer and update transition are validated.
-Builds are parked in `.github/workflows-disabled/` until releases are wanted again (GitHub runs only
+dialogs, external links and the signed update feed; it does not reimplement the reader or document pipeline in Go. A
+copy installed by the old Electron shell cannot consume that feed and is reinstalled once; after that the app updates
+itself. Builds are parked in `.github/workflows-disabled/` until releases are wanted again (GitHub runs only
 `.github/workflows/`).
 
 Models (⚙ Settings): the current connection, the default model and its test, plus the ChatGPT bridge and the
@@ -166,7 +166,7 @@ chosen; the notes, the questions and answers with their citations as labels, for
 the mark), a PDF, Markdown for Obsidian (block ids, callouts, links back) or the notes data (JSON, with `made_by`).
 The menu and the dialog both say that TextFold is a tool and that a file shared follows the terms of the original
 text; neither judges a license. Where a file goes, the reader chooses: the desktop app's own save dialog
-(`Desktop.SaveFile`, through either `desktop-mygo/preload.js` or `desktop/preload.js`), Chrome's file picker, else the
+(`Desktop.SaveFile`, through `desktop-mygo/preload.js`), Chrome's file picker, else the
 browser's downloads; a PDF through the system's print dialog.
 While the file is made (seconds, for a whole text with its PDF), the mark folds and unfolds in place of the dialog's
 buttons. A page that is a file (saved, or published) has its mark lead to the repository and ends with it.
@@ -391,8 +391,7 @@ textfold/web/   reader.js (render + FLIP morph), card.js/card.css (the reading c
                 settings, jobs), i18n.js, CSS, templates
 tests/          python -m unittest discover tests: the arXiv page's safety pass, the Zotero library (a fake Zotero),
                 agents on Windows
-desktop-mygo/  the app (its README): Go/MyGo window around the same Python server, native dialogs and lifecycle
-desktop/       the older Electron shell, kept as a fallback while the MyGo release path is validated
+desktop-mygo/  the app (its README): Go/MyGo window around the same Python server, native dialogs, lifecycle and signed updates
 tools/zoombench.py  zoom smoothness as the screen sees it (Windows' d3d11 GPU backend, 2x, Chrome's frame trace), on
                 out/compare/<id>/ pages; needs playwright and an exported page
 ```

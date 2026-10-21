@@ -2,8 +2,7 @@
 
 A reader that zooms any text from every word to a one-screen map. Python
 server in `textfold/`, reader in plain JavaScript under `textfold/web/`, the
-MyGo app in `desktop-mygo/` with the older Electron shell in `desktop/`, the
-website in `site/`.
+MyGo app in `desktop-mygo/`, the website in `site/`.
 
 `docs/DEVELOPMENT.md` is the authority on how this is built — its **Layout**
 section is the module map, and its other sections state the constraints that

@@ -68,7 +68,7 @@ window.DR_I18N = (() => {
       '阅读', '打开', '无文件', '这个条目在 Zotero 里没有 TextFold 能读的文件，也没有 Europe PMC 收录全文的 DOI。', '我的文库']),
   };
   for (const [code, words] of Object.entries(Z)) Object.assign(S[code], words);
-  // the app's own updates (desktop/main.js or desktop-mygo): a newer release, downloaded and installed when the reader says
+  // the app's own updates (desktop-mygo): a newer release, downloaded and installed when the reader says
   const upd = (w) => ({ up_new: w[0], up_get: w[1], up_getting: w[2], up_ready: w[3], up_restart: w[4], up_failed: w[5], up_retry: w[6],
     up_check: w[7], up_latest: w[8], up_check_failed: w[9], up_note: w[10], up_done: w[11], up_whatsnew: w[12], up_star: w[13],
     up_disabled: w[14] });
