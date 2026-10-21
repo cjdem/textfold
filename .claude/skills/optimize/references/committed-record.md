@@ -31,6 +31,14 @@ reader can go straight to the right place:
 - `textfold/foo.py` — <what changed here>
 - `tests/test_foo.py` — <what was added>
 
+## Docs checked
+
+What was updated, and what was checked and left alone with the reason. The
+full checklist is in the optimize skill's Phase 2; this records the answer, not
+the list.
+
+- `<path>` — updated / not needed because ...
+
 ## Decisions
 
 Product choices this change makes and why — the ones the diff cannot show:
@@ -68,6 +76,11 @@ Anything the change could plausibly affect that nobody checked here, and why.
 If the change touches the reader, this section says the smoothness rule was not
 measured on this machine and why. **Do not leave this out because the answer is
 uncomfortable.**
+
+## Pitfalls
+
+What was hard, what almost broke, and what a future change should know before
+touching this area. One line each. The long version belongs in the local log.
 
 ## Rejected
 

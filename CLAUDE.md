@@ -12,7 +12,7 @@ are easy to break by accident. Read it before changing anything structural.
 ## This fork
 
 `origin` is `cjdem/textfold`, a fork of `chenxiachan/textfold`, and it is being
-made Windows-only. Two things that the obvious way of doing that gets wrong:
+made Windows-only. One thing that the obvious way of doing that gets wrong:
 
 - **`tools/zoombench.py` is a capability.** It is the only way to
   check "Smoothness is a rule"; it now launches Chromium on Windows' Direct3D
@@ -24,11 +24,6 @@ made Windows-only. Two things that the obvious way of doing that gets wrong:
   `playwright` and exported comparison pages under `out/compare/`, neither of
   which is installed here; its numbers are Windows numbers and cannot be
   compared with the Metal ones recorded before.
-- **The `sys_platform` markers in `pyproject.toml` and `requirements.txt` are
-  for pip, not for runtime** — they keep a dependency from being installed
-  where no prebuilt wheel exists (elsewhere it would have to build from source,
-  needing Rust). Simplifying them for Windows is fine; making a dependency
-  uninstallable is not.
 
 Being Windows-only is a goal, not a licence to delete: a change that removes
 platform code should say what functionality goes with it.
@@ -43,6 +38,8 @@ platform code should say what functionality goes with it.
 - **Run it:** `python -m textfold serve`, then `http://localhost:3017`.
 - **One change at a time.** `CONTRIBUTING.md` asks for one change per pull
   request: what it changes, why, and how you checked it.
+- **Do not push unless the user asks.** The workflow ends at a local merge on
+  `main`; a push is the human's decision.
 - **Commits** are single-line, capitalized, prose — no `feat:` prefixes. A long
   sentence that says what changed and why it matters is the house style.
 - **Papers and keys stay out of commits.** `papers/`, `out/`, `library.json` (the
@@ -54,7 +51,9 @@ platform code should say what functionality goes with it.
 `/optimize <goal>` for an optimization and `/feature <requirements document>`
 for a new capability run the same workflow — a confirmed plan, an isolated
 worktree, independent verification, a written record, and a local merge; a
-feature starts from its document under `docs/requirements/`. The rules that are
+feature starts from its document under `docs/requirements/`. `/upstream` reviews
+the original `chenxiachan/textfold` for changes worth porting, and never merges
+it wholesale. The human-readable map is `docs/WORKFLOW.md`; the rules that are
 easiest to get wrong live in
 `.claude/skills/optimize/references/invariants.md`; the short version:
 

@@ -1,11 +1,12 @@
 # Changes
 
-One file per optimization: what changed, why, and what backs it up.
+One file per change: what changed, why, and what backs it up.
 
 These are written by the `/optimize` workflow in `.claude/skills/optimize/`,
 which is where the template and the rules for filling it live. You do not need
 to run that workflow to add one — a change made by hand deserves a record just
-as much, and the format below is the whole of the requirement.
+as much, and the format below is the minimum: the template in
+`.claude/skills/optimize/references/committed-record.md` is the fuller version.
 
 ## Naming
 
@@ -25,6 +26,8 @@ conversation gone, can understand the change without re-deriving it:
 
 - **What and why** — the problem, in two or three sentences.
 - **The change** — the files touched, one line each.
+- **Docs checked** — the documents updated, and the ones checked and left
+  alone with the reason. The checklist is in the optimize skill's Phase 2.
 - **How it was verified** — the commands actually run and what they said. Not
   "tests pass", but the numbers.
 - **Measured** — only what was measured, with the number. Omit the section when
@@ -34,6 +37,8 @@ conversation gone, can understand the change without re-deriving it:
   comparison page, which this machine does not have; when a change touches the
   reader, that belongs here. Leaving this out because the answer is awkward is
   the one failure this directory exists to prevent.
+- **Pitfalls** — what was hard, what almost broke, and what a future change
+  should know before touching the same area.
 - **Rejected** — what was tried and dropped, one line each. Cheapest to write
   now, most missed later.
 

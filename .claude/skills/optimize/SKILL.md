@@ -13,9 +13,9 @@ This workflow serves two modes:
 - **optimize** — an existing behaviour should be faster, smaller, simpler, or a bug gone.
 - **feature** — a new capability, usually from a requirements document under `docs/requirements/`. `/feature` enters here directly.
 
-State the mode in your first reply, in one sentence, and say which phase you are entering. The seven phases are the same; what the feature mode adds is marked **Feature mode**.
+State the mode in your first reply, in one sentence, and say which phase you are entering. The phases are the same; what the feature mode adds is marked **Feature mode**.
 
-Seven phases. The order is the point: nothing is changed until a plan is confirmed, nothing is merged until it is verified, and both are written down before the branch goes away.
+The phases are numbered 0–7. The order is the point: nothing is changed until a plan is confirmed, nothing is merged until it is verified, and both are written down before the branch goes away.
 
 ## 0 · Frame
 
@@ -56,6 +56,22 @@ Put the plan in front of them with `AskUserQuestion` — the candidates as optio
 - every writer of shared state, the lock or single-writer rule that serializes them, and what happens when a document is deleted, re-converted, or a generation finishes while a save is in flight;
 - each acceptance item tagged `[test]`, `[manual]` or `[unmeasured]`; the manual and unmeasured ones are named in the record.
 
+**Every mode also states in the plan:**
+
+- **The documents it will change** — name each one, or say "none" and why. The checklist:
+  - `README.md` / `README.zh-CN.md` — what a reader is promised
+  - `docs/DEVELOPMENT.md` — layout, commands, constraints
+  - `docs/format.md`, `docs/notes-format.md`, `docs/reading-card-format.md` — data formats
+  - `site/` — the download page, strings, version, build
+  - `pyproject.toml`, `requirements.txt` — dependencies, Python, platform
+  - `NOTICE`, `LICENSE`, `SECURITY.md` — attribution, licence, security
+  - `docs/requirements/<name>.md` — acceptance criteria
+  - `docs/changes/YYYY-MM-DD-<slug>.md` — the record
+  - `CONTRIBUTING.md`, `docs/changes/README.md`, `docs/upstream/README.md` — contribution and record formats
+  - `desktop-mygo/README.md`, `.claude/agents/` — the desktop and the agent prompts
+  - `CLAUDE.md`, `.claude/skills/`, `docs/WORKFLOW.md` — the process itself
+- **For a bug fix**, the reproduction and the regression test that fails before the fix; a fix without one is a guess.
+
 Then these, whichever apply:
 
 - **If the change touches the reader or anything the zoom runs through**, say plainly: this machine cannot measure smoothness — `tools/zoombench.py` drives Windows' Direct3D 11 backend but needs `playwright` and exported comparison pages, and neither is installed here. Ask whether to proceed knowing that axis stays unmeasured, or to stop. Never let a plan imply the smoothness rule was checked.
@@ -93,7 +109,7 @@ Six checks, in this order. A failure sends you back to phase 4; if it cannot be 
 
 1. **The suite.** `python .claude/hooks/verify.py` — green, with the numbers recorded. `git diff --check` alongside it, for whitespace and conflict markers the tests do not see.
 2. **Persistence and interleavings.** If the change writes files or shared state, it needs at least one regression test with two writers interleaving: a save during a generation or candidate write, a save during a PDF re-conversion, a save crossing the move to the trash. A green suite that never runs two writers has not tested this; tell the verifier (check 3) to construct those interleavings too.
-3. **An independent adversary.** Send `textfold-verifier` the branch and the claim. It cannot edit code, so it can only report. Act on what it finds, or say why it is wrong.
+3. **An independent adversary.** Send `textfold-verifier` the branch, the claim and the documentation the change touches. It cannot edit code, so it can only report. Ask it to check the docs list; a stale README is a finding. Act on what it finds, or say why it is wrong.
 4. **The invariants.** Walk `references/invariants.md`. Each one is either holding, failing, or unjudgeable from here — there is no fourth answer.
 5. **Text on a Chinese Windows.** If the change reads or writes text or runs a subprocess, run a Chinese title and Chinese card or notes content through import, parse, save, export and the static page build; look for `UnicodeDecodeError` and `UnicodeEncodeError`. Files are read as UTF-8, stored caches and settings are ASCII-escaped, and pipes are UTF-8 both ways.
 6. **Smoothness, honestly.** If the change touches the reader, zoom or rendering, it stays **unmeasured on this machine**. Write that. "No impact on performance" is a claim nobody made.
@@ -102,8 +118,12 @@ Six checks, in this order. A failure sends you back to phase 4; if it cannot be 
 
 Two records, both written from the actual diff (`git diff main...HEAD`), never from memory of what you meant to do. Templates: `references/committed-record.md` and `references/local-log.md`. The local log is written in the worktree's ignored `notes/`; phase 7 copies it to the main checkout before the worktree is removed.
 
-- **English, committed** — `docs/changes/YYYY-MM-DD-<slug>.md`. Concise: what changed, why, the decisions the diff cannot show, how it was verified, what was measured, the concurrency and locks, what was rejected and what remains unmeasured. This is what a future reader has.
+- **English, committed** — `docs/changes/YYYY-MM-DD-<slug>.md`. Concise: what changed, why, the decisions the diff cannot show, how it was verified, what was measured, the concurrency and locks, what was rejected, the pitfalls, the documents checked, and what remains unmeasured. This is what a future reader has.
 - **Chinese, local** — `notes/YYYY-MM-DD-<slug>.md`, not committed (`notes/` is git-ignored). Detailed: the reasoning, the dead ends, the numbers, the open questions, anything you would want if you came back to this in six months.
+
+The **Pitfalls** section carries the traps that cost time; **Docs checked** says what was updated and what was deliberately left alone. The local log has the long versions.
+
+Before merging, send the written record to `textfold-verifier` for a short read against `git diff main...HEAD`; a record that does not match the diff, or a Docs checked entry that is wrong, is a finding.
 
 The same name in two places, on purpose: the committed one is the record, the local one is the thinking, and finding one should find the other.
 

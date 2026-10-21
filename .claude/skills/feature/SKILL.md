@@ -1,6 +1,6 @@
 ---
 name: feature
-description: Add a feature to TextFold through the same seven-phase workflow as /optimize — a plan built from its requirements document, an isolated worktree, independent verification, both records, and a local merge. Use when the user asks for a new feature, points at a requirements document under docs/requirements/, or types /feature.
+description: Add a feature to TextFold through the same workflow as /optimize — a plan built from its requirements document, an isolated worktree, independent verification, both records, and a local merge. Use when the user asks for a new feature, points at a requirements document under docs/requirements/, or types /feature.
 argument-hint: the requirements document, or the feature in one sentence
 ---
 

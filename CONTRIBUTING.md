@@ -27,6 +27,11 @@ Then open `http://localhost:3017` and connect a model (the README says how).
 
 ## Pull requests
 
+The process this repository uses for its own changes — a plan, a worktree,
+independent verification, records and a local merge, never a push — is in
+[docs/WORKFLOW.md](docs/WORKFLOW.md). A contribution can be smaller; the
+one-change rule and the tests still apply.
+
 - One change per pull request: what it changes, why, and how you checked it.
 - Run the tests before you send it: `python -m unittest discover tests` (they need nothing more than the requirements, and touch none of your papers).
 - Match the code around it: plain names, and comments that say why rather than what.
