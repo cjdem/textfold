@@ -117,6 +117,11 @@ keys `1`–`5` jump to a level, `-`/`=` step, `L` cycles languages, clicking a p
 the reader is still, the screen is laid out at each level ahead of time (in a hidden copy, one level per idle moment),
 and a zoom plays those keyframes; the page takes over again at rest.
 
+A heading carries its depth in its size: a section's 27px with a rule under it (an inset shadow, so the zoom's copies
+carry it, `looks()`), a subsection's 21.5px, the next as large as the serif text (18.5px), the deepest in a lighter ink
+(`--ink-2`); at Topic the heading is a card's label (13.5px, no rule). The sizes scale with `--fs`; a section's margins
+and padding do too.
+
 The Aa menu beside the language's sets the type for every text in this browser (`localStorage` `textfold.type`): the
 size in seven steps from 86% to 135% (the whole column scales with it, so a line holds as many words), the column's
 width (narrow, standard, wide, capped so the margins keep the notes their room: `--colw`, `--colmax`) and the font of
