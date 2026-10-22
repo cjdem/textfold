@@ -70,7 +70,7 @@
 | R16 | 完成 | feature | Aa 菜单 + 缩放沙箱 font/width | `f76eb4d` + `c38804e` | R14/R15 之后 | 中 |
 | R17 | 完成 | feature | 主题、行距、阅读位置、专注模式 | `e5bd668` + `a670e57` + `920a270` | R16 | 中 |
 | R18a | 完成 | feature | 标题层级 | `fb9f95c`（标题部分） | R16/R17 | 小 |
-| R18b | 待做 | feature | Topic 分组 / 思维导图 | `fb9f95c`（地图部分） | R18a | 大 |
+| R18b | 进行中 | feature | Topic 分组 / 思维导图 | `fb9f95c`（地图部分） | R18a | 大 |
 | R18c | 待做 | feature | margins 开关（链接 / 问答 / 笔记） | `fb9f95c`（margins 部分） | R16 | 小 |
 | R19 | 待做 | feature | 侧栏固定 | `b977bba` | R16/R18c | 中 |
 | R20 | 待做 | feature | 整篇文本按当前层级/语言存 Markdown | `7d94f25` | R16 后 | 中 |
