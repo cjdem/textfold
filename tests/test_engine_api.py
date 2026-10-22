@@ -5,10 +5,10 @@ Run from the repo root:
     python -m unittest discover tests
 """
 import json
-import locale
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 from textfold import engine, store
 
@@ -111,8 +111,6 @@ class OldPages(unittest.TestCase):
     """A page stored before local.py wrote UTF-8 (the system's encoding, on a GBK Windows machine) still opens."""
 
     def test_a_page_stored_in_the_systems_encoding_is_read(self):
-        if locale.getpreferredencoding(False).lower().replace("-", "") in ("utf8", "cp65001"):
-            self.skipTest("a page stored in another encoding needs a machine that writes pages in it")
         old = store.DATA
         try:
             store.DATA = Path(tempfile.mkdtemp())
@@ -120,11 +118,14 @@ class OldPages(unittest.TestCase):
             d = store.pdir(pid)
             d.mkdir(parents=True)
             page = '<article class="ltx_document"><p class="ltx_p">中文，a page.</p></article>'
-            (d / "source.html").write_bytes(page.encode(locale.getpreferredencoding(False)))
+            (d / "source.html").write_bytes(page.encode("gbk"))   # (the old writer's encoding, whatever this computer's)
             (d / "meta.json").write_text(json.dumps({"id": pid}), encoding="utf-8")
-            doc = store.parsed(pid)
+            with mock.patch.object(store, "codepage", return_value="gbk"):
+                doc = store.parsed(pid)
             words = "".join(t["t"] for u in doc["units"].values() for t in u["toks"])   # (one token per character)
             self.assertIn("中文", words)
+            self.assertTrue((d / "source.html").read_bytes().startswith(page[:4].encode("ascii")))   # (left as it was)
+            self.assertRaises(UnicodeDecodeError, (d / "source.html").read_bytes().decode, "utf-8")
         finally:
             store.DATA = old
 

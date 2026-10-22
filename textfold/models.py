@@ -13,7 +13,7 @@ import time
 from pathlib import Path
 
 from . import providers
-from .store import HOME, OLD_HOMES
+from .store import HOME, OLD_HOMES, read_text
 
 _SETTINGS_LOCK = threading.RLock()
 
@@ -37,7 +37,7 @@ def _load_settings_locked():
         shutil.copy2(old_home / "settings.json", SETTINGS)
         os.chmod(SETTINGS, 0o600)
     if SETTINGS.exists():
-        old = json.loads(SETTINGS.read_text(encoding="utf-8"))
+        old = json.loads(read_text(SETTINGS))
         s.update({k: v for k, v in old.items() if k in s})
         # Older model ids remain in settings; resolve() treats ids outside the provider catalog as unavailable.
         if old.get("use_thoughtdag_env", True):  # still reading ThoughtDAG's .env: copy its providers once, then stop

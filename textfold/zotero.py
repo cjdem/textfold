@@ -259,9 +259,9 @@ def _links_file():
 
 def links():
     try:
-        return {k: v["paper"] for k, v in json.loads(_links_file().read_text(encoding="utf-8")).items()}
+        return {k: v["paper"] for k, v in json.loads(store.read_text(_links_file())).items()}
     except UnicodeDecodeError:
-        raise   # (an older codepage's index: R3 migrates it; never read it as empty and save that over it)
+        raise   # (in neither UTF-8 nor the codepage: never read it as empty and save that over it)
     except (OSError, ValueError, KeyError, TypeError):
         return {}
 
@@ -270,9 +270,9 @@ def link(lib, key, pid, title, record=None):
     f = _links_file()
     with _lock:
         try:
-            data = json.loads(f.read_text(encoding="utf-8"))
+            data = json.loads(store.read_text(f))
         except UnicodeDecodeError:
-            raise   # (an older codepage's index: the next write must not erase links it cannot read)
+            raise
         except (OSError, ValueError):
             data = {}
         data[f"{lib}/{key}"] = {"paper": pid, "title": title, **({"record": record} if record else {})}
@@ -291,8 +291,8 @@ def apply(pid):
         return False
     mf = store.pdir(pid) / "meta.json"
     try:
-        data = json.loads(_links_file().read_text(encoding="utf-8"))
-        meta = json.loads(mf.read_text(encoding="utf-8"))
+        data = json.loads(store.read_text(_links_file()))
+        meta = json.loads(store.read_text(mf))
     except (OSError, ValueError):
         return False
     found = [(where, v) for where, v in data.items() if isinstance(v, dict) and v.get("paper") == pid and v.get("record")]
@@ -307,6 +307,9 @@ def apply(pid):
         meta["abs_url"] = rec.get("url") or f"https://doi.org/{rec['doi']}"
     meta["label"] = f"Zotero · {rec.get('citekey') or (meta.get('source') or {}).get('name') or meta['title']}"
     meta["zotero"] = {"library": lib, "item": key, "citekey": rec.get("citekey", "")}
-    # ASCII-escaped: a Zotero title can hold a character GBK lacks, and meta.json is read with the system's encoding
-    mf.write_text(json.dumps(meta), encoding="utf-8")
+    # ASCII-escaped: a Zotero title can hold a character GBK lacks, and escaping keeps the file plain ASCII.
+    # Temp file and replace: this is also how an old meta.json is converted, and a crash must not leave it half written
+    tmp = mf.with_suffix(".tmp")
+    tmp.write_text(json.dumps(meta), encoding="utf-8")
+    tmp.replace(mf)
     return True

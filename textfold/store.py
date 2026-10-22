@@ -22,6 +22,36 @@ from . import ladder, langs
 from .fetch import paper_id
 from .parse import parse
 
+
+def codepage():
+    """The system's own encoding for a text file saved in its locale: a Chinese Windows's GBK, a German one's
+    Windows-1252, UTF-8 on a Mac. Python 3.11's getencoding() is not swayed by UTF-8 mode, which the app runs in;
+    before 3.11, Windows' own ANSI code page says it (GetACP), where getpreferredencoding() would answer UTF-8."""
+    get = getattr(locale, "getencoding", None)
+    if get:
+        return get() or "utf-8"
+    if os.name == "nt":
+        import ctypes
+        return f"cp{ctypes.windll.kernel32.GetACP()}"
+    return locale.getpreferredencoding(False) or "utf-8"
+
+
+def read_text(f):
+    """A file of TextFold's own (a paper's meta.json, source.html and layers, the library, the settings, the notes), as
+    text. It is written as UTF-8; TextFold 0.10.9 and before wrote it on Windows in the system's codepage (GBK on a
+    Chinese Windows: a title, a translation, a note in Chinese), and such a file is read in that, so the library an
+    update finds still opens. This read writes nothing: the file is left as it is, and its next save writes UTF-8. A
+    file in neither encoding raises: an already damaged file is not read as replacement text and then saved over.
+    Line ends as Path.read_text gives them."""
+    f = Path(f)
+    raw = f.read_bytes()
+    try:
+        text = raw.decode("utf-8")
+    except UnicodeDecodeError:
+        text = raw.decode(codepage())   # (neither encoding holds it: the caller hears it, and nothing is written)
+    return text.replace("\r\n", "\n").replace("\r", "\n")
+
+
 ROOT = Path(__file__).resolve().parent.parent   # the project folder, when run from a clone of it
 SOURCE = (ROOT / "pyproject.toml").exists()     # run from a clone (else installed with pip)
 
@@ -109,7 +139,7 @@ def _file(pid, name):
 
 def read(pid, name):
     f = _file(pid, name)
-    return json.loads(f.read_text(encoding="utf-8")) if f.exists() else None
+    return json.loads(read_text(f)) if f.exists() else None
 
 
 def write(pid, name, data):
@@ -174,18 +204,7 @@ def languages(pid):
 
 def parsed(pid):
     d = pdir(pid)
-    return parse(_read_html(d / "source.html"), json.loads((d / "meta.json").read_text(encoding="utf-8")))
-
-
-def _read_html(path):
-    """A stored page as text: UTF-8 (arXiv's own bytes, and what local.py writes), else the system's encoding — a page
-    stored by this reader before it wrote UTF-8, on a computer whose language is not UTF-8 (GBK Windows), has its
-    text in that encoding."""
-    data = path.read_bytes()
-    try:
-        return data.decode("utf-8")
-    except UnicodeDecodeError:
-        return data.decode(locale.getpreferredencoding(False) or "utf-8", "replace")
+    return parse(read_text(d / "source.html"), json.loads(read_text(d / "meta.json")))
 
 
 def read_url(path):
@@ -196,8 +215,8 @@ def read_url(path):
     if data.startswith(b"\xef\xbb\xbf"):
         return data.decode("utf-8-sig")
     try:
-        return data.decode(locale.getpreferredencoding(False) or "utf-8")
-    except UnicodeDecodeError:
+        return data.decode(codepage())
+    except (UnicodeDecodeError, LookupError):
         return data.decode("utf-8", "replace")
 
 
@@ -235,7 +254,7 @@ def papers():
         mf = d / "meta.json"
         if d.name.startswith(".") or not mf.exists():
             continue
-        meta = json.loads(mf.read_text(encoding="utf-8"))
+        meta = json.loads(read_text(mf))
         en = read(d.name, "en")
         langs_ = (["en"] if en else []) + languages(d.name)
         titles = {}
@@ -247,7 +266,7 @@ def papers():
         nf = d / "notes.json"
         out.append({"id": d.name, "title": meta["title"], "titles": titles, "authors": meta.get("authors", []),
                     "langs": langs_, "updated": max(mtimes) if mtimes else mf.stat().st_mtime,
-                    "notes": len(json.loads(nf.read_text(encoding="utf-8")).get("notes", [])) if nf.exists() else 0,
+                    "notes": len(json.loads(read_text(nf)).get("notes", [])) if nf.exists() else 0,
                     **({"zotero": True} if meta.get("zotero") else {})})
     return sorted(out, key=lambda p: -p["updated"])
 

@@ -378,8 +378,15 @@ to the new one by content and order.
 
 Every text file TextFold itself reads or writes names UTF-8, whatever the computer's locale: model replies in
 `llm.py`, layers in `store.write`, notes in `notes.py`, settings in `models.py`, a paper's `source.html` and
-`meta.json`, the library, the Zotero index and the reader's web assets. An imported Markdown file is decoded as UTF-8
-first, then GBK (a Chinese Windows's codepage), then UTF-8 with stand-ins; the command line's import path does this,
+`meta.json`, the library, the Zotero index and the reader's web assets. Its own files are read through
+`store.read_text`: UTF-8 first, else the system's codepage — GBK on a Chinese Windows, which is what an older TextFold
+wrote there. The read writes nothing; the file's next save writes UTF-8. A file in neither
+encoding is an error, never replacement text that a save could then persist. The exceptions are the ones with a marker
+or a rebuild: a stored web address is read by `store.read_url` (it carries a byte-order mark), and the model's reply
+cache is ASCII-only (a non-ASCII cache is a miss and is made again). The system's codepage is `store.codepage()`, from
+`locale.getencoding()` or, before Python 3.11, Windows' ANSI code page: `locale.getpreferredencoding()` returns UTF-8
+under the UTF-8 mode the app runs in, so it cannot stand for the encoding an old file was written in. An imported Markdown file
+is decoded as UTF-8 first, then GBK, then the system's codepage, then UTF-8 with stand-ins; the command line's import path does this,
 while a file dropped on the landing page is decoded by the browser before it is sent. Text from elsewhere — an HTML
 page, an SVG, an Office file — is decoded by its declaration or, where it names none, by the local codepage; that is
 the content's rule, not TextFold's. On the command line, stdout and stderr speak UTF-8 as well. Document metadata and library JSON are ASCII-escaped, so a reader with any encoding sees plain ASCII: titles

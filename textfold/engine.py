@@ -222,7 +222,7 @@ def _convert_api(pdf, out, tier, progress, log, stop):
         shutil.rmtree(out, ignore_errors=True)
         out.mkdir(parents=True)
         sc = _api_read(pdf, out, tier, True, log, stop)
-    # ASCII-escaped, as MinerU's own zip is: pdfdoc reads this file with the system's encoding (read_output)
+    # ASCII-escaped, as MinerU's own zip is: pdfdoc reads this file as UTF-8 (read_output)
     (out / "structured_content.json").write_text(json.dumps(sc), encoding="utf-8")
     return out
 

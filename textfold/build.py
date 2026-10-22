@@ -8,7 +8,6 @@ serves them, and a single file carries them inside.
 import base64
 import io
 import json
-import locale
 import re
 import urllib.parse
 from html import escape
@@ -67,7 +66,7 @@ def _svg_text(f):
     try:
         return data.decode("utf-8")
     except UnicodeDecodeError:
-        return data.decode(locale.getpreferredencoding(False) or "utf-8", "replace")
+        return data.decode(store.codepage(), "replace")
 
 
 def data_uri(f, max_side=1600):

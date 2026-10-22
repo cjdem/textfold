@@ -8,7 +8,6 @@ Run from the repo root:
     python -m unittest discover tests
 """
 import json
-import locale
 import tempfile
 import unittest
 import urllib.parse
@@ -83,7 +82,7 @@ class StoredText(unittest.TestCase):
         url = "https://一.com/page"   # GBK's D2 BB is also valid UTF-8: trying UTF-8 first would read another address
         f = self.tmp_path() / "url.txt"
         try:
-            raw = url.encode(locale.getpreferredencoding(False))
+            raw = url.encode(store.codepage())
         except UnicodeEncodeError:
             self.skipTest("the system's encoding cannot hold this address")
         f.write_bytes(raw)

@@ -435,7 +435,7 @@ def store_pdf(pid, folder, sc, name, tier, replace=False):
             local.store_doc(pid, html, meta, "source.md", text, lambda f: local.Images(f, Path(folder)).resolve, sizes=True)
             from . import zotero
             zotero.apply(pid)   # read from a Zotero item's file: the item's own title, authors and citekey
-            # ASCII-escaped, as MinerU's own zip is: these are read with the system's encoding (place, read_output)
+            # ASCII-escaped, as MinerU's own zip is: pdfdoc reads these files as UTF-8 (place, read_output)
             (d / "layout.json").write_text(json.dumps(layout_of(sc)), encoding="utf-8")
             (d / "structured_content.json").write_text(json.dumps(sc), encoding="utf-8")
         finally:
@@ -481,7 +481,7 @@ def place(pid):
     f = store.pdir(pid) / "layout.json"
     if not f.exists():
         return {}
-    blocks = json.loads(f.read_text(encoding="utf-8"))
+    blocks = json.loads(store.read_text(f))
     words = lambda s: set(re.findall(r"\w+", s.lower()))  # noqa: E731
     bw = [words(b["t"]) for b in blocks]
     doc = store.parsed(pid)
@@ -509,7 +509,7 @@ def relayout(pid):
     import tempfile
     from . import engine
     d = store.pdir(pid)
-    meta = json.loads((d / "meta.json").read_text(encoding="utf-8"))
+    meta = json.loads(store.read_text(d / "meta.json"))
     if (d / "layout.json").exists():
         return True
     if (meta.get("source") or {}).get("tier") != "fast":   # the accurate tier takes minutes: not on a page's request
@@ -524,4 +524,4 @@ def relayout(pid):
 
 def read_output(folder):
     """MinerU's structured content from an output folder (its zip unpacked)."""
-    return json.loads((Path(folder) / "structured_content.json").read_text(encoding="utf-8"))
+    return json.loads(store.read_text(Path(folder) / "structured_content.json"))

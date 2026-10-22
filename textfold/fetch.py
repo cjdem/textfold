@@ -46,7 +46,7 @@ def fetch(pid, root: Path, force=False):
         "html_url": final,
         "license": lic.group(1) if lic else "",
     }
-    # ASCII-escaped: read with the system's encoding, and a title can hold a character GBK lacks
+    # ASCII-escaped: a title can hold any character, and the file stays plain ASCII
     meta_f.write_text(json.dumps(meta, indent=2), encoding="utf-8")
     return d
 

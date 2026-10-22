@@ -33,9 +33,9 @@ def _times(d, key):
 
 def load():
     try:
-        d = json.loads(path().read_text(encoding="utf-8"))
+        d = json.loads(store.read_text(path()))
     except UnicodeDecodeError:
-        raise   # (an older codepage's file: R3 migrates it; never read it as empty and save that over it)
+        raise   # (in neither UTF-8 nor the codepage: never read it as empty and save that over it)
     except (OSError, ValueError):
         d = {}
     folders = [{"id": f["id"], "name": f["name"]} for f in d.get("folders") or []

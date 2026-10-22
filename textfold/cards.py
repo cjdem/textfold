@@ -202,7 +202,7 @@ def read(pid):
     if not f.exists():
         return None
     try:
-        data = json.loads(f.read_text(encoding="utf-8"))
+        data = json.loads(store.read_text(f))
         if not isinstance(data, dict) or not _shape_ok(data.get("sections", {})) or not _stamp_ok(data.get("source")):
             raise ValueError("not a reading card")
         cand = data.get("candidate")
@@ -241,7 +241,7 @@ def _write(pid, data):
 
 def _meta(pid):
     try:
-        return json.loads((store.pdir(pid) / "meta.json").read_text(encoding="utf-8"))
+        return json.loads(store.read_text(store.pdir(pid) / "meta.json"))
     except (OSError, ValueError):
         return {"id": pid, "title": pid}
 

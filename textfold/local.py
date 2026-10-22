@@ -144,9 +144,10 @@ def store_doc(pid, html, meta, raw_name, raw, resolver, sizes=False):
 
 def _read(p):
     """A text file as text: UTF-8 first (the encoding of the web, and of this app's own files), then GBK (a Chinese
-    Windows's codepage), and as UTF-8 with stand-ins when neither holds. The BOM comes off with -sig."""
+    Windows's codepage, and what a Markdown file that is neither is most likely in), then the system's codepage, and
+    as UTF-8 with stand-ins when none holds. The BOM comes off with -sig."""
     data = p.read_bytes()
-    for enc in ("utf-8-sig", "gbk"):
+    for enc in ("utf-8-sig", "gbk", store.codepage()):
         try:
             text = data.decode(enc)
             break

@@ -8,7 +8,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from textfold import library, llm, local, models, notes, store, zotero
+from textfold import llm, local, models, notes, store
 
 MARK = "x" * 134 + "▶ “quoted” — ünïcode"
 REPLY = {"units": [{"sentences": ["中文⟦a12 公式⟧句子"]}]}
@@ -44,40 +44,6 @@ class Imports(unittest.TestCase):
                 self.assertEqual(local._read(crlf), "# 标题\n\n正文。\n")   # (as Path.read_text gives it: a re-import keeps its id)
             finally:
                 store.DATA = old
-
-
-class OldFiles(unittest.TestCase):
-    """A file from an older TextFold in the system's codepage is not read as empty and saved over before R3 migrates it."""
-
-    def setUp(self):
-        self.tmp = __import__("tempfile").TemporaryDirectory()
-        self.addCleanup(self.tmp.cleanup)
-        self.old = store.DATA
-        store.DATA = Path(self.tmp.name)
-        self.addCleanup(setattr, store, "DATA", self.old)
-
-    def test_a_gbk_library_is_not_read_as_empty_and_saved_over(self):
-        p = library.path()
-        raw = json.dumps({"folders": [{"id": "f1", "name": "我的文件夹"}], "of": {}}, ensure_ascii=False).encode("gbk")
-        p.write_bytes(raw)
-        with self.assertRaises(UnicodeDecodeError):
-            library.load()
-        with self.assertRaises(UnicodeDecodeError):
-            library.stamp([])
-        with self.assertRaises(UnicodeDecodeError):
-            library.opened("md-0123456789abcdef")   # (the overwrite path: load, change, save)
-        self.assertEqual(p.read_bytes(), raw)
-
-    def test_a_gbk_zotero_index_is_not_read_as_empty_and_saved_over(self):
-        p = zotero._links_file()
-        p.parent.mkdir(parents=True, exist_ok=True)
-        raw = json.dumps({"users/0/A": {"paper": "pdf-x", "title": "我的论文"}}, ensure_ascii=False).encode("gbk")
-        p.write_bytes(raw)
-        with self.assertRaises(UnicodeDecodeError):
-            zotero.links()
-        with self.assertRaises(UnicodeDecodeError):
-            zotero.link("users/0", "B", "pdf-y", "另一篇")
-        self.assertEqual(p.read_bytes(), raw)
 
 
 class Replies(unittest.TestCase):
