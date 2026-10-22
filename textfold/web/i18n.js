@@ -178,6 +178,15 @@ window.DR_I18N = (() => {
     zh: pins(["固定在左侧：阅读时一直打开在正文旁边", "取消固定：打开时浮在正文上"]),
   };
   for (const [code, words] of Object.entries(PINS)) Object.assign(S[code], words);
+  // several documents picked in the sidebar, moved or deleted together; a delete, and its Undo
+  const sels = (w) => ({ sel_n: w[0], sel_move: w[1], sel_delete: w[2], sel_clear: w[3], sel_pick: w[4], sel_del_n: w[5],
+    sel_del_confirm: w[6], sel_busy: w[7], del_done: w[8], del_done_n: w[9], undo: w[10], undone: w[11], sel_tip: w[12],
+    sel_failed: w[13], undo_gone: w[14], undo_part: w[15] });
+  const SEL = {
+    en: sels(["{n} selected", "Move to…", "Delete", "Clear the selection", "Select", "Delete {n}", "Delete these {k} documents?\n\nTheir levels, translations and your {n} notes move to papers/.trash. You can undo this right after.", "Still being generated, and not deleted: {n}.", "Deleted “{title}”", "Deleted {n}", "Undo", "Back in the library", "Select several: ⌘-click or Shift-click", "{n} could not be deleted.", "No longer in the trash.", "{n} of them came back; the rest are no longer in the trash."]),
+    zh: sels(["已选 {n} 篇", "移到…", "删除", "取消选择", "选择", "删除 {n} 篇", "删除这 {k} 篇文档？\n\n它们的各个层级、翻译和你的 {n} 条笔记会移到 papers/.trash。删除后马上可以撤销。", "还在生成、没有删除：{n} 篇。", "已删除《{title}》", "已删除 {n} 篇", "撤销", "已恢复", "多选：⌘ 点击或 Shift 点击", "有 {n} 篇没能删除。", "垃圾箱里已经找不到。", "只找回 {n} 篇，其余的在垃圾箱里已经找不到。"]),
+  };
+  for (const [code, words] of Object.entries(SEL)) Object.assign(S[code], words);
   // the reader's brightness and style, line spacing and focus (Aa), and where a text was left
   const rds = (w) => ({ ty_mode: w[0], ty_style: w[1], ty_auto: w[2], ty_light: w[3], ty_dark: w[4], ty_default: w[5], ty_paper: w[6], ty_lead: w[7], ty_tight: w[8], ty_loose: w[9], ty_focus: w[10], focus_on: w[11], pos_back: w[12], pos_top: w[13] });
   const RDS = {

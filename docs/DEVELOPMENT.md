@@ -239,6 +239,15 @@ the text start at its edge (`html.app.sb-docked`, which sets `--rail` to the sid
 the column's cap). A window too narrow for the sidebar and the margins both (`html.sb-narrow`: the width left of the
 sidebar under 1248px) has the notes and answers in the column, as beside a PDF, and `layoutSides` stands down.
 
+Several documents are picked to go together: ⌘/Ctrl-click or Shift-click a row (Shift takes every row shown from the
+one picked last), **Select** in a row's menu, or ⌘A/Ctrl+A while the list has the focus picks every row shown; Esc lets
+go. A bar under the list says how many and moves them into a folder (or a new one named there) or deletes them, and a
+picked row dragged carries the others, the pointer showing how many. A delete says what went in the corner and offers it
+back for ten seconds (`POST /api/papers/restore`, the folder and dates it came from); deleting the paper being read
+takes the page home, and the landing offers the same Undo from `sessionStorage` `textfold.undo`. A delete also says
+which picked ones stayed behind: those still being generated (`busy`) and those whose folder could not move to
+`papers/.trash` (`failed`).
+
 Links: argument links (supports / builds on / qualifies / explains) were written by a model into English layers before
 2026-10-18. Generation no longer calls for them, the reader no longer draws them, and the stored edges stay on disk;
 `textfold get` still exports them. A stored link names its units by id; after a parser change those ids can name other
