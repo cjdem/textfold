@@ -11,7 +11,7 @@ import re
 from bs4 import BeautifulSoup, Comment, NavigableString, Tag
 
 from .latexml_safe import make_safe
-from .tokens import split_sentences, tokenize_text
+from .tokens import CJK, split_sentences, tokenize_text
 
 SECTION_LEVEL = {
     "ltx_section": 2, "ltx_appendix": 2, "ltx_subsection": 3,
@@ -137,6 +137,16 @@ def atom(doc, toks, el, kind, alt="", text=""):
 
 LONG = 12  # a paragraph with more sentences than this is cut into parts of about PART sentences
 PART = 7
+CJK_TEXT = re.compile(f"[{CJK}]")
+
+
+def cjk_heavy(toks):
+    """A CJK paragraph (Han or kana: written without spaces) keeps all its sentences but is never cut into parts: a
+    cut part takes the next free id, so every later unit's id would shift and the layer data (keyed on ids) would land
+    on the wrong paragraphs."""
+    total = sum(len(tk.get("t") or "") for tk in toks)
+    cjk = sum(len(CJK_TEXT.findall(tk.get("t") or "")) for tk in toks)
+    return total > 0 and cjk / total > 0.2
 
 
 def add_units(doc, el, role, uid=None, split=True, **extra):
@@ -148,7 +158,7 @@ def add_units(doc, el, role, uid=None, split=True, **extra):
         return []
     sents = split_sentences(toks)
     parts = [(0, len(toks), sents)]
-    if split and len(sents) > LONG:
+    if split and len(sents) > LONG and not cjk_heavy(toks):
         k = -(-len(sents) // PART)
         size = -(-len(sents) // k)
         parts = []

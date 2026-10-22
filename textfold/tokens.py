@@ -11,6 +11,7 @@ import re
 # a CJK character (Han or kana) is a token of its own (the morph slides characters, as ThoughtDAG's Chinese plaques do)
 CJK = "\u3040-\u30ff\u31f0-\u31ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\uff66-\uff9f"  # kana too: Japanese is not spaced
 WORD = re.compile(rf"[{CJK}]|\d+(?:[.,]\d+)+%?|[^\W_{CJK}]+(?:['’\-][^\W_{CJK}]+)*|\S", re.U)
+CJK_STOPS = {"。", "！", "？"}  # a sentence ends here without a space after it, unlike . ? ! in English
 ABBREV = {
     "e", "g", "i", "al", "etc", "vs", "cf", "fig", "figs", "eq", "eqs", "sec", "secs", "tab",
     "ref", "refs", "no", "approx", "resp", "ca", "viz", "dr", "mr", "ms", "prof", "st", "jr",
@@ -46,7 +47,15 @@ def tokenize_text(text, font=None, out=None):
 
 
 def split_sentences(toks):
-    """Sentence ranges [start, end) over a token list."""
+    """Sentence ranges [start, end) over a token list. A unit with a CJK character or a 。！？ follows the Chinese rules
+    (no spaces); an English unit keeps the boundaries it had before them, so its sentence numbers and parts do not
+    move."""
+    cjk = any(is_cjk(tk.get("t")) or tk.get("t") in CJK_STOPS for tk in toks)
+    return _split_sentences_cjk(toks) if cjk else _split_sentences_latin(toks)
+
+
+def _split_sentences_latin(toks):
+    """The splitter English units have always used: . ? !, a space after, and a capital, digit, bracket or atom next."""
     bounds, start, n = [], 0, len(toks)
     for i, tk in enumerate(toks):
         t = tk.get("t")
@@ -68,6 +77,38 @@ def split_sentences(toks):
         if "a" in nxt or re.match(r"[A-Z0-9(\[“\"‘]", head):
             bounds.append((start, end + 1))
             start = end + 1
+    if start < n:
+        bounds.append((start, n))
+    return bounds
+
+
+def _split_sentences_cjk(toks):
+    """Upstream 770fb08's splitter: a Chinese sentence ends at 。！？ with no space needed, and a run of stops and
+    closing quotes/brackets stays with the sentence it ends."""
+    stops = {".", "?", "!"} | CJK_STOPS
+    closers = {")", "]", "}", "）", "］", "｝", "】", "〕", "〉", "》", "」", "』", "”", '"', "’", "'"}
+    tails = stops | closers
+    bounds, start, n = [], 0, len(toks)
+    for i, tk in enumerate(toks):
+        t = tk.get("t")
+        if i < start or t not in stops:
+            continue
+        prev = (toks[i - 1].get("t") or "") if i > 0 else ""
+        if t == "." and (prev.lower() in ABBREV or re.fullmatch(r"[A-Z]", prev)):
+            continue
+        end = i + 1
+        # Keep a run of stops and any closing quotes/brackets with the sentence it ends.
+        while end < n and not toks[end - 1].get("s") and toks[end].get("t") in tails:
+            end += 1
+        if end >= n:
+            break
+        nxt = toks[end]
+        head = nxt.get("t") or ""
+        # CJK sentences have neither spaces nor capital letters. They may also use ASCII stops.
+        cjk = any(toks[j].get("t") in CJK_STOPS for j in range(i, end)) or is_cjk(prev) or is_cjk(head)
+        if cjk or (toks[end - 1].get("s") and ("a" in nxt or re.match(r"[A-Z0-9(\[“\"‘]", head))):
+            bounds.append((start, end))
+            start = end
     if start < n:
         bounds.append((start, n))
     return bounds

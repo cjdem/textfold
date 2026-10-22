@@ -362,7 +362,7 @@ textfold/office.py   Word, PowerPoint, Excel, CSV, EPUB and saved web pages read
 textfold/omml.py     Office's formulas (OMML) as LaTeX
 textfold/pdf.py      a paper's original PDF for the side-by-side view (source.pdf)
 textfold/zotero.py   a Zotero library through Zotero Desktop's local API; an item read as a link or a dropped file
-textfold/tokens.py   tokenizer, sentence splitter, LCS alignment
+textfold/tokens.py   tokenizer, sentence splitter (English .?! and Chinese 。！？), LCS alignment
 textfold/ladder.py   one model call per section; validation; written words aligned to source words for the morph
 textfold/links.py    argument links; generation stopped calling it (2026-10), the reader no longer draws stored links
 textfold/translate.py  a language the reader offers: sentence-aligned translation + short levels, one call per section (langs.py: English and Simplified Chinese)
@@ -391,6 +391,18 @@ Atoms (formulas, citations, cross-references, footnotes) are numbered in reading
 them by number. A parser change that reads more of a page (description lists, October 2026) renumbers every atom after
 the new ones, so a paper generated before it needs its layers made again, or its atom numbers mapped from the old parse
 to the new one by content and order.
+
+Sentences are numbered the same way: a layer's `evidence`, a translation's sentence ranges and a card's evidence name
+a sentence by its place in the unit's parsed sentences, not by its text. The October 2026 splitter change (Chinese
+`。！？`) therefore reinterprets stored Chinese layers: an evidence `[0]` that meant the whole paragraph now means its
+first sentence, which is the Brief they were meant to show; a translation stored before it keeps that paragraph as one
+sentence until it is made again. A paragraph written in Chinese or Japanese kana is never cut into parts, so a Chinese
+paragraph that was one unit keeps its id and the later ids do not move; a paragraph that mixes Chinese and English can
+still change its part count, because the sentence count it is cut by has changed. An ordinal past the end of a part
+is dropped when the layer is applied, and the first sentence stands in. A unit with no CJK character and no `。！？`
+takes the older splitter, so its sentence numbers and parts do not move; in a unit with CJK, a closing quote, bracket
+or brace glued to a stop (a run such as `.")` stays with its sentence) and an ASCII stop beside a CJK character also
+end a sentence.
 
 Every text file TextFold itself reads or writes names UTF-8, whatever the computer's locale: model replies in
 `llm.py`, layers in `store.write`, notes in `notes.py`, settings in `models.py`, a paper's `source.html` and

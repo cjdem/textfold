@@ -175,8 +175,15 @@ def save_tr(doc, lang, base, model):
 
 
 def apply_en(doc, en):
+    """The stored English ladder on the parse as it is now. Evidence is a sentence number; a parser change can leave
+    one past the end of a shorter part, so it is dropped, and the first sentence stands in when none is left."""
     for uid, u in doc["units"].items():
-        u["lad"] = en["units"].get(uid) or ladder.local(u, doc["atoms"])
+        lad = en["units"].get(uid)
+        if isinstance(lad, dict) and lad:
+            ev = [s for s in lad.get("ev") or [] if isinstance(s, int) and 0 <= s < len(u["sents"])]
+            u["lad"] = lad if ev == lad.get("ev") else {**lad, "ev": ev or [0]}
+        else:
+            u["lad"] = ladder.local(u, doc["atoms"])
     for c in doc["chunks"]:
         c["lad"] = en["chunks"].get(c["id"])
     have = {(e["f"], e["t"]) for e in en["edges"]}

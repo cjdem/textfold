@@ -35,7 +35,7 @@ def unit(doc, uid, lang="en"):
     brief, tn = lad.get("brief") or [], lad.get("tn") or 0
     return {
         "id": uid, "kind": KINDS.get(u.get("role"), "paragraph"), "role": lad.get("role") or u.get("role"),
-        "full": " ".join(sentences), "sentences": sentences,
+        "full": _text(toks, A), "sentences": sentences,
         "brief": [sentences[s] for s in ev if s < len(sentences)], "evidence": [s for s in ev if s < len(sentences)],
         "key": _text(brief, A), "takeaway": _text(brief[:tn], A), "topic": _text(lad.get("topic") or [], A),
     }
