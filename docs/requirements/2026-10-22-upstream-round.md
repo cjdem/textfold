@@ -58,7 +58,7 @@
 | R4 | 完成 | optimize | 只支持流式的 API 服务 | `8e7569b` | 无 | 中 |
 | R5 | 完成 | optimize | 模型回复的多种 JSON 形状 | `09e9d37` | 无 | 中 |
 | R6 | 完成 | optimize | `TEXTFOLD_NO_MODELS` 下不调用模型 | `1761a95` | 无 | 小 |
-| R7 | 待做 | optimize | EPUB 章节先解码再解析 | `13d7794` | 无 | 小 |
+| R7 | 进行中 | optimize | EPUB 章节先解码再解析 | `13d7794` | 无 | 小 |
 | R8 | 待做 | optimize | 翻译漏段重试（只取 `d457cfa` 的翻译部分） | `d457cfa` | 无 | 中 |
 | R9 | 待做 | optimize | 应用 payload 带 Anthropic SDK | `f260244` | 无 | 小 |
 | R10 | 待做 | feature | 多文件导入：逐文件队列，不用 MinerU batch | `523e5f4` | R1–R9 | 中 |
