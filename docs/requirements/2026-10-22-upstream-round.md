@@ -74,7 +74,8 @@
 | R18c | 完成 | feature | margins 开关（问答 / 笔记；链接本 fork 已移除） | `fb9f95c`（margins 部分） | R16 | 小 |
 | R19 | 完成 | feature | 侧栏固定 | `b977bba` | R16/R18c | 中 |
 | R20 | 完成 | feature | 整篇文本按当前层级/语言存 Markdown | `7d94f25` | R16 后 | 中 |
-| R21 | 待做 | feature | 批量删除/恢复 + 侧栏多选 | `15d7b8a` + `d80e779` | 无 | 中 |
+| R21a | 完成 | feature | 批量删除/恢复（服务端） | `15d7b8a` | 无 | 小 |
+| R21b | 待做 | feature | 侧栏多选 + Undo | `d80e779` | R21a | 中 |
 | R22 | 待做 | feature | 文档命名 + 整篇笔记（可选） | `d457cfa` | 低优先 | 中 |
 | R23 | 待做 | feature | 嵌套文件夹（可选） | `d457cfa` | 低优先；当前一层已可用 | 中 |
 
@@ -144,7 +145,8 @@
 
 - R13→R14→R15 顺序不能反；R16 在它们之后动 `reader.js`。
 - R16→R17→R18a→R18b→R18c→R19 是阅读器依赖链；R18 按审阅建议拆成标题层级、Topic 分组/思维导图、margins 三次。
-- R20/R21 独立；R22/R23 是可选，审核时可删。
+- R20/R21 独立；R21 按审阅建议拆成服务端的批量删除/恢复（R21a）与侧栏多选/Undo（R21b），避免一个改动同时动 server 和 app.js。
+- R22/R23 是可选，审核时可删。
 - 触及阅读器的任务在记录里写“zoom 平滑度未测”。
 
 ## 执行记录
@@ -178,6 +180,7 @@
 | 2026-10-23 | R18c | feature | `db85a58` | 378，OK | 一轮，无阻断；8 条非阻断：7 条已修（点击切换、按下方向、焦点选择器、存储键均无断言——已加精确断言；`html[data-hide~="notes"] .paper-head > .lside` 在本 fork 是死选择器——已删；mirror 注释与记录高估了沙箱对边注的作用——已改；DEVELOPMENT 的 `mirrorType` 一句未提 hide——已补），第 5 条“两标签页改类型会互相覆盖”是 `localStorage` 既有行为，记入记录的并发说明；verifier 另在 headless Chrome（1400/800px）确认两个 `.lside` 宿主与 `.side-notes` 都被隐藏、`.side` 空壳高 0、沙箱的 `:host([data-hide~="notes"])` 选择器生效，并用 Node 跑真实解析代码验证 null/旧值/上游形状/损坏 JSON，另确认上游的一行隐藏规则确被层级规则盖过 | 取 `fb9f95c` 的 margins 部分：Aa 菜单新增“页边”一行，AI 问答 / 我的笔记各自显示或隐藏（`html[data-hide]`，随类型存 `localStorage` `textfold.type`，恢复默认清除，`mirrorType` 同步进缩放沙箱）；本 fork 已移除论证链接（`f80969e`），故只有两个边注、不移植第三个，`.side-links` 选择器也不带入；上游一行隐藏规则被 `.u[data-l] > .lside` 与 `.doc[data-level] .chunk > .lside` 盖过（上游同序，疑为潜在缺陷），本 fork 加深选择器并加特异性契约测试；未目视问答边注（`TEXTFOLD_NO_MODELS=1` 无模型回答）、未目视多笔记堆叠与打印；未测 zoom 平滑度；记录见 `docs/changes/2026-10-22-reader-margins.md` |
 | 2026-10-23 | R19 | feature | `2b90d93` | 381，OK | 一轮，1 条阻断已修：启动时先 `dockState()`、后应用记住的侧栏宽度（`setWidth`），载入时 `sb-narrow` 错误，直到一次 resize 才纠正——改为宽度之后重跑 dock 并加断言。非阻断 7 条已修：窗口恰好 720px 时停靠但小屏媒体查询让页面不留位（改为 >720 才停靠）；并排 PDF 的默认宽度无视 rail，正文被压到 420px 以下（停靠时 `--pdfw` 也扣除 rail）；`setPinned` 未调 `dockState`、`r.classList.toggle('sb-docked', on)` 无断言（已补）；i18n 测试未查 `w[i]` 绑定与合并循环（已补）；`layoutSides` 只做子串检查，`\|\|`→`&&` 仍通过（改为整条条件断言）；记录 verifier 行是占位（已填）。verifier 另跑 38 个内存变异（30 抓）、真实 CSS+app.js 的 headless Chrome（720/721/1200/1300/1474/1574px）与全量 381 OK；未改并记入 Pitfalls：<720px 固定侧栏不因点外部折叠且 pin 被隐藏，只能点折叠箭头 | 取 `b977bba`：侧栏头部新增 pin（`localStorage` `textfold.sbpin`），固定后论文页也常驻在正文旁，页面、缩放条与并排 PDF 从栏边开始（`html.app.sb-docked`：`--rail` 取栏宽、`--colmax` 扣除栏宽）；窗口剩下的宽度 <1248 时 `sb-narrow`，问答与笔记进入正文列、`layoutSides` 停止堆叠；固定时折叠会记住，未固定时点外部折叠；pin 在 <720 隐藏；只带 en/zh 词条（锁定范围），不带 `.lk` 选择器（本 fork 无链接边注）；上游只在拖拽结束通知页面，本 fork 在双击复位与方向键改宽时也 dispatch `resize`；并排 PDF 的默认宽度在停靠时扣掉 rail，正文保 420px；未目视并排 PDF（fixture 无源 PDF）、未做指针拖拽；未测 zoom 平滑度；记录见 `docs/changes/2026-10-22-sidebar-pin.md` |
 | 2026-10-23 | R20 | feature | `b6397f7` | 385，OK | 一轮，1 条阻断已修：高光用 `indexOf` 找引文，重复词会被标在第一次出现处甚至拆词（`this paper ==design==s…`）——改为按 anchor 的 token 定位（`markedText`），并复测 u87 第二个 `design` 导出为 `the ==design==.`。非阻断已修：整篇笔记不再写空的引用行（记录改为“单段/节笔记不变”并补断言）；CJK 文档在 Brief 显示节摘要而导出漏掉（条件加 `CJK_DOC && level === 3`）；六处测试抓不到的变异（空段跳过、标题深度上限、列表标记、空行折叠、图注斜体、高光定位）已用整行断言钉死；Pitfalls 里“展开段落在低层级不算高光”纠错（`levelOf` 视为 Full）；记录与 DEVELOPMENT 补明显示公式/图/表不导出、行内公式为 `$…$`、`docs/format.md` 的 CLI 单层 Markdown 是另一种格式。verifier 另用 Node 切片真实函数复现全部字符数（Full 26094、Brief 16655、Key 13271、Topic 4875、中文 Key 4643）、对比重构前后 `notesMarkdown`（单段/节一致）、跑无 layer 论文不抛错；未改：`\n{3,}` 也会压笔记内空行（记入 Pitfalls） | 取 `7d94f25`：Save 对话框的整篇新增“Markdown（当前层级）”，在当前语言下输出标题、各节摘要（Topic/Takeaway/Key，CJK 文档 Brief 也有）、按层级排成 bullet 或段落、列表编号与图注斜体、所选笔记（高光在层级显示其词时 `==…==`，否则带 `^n-…` 的引用），Topic 下为大纲；文件名 `<id> <title> (<level>).md`，浏览器内生成，语言仍只取当前（全语言仍是服务端 HTML）；笔记 Markdown 重构共用 `mdHead`/`noteMd`，单段/节格式不变；显示公式、图、表不在导出内；未测 zoom 平滑度，未在桌面保存对话框实测（浏览器选择器用 stub 捕获）；记录见 `docs/changes/2026-10-22-markdown-at-level.md` |
+| 2026-10-23 | R21a | feature | `4f2448f` | 401，OK | 一轮，1 条阻断已修：`library.remember` 信任 trash 里的 place 文件——`of` 是列表时在唯一 place 已删后抛错、400 位日期让之后每次 `library.load` 都失败、NaN 会被写进 library；现在要求 `of` 是现存文件夹的字符串、日期是有限数且在范围内，恶意/损坏 place 不写任何东西。非阻断已修：批量删除在后一个文件夹失败时 500 且不报告已删的——改为逐个处理、回滚该条 place 并把失败项放进 `failed`；restore 的 `untrash`→`remember` 不是一个锁，并发 delete 可留下悬空条目——place 现在在 `store.LOCK` 内交给 `library.remember`，测试钉住；place 原先在移动后直接写进 trash——改为移动前写临时文件、锁内安装，安装失败不再撤销删除；6 处测试缺口（live 集合、单篇 409、去重、回滚、`opened`、精确文件名与 meta 检查）已补或记录。verifier 另在基线树跑 385、真实路由 in-process、18 个变异，并确认 `../etc`/`..`/通配 id 不会恢复任何东西；未改：`failed` 分支未实测、Windows 真 rename 失败未制造、真实生成中的 busy 仅用 fake 列表、Undo 条属 R21b | 取 `15d7b8a`（R21 按审阅建议拆成 R21a 服务端 / R21b 侧栏多选）：`POST /api/papers/delete` 接受 `{papers: [ids]}`（生成中的跳过并回报 `busy`，文件夹移不动的回滚 place 并回报 `failed`），新增 `POST /api/papers/restore`；删除时把文档在库里的位置（文件夹、added、opened；本 fork 无 `names`）写进 `papers/.trash/<id>-<time>/library.json`，恢复时放回文件夹和日期；`store.LOCK` 串行化删除的移动与恢复的读-移-入账，两次同时恢复只有一个成功；单篇删除的行为不变；未测 zoom 平滑度（不涉及阅读器）；记录见 `docs/changes/2026-10-22-bulk-trash.md` |
 
 ## 停止条件
 
