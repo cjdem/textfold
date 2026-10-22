@@ -65,7 +65,7 @@
 | R11 | 完成 | feature | 可配置 MinerU v4 base URL，默认官方 | `77a2344` | R10 后或并行 | 小 |
 | R12 | 完成 | feature | self-hosted V1 adapter（条件项） | fork-specific（不做） | R11；仅确有自部署时 | 大 |
 | R13 | 完成 | feature | 中文 Brief 句子切分 | `770fb08` | R4/R5 之后 | 中 |
-| R14 | 进行中 | feature | 中文五级折叠 | `4897e24` | R13 | 大 |
+| R14 | 完成 | feature | 中文五级折叠 | `4897e24` | R13 | 大 |
 | R15 | 待做 | optimize | CJK 规则只作用于中日文 | `6e2cada` | R14 | 中 |
 | R16 | 待做 | feature | Aa 菜单 + 缩放沙箱 font/width | `f76eb4d` + `c38804e` | R14/R15 之后 | 中 |
 | R17 | 待做 | feature | 主题、行距、阅读位置、专注模式 | `e5bd668` + `a670e57` + `920a270` | R16 | 中 |
@@ -163,6 +163,7 @@
 | 2026-10-22 | R11 | feature | `77a2344` | 299，OK | 一轮 + 窄复查：无阻断。首轮发现手改孤立代理项让 `/api/models` 的 JSON 编码失败（已修：`status()` 替换不可编码字符）、非文本值被当成空/重置（已修：读拒绝、保存 400；文件里 null 仍视为没值）、记录里设置页圆点描述过时、旧需求文档仍像当前规则、测试数写错、poll 未覆盖、`https://@host` 被接受；窄复查确认七项已修，另修 null 文案与“代理项在路径末尾可被存成截断地址”（`base_ok` 连空的 `?`/`#` 也不收） | `mineru_api_url` 设置，默认 `https://mineru.net/api/v4`；`engine.base_ok` 校验/规范化（http(s)、host、无 query/fragment/登录信息/空白、去尾部 `/`）；非空不可用值在转换前以 `bad-mineru-url` 失败、不回退官方；`status()` 报 `base`/`official`/`baseOk` 且不抛；一次转换固定一个 base；`_put` 按签名 URL 的 scheme/port；设置页地址输入/保存/恢复官方；CLI 打印地址；只支持 v4，V1 留给 R12；未测真实自定义网关和 zoom 平滑度；记录见 `docs/changes/2026-10-22-mineru-base-url.md` |
 | 2026-10-22 | R12 | feature | —（不做） | — | — | 条件项评估后不做：本机没有 `mineru-kit`，也没有自部署 MinerU 的需求；R11 的 `mineru_api_url` 已覆盖 v4 兼容网关。按任务写明的“不做则保持 R11 的 v4-only”，未实现 `/v1/file_parse`、`/v1/tasks`、multipart、200 MiB/100 文件或 ZIP 输出映射。 | 无代码改动；`mineru-kit` 自部署仍不支持；确有需要时另开任务；R11 的地址设置保持。 |
 | 2026-10-22 | R13 | feature | `979c7ab` | 318，OK | 一轮 + 窄复查：首轮发现纯英文边界会因 ASCII `'` 与连续收尾符而改变（超过 12 句的英文段可能被切、后续 unit id 移动），以及 `cjk_heavy` 的“id 不移动”对混合段不成立——两条阻断；已改为按单元分派（无 CJK/。！？ 的单元走旧切分器），并修正文档、明确混合段“知情保留”；另修 guard 只数汉字（现随切分器含假名）、空 ladder 回退本地层、长段测试未钉 id；窄复查确认两条阻断已解，30k 纯 ASCII fuzz 与 main 0 差异，无新问题 | 含 CJK 或 。！？ 的单元按 。！？ 切句；纯英文单元仍走旧切分器（句号、编号、分段不变）；长 CJK 段不切块（提前取 `4897e24` 的 `cjk_heavy`，R14 不再取该 hunk）；`full` 改为单元原文，中文 Full 不再插入空格；`apply_en` 丢弃越界 evidence 并以首句回退；混合中英文段落仍可能改变分段（知情保留，重新生成）；未测 zoom 平滑度；记录见 `docs/changes/2026-10-22-chinese-brief.md` |
+| 2026-10-22 | R14 | feature | `e88c516` | 354，OK | 一轮 + 窄复查：首轮确认英文逐字节不变（本机英文论文 92 unit/16 chunk 的 prompt、local、assemble、section_ladder 与整次 build 全同），发现两条阻断——目录行成为下一段 Brief 的 glue、以 `……` 结尾的段落被当作断句；已修（`dress` 回溯时跳过 apparatus；`…` 计入 WHOLE）。另修目录点线把含 `…………` 的论点误判为 apparatus（现要求行末页码）、翻译的 section topic 预算被源文档覆盖（`section_ladder` 保留调用方预算，build 传文档预算）、主题丢掉 `P2P`/`3.5`/`第一章`、atom 变 `[object Object]` 并丢 glue、隐藏 unit 的笔记跳转零矩形、被抑制单元仍被补译、`tn=0` 仍在 Topic 显示、过时注释与 DEVELOPMENT 描述；窄复查确认两条阻断已解、无新问题，354 OK | 按单元/小节分派：中文（含日文假名）单元用字符预算（40/60/8/40）、claim 句、apparatus 抑制、背景降级、跨页 glue 和中文提示；英文文档的提示、层级与页面不变（逐字节比较）。未取 R15 的 `cjk_doc`/`meta.cjk`、reader 的 stake/ref/Topic 滚动、`l3` 移除和 `1.研究背景` 守卫；中文经 `tr-zh` 阅读时仍无 glue/l3。未测 zoom 平滑度；记录见 `docs/changes/2026-10-22-chinese-five-levels.md` |
 
 ## 停止条件
 
