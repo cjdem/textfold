@@ -226,6 +226,12 @@ last opened, and kept in folders, one level deep, a document in one at most: dra
 right click opens on it. Folders and dates are in `library.json` beside `papers/` (`library.py`). The format, the contract for every export, is `docs/notes-format.md`; the server keeps notes in
 `papers/<id>/notes.json`, a static page in the browser.
 
+Over a paper the sidebar opens from its rail and covers the text. Its pin (`localStorage` `textfold.sbpin`) keeps it
+open beside the paper instead, as on the landing, and folds or opens it as there: the page, the zoom bar and a PDF beside
+the text start at its edge (`html.app.sb-docked`, which sets `--rail` to the sidebar's width and takes that width out of
+the column's cap). A window too narrow for the sidebar and the margins both (`html.sb-narrow`: the width left of the
+sidebar under 1248px) has the notes and answers in the column, as beside a PDF, and `layoutSides` stands down.
+
 Links: argument links (supports / builds on / qualifies / explains) were written by a model into English layers before
 2026-10-18. Generation no longer calls for them, the reader no longer draws them, and the stored edges stay on disk;
 `textfold get` still exports them. A stored link names its units by id; after a parser change those ids can name other

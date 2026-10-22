@@ -816,6 +816,7 @@ html.morphing .chatbtn { pointer-events: none; }
 .cmpbtn:hover { border-color: var(--accent); color: var(--accent); }
 .cmpbtn.on { background: var(--accent-soft); border-color: transparent; color: var(--accent); }
 html.compare { --pdfw: min(46vw, 860px); }
+html.app.sb-docked.compare { --pdfw: min(46vw, 860px, calc(100vw - var(--rail, 0px) - 420px)); }   /* the text beside it keeps its 420px */
 /* (html.app.compare: over app.css's html.app rules, which come later) */
 html.compare body, html.app.compare body { padding-left: calc(var(--rail, 0px) + var(--pdfw)); }
 html.compare footer.zoom, html.app.compare footer.zoom { left: calc(var(--rail, 0px) + var(--pdfw)); }

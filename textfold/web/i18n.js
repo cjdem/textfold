@@ -171,6 +171,13 @@ window.DR_I18N = (() => {
     zh: tvs(["主题层的显示方式", "卡片", "导图", "全部展开", "只看章节", "点主题词打开那一段 · 点章节收起或展开"]),
   };
   for (const [code, words] of Object.entries(TV)) Object.assign(S[code], words);
+  // the sidebar's pin: open beside a paper as on the landing, or over it
+  const pins = (w) => ({ sb_pin: w[0], sb_unpin: w[1] });
+  const PINS = {
+    en: pins(["Pin: keep it open beside the text", "Unpin: open it over the text"]),
+    zh: pins(["固定在左侧：阅读时一直打开在正文旁边", "取消固定：打开时浮在正文上"]),
+  };
+  for (const [code, words] of Object.entries(PINS)) Object.assign(S[code], words);
   // the reader's brightness and style, line spacing and focus (Aa), and where a text was left
   const rds = (w) => ({ ty_mode: w[0], ty_style: w[1], ty_auto: w[2], ty_light: w[3], ty_dark: w[4], ty_default: w[5], ty_paper: w[6], ty_lead: w[7], ty_tight: w[8], ty_loose: w[9], ty_focus: w[10], focus_on: w[11], pos_back: w[12], pos_top: w[13] });
   const RDS = {
