@@ -106,7 +106,7 @@ class SidebarSelect(unittest.TestCase):
         self.assertIn("else if ((a.dataset.to || null) !== all) moveTo(ids, a.dataset.to || null);", menu)
         # a folder made for them, then they are let go of; a move into one likewise
         move = body_of(js, "async function saveName(value) {")
-        self.assertIn("const id = editing, name = value.trim(), papers = moving ? [].concat(moving) : [], many = Array.isArray(moving);", move)
+        self.assertIn("const id = editing, name = value.trim(), papers = moving ? [].concat(moving) : [], parent = within, many = Array.isArray(moving);", move)
         self.assertIn("if (many && name) chosen.clear();", move)
         to = body_of(js, "async function moveTo(pids, folder) {")
         self.assertIn("const many = Array.isArray(pids);", to)
@@ -117,8 +117,8 @@ class SidebarSelect(unittest.TestCase):
         self.assertIn("if (dragging.length > 1) {", js)   # (one row needs no count)
         self.assertIn("e.dataTransfer.setDragImage(img, 14, 14);", js)
         self.assertIn("side.classList.toggle('from-folder', dragging.some((id) => folders.of[id]));", js)
-        self.assertIn("if (dragging.every((id) => (folders.of[id] || null) === to)) return;", js)
-        self.assertIn("if (!pids.every((id) => (folders.of[id] || null) === to)) moveTo(pids.length > 1 ? pids : pids[0], to);", js)
+        self.assertIn("return dragging.every((id) => (folders.of[id] || null) === to) ? undefined : to;", js)
+        self.assertIn("if (fid) nestFolder(fid, to); else moveTo(pids.length > 1 ? pids : pids[0], to);", js)
         # one row picked asks one row's question
         chosen = body_of(js, "async function deleteChosen(ids) {")
         self.assertIn("if (ps.length < 2) { if (ps.length) await deletePaper(ps[0].id); return; }", chosen)

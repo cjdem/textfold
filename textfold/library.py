@@ -2,8 +2,9 @@
 each document came in and when it was last opened. Kept in library.json in the data folder, beside papers/, so that the
 app and `textfold serve` show the same and a copy of the library carries it.
 
-Folders: one level, a document in one at most (dragged into another, it moves). A document in no folder stays under
-its kind, or under when it came in or was opened; deleting a folder leaves its documents there.
+Folders: inside one another as deep as the reader makes them (a folder's parent; none: at the top), a document in one
+at most (dragged into another, it moves). A document in no folder stays under its kind, or under when it came in or was
+opened. Deleting a folder moves what is in it, documents and folders, up into its parent.
 
 A name: what the reader calls a document in the library (a PDF whose title came out wrong, a file named by its
 date), shown instead of its title; the title stays the document's own, and the name goes when it is cleared.
@@ -11,8 +12,8 @@ date), shown instead of its title; the title stays the document's own, and the n
 When a document came in is noted the first time the list shows it, from the oldest file in its folder (so one read
 before this was kept is dated as well); when it was opened, each time the reader shows it.
 
-    {"folders": [{"id": "f-3a9c01d2", "name": "Thesis"}], "of": {"2512.24601": "f-3a9c01d2"},
-     "names": {"pdf-0123456789abcdef": "Smith 2024 review"},
+    {"folders": [{"id": "f-3a9c01d2", "name": "Thesis"}, {"id": "f-77b0e415", "name": "Chapter 2", "parent": "f-3a9c01d2"}],
+     "of": {"2512.24601": "f-77b0e415"}, "names": {"pdf-0123456789abcdef": "Smith 2024 review"},
      "added": {"2512.24601": 1791000000.0}, "opened": {"2512.24601": 1792000000.0}}
 """
 import json
@@ -42,9 +43,18 @@ def load():
         raise   # (in neither UTF-8 nor the codepage: never read it as empty and save that over it)
     except (OSError, ValueError):
         d = {}
-    folders = [{"id": f["id"], "name": f["name"]} for f in d.get("folders") or []
+    folders = [{"id": f["id"], "name": f["name"], **({"parent": f["parent"]} if isinstance(f.get("parent"), str) else {})}
+               for f in d.get("folders") or []
                if isinstance(f, dict) and isinstance(f.get("id"), str) and isinstance(f.get("name"), str)]
     ids = {f["id"] for f in folders}
+    by = {f["id"]: f for f in folders}
+    for f in folders:   # a parent that is gone, or a folder under itself (a loop, edited by hand): at the top
+        seen, p = {f["id"]}, f.get("parent")
+        while p in by and p not in seen:
+            seen.add(p)
+            p = by[p].get("parent")
+        if f.get("parent") not in ids or p in seen:
+            f.pop("parent", None)
     of = d.get("of") if isinstance(d.get("of"), dict) else {}
     names = d.get("names") if isinstance(d.get("names"), dict) else {}
     return {"folders": folders, "of": {p: f for p, f in of.items() if f in ids and store.valid_id(p)},
@@ -74,28 +84,61 @@ def _name(s):
     return s
 
 
+def _under(d, fid):
+    """The folders inside folder fid, however deep, fid among them."""
+    out, more = {fid}, True
+    while more:
+        more = False
+        for f in d["folders"]:
+            if f.get("parent") in out and f["id"] not in out:
+                out.add(f["id"])
+                more = True
+    return out
+
+
 def change(body):
-    """One change to the folders, the folders after it: {op: "new", name, papers?: [ids] moved into it} ·
-    {op: "rename", id, name} · {op: "delete", id} · {op: "move", papers: [ids], folder: id or null (out of any)}.
+    """One change to the folders, the folders after it: {op: "new", name, parent?: id (inside it), papers?: [ids] moved
+    into it} · {op: "rename", id, name} · {op: "delete", id} (what is in it moves up into its parent) · {op: "nest", id,
+    parent: id or null (to the top)} · {op: "move", papers: [ids], folder: id or null (out of any)}.
     ValueError for one that cannot be made."""
     op = body.get("op")
     with _lock:
         d = load()
         ids = {f["id"] for f in d["folders"]}
         if op == "new":
-            f = {"id": f"f-{secrets.token_hex(4)}", "name": _name(body.get("name"))}
+            parent = body.get("parent") or None
+            if parent is not None and parent not in ids:
+                raise ValueError("no such folder")
+            f = {"id": f"f-{secrets.token_hex(4)}", "name": _name(body.get("name")), **({"parent": parent} if parent else {})}
             pids = _papers(body.get("papers", []))
             d["folders"].append(f)
             d["of"].update(dict.fromkeys(pids, f["id"]))
-        elif op in ("rename", "delete"):
+        elif op in ("rename", "delete", "nest"):
             f = next((f for f in d["folders"] if f["id"] == body.get("id")), None)
             if f is None:
                 raise ValueError("no such folder")
             if op == "rename":
                 f["name"] = _name(body.get("name"))
+            elif op == "nest":
+                to = body.get("parent") or None
+                if to is not None and to not in ids:
+                    raise ValueError("no such folder")
+                if to in _under(d, f["id"]):
+                    raise ValueError("a folder cannot go inside itself")
+                if to:
+                    f["parent"] = to
+                else:
+                    f.pop("parent", None)
             else:
+                up = f.get("parent")
                 d["folders"].remove(f)
-                d["of"] = {p: x for p, x in d["of"].items() if x != f["id"]}
+                for g in d["folders"]:
+                    if g.get("parent") == f["id"]:
+                        if up:
+                            g["parent"] = up
+                        else:
+                            g.pop("parent", None)
+                d["of"] = {p: (up if x == f["id"] else x) for p, x in d["of"].items() if x != f["id"] or up}
         elif op == "move":
             to = body.get("folder") or None
             if to is not None and to not in ids:
@@ -106,7 +149,7 @@ def change(body):
                 else:
                     d["of"].pop(p, None)
         else:
-            raise ValueError("op: new, rename, delete or move")
+            raise ValueError("op: new, rename, delete, nest or move")
         _save(d)
         return {"folders": d["folders"], "of": d["of"]}
 

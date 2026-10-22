@@ -105,16 +105,16 @@ window.DR_I18N = (() => {
       'TextFold {v} 已经装好。', '这一版的新内容', '在 GitHub 上点星', '这个版本还没有配置签名更新。']),
   };
   for (const [code, words] of Object.entries(U)) Object.assign(S[code], words);
-  // the library in the sidebar: its search, the reader's folders (folders.py), its order by date
+  // the library in the sidebar: its search, the reader's folders (library.py), its order by date
   const lib = (w) => ({ sb_search: w[0], sb_nomatch: w[1], f_new: w[2], f_name: w[3], f_rename: w[4], f_delete: w[5], f_del_confirm: w[6],
     f_empty: w[7], f_actions: w[8], f_out: w[9], sort_label: w[10][0], sort_kind: w[10][1], sort_added: w[10][2], sort_opened: w[10][3],
     d_today: w[11], d_week: w[12], d_month: w[13], d_older: w[14] });
   const F = {
     en: lib(['Search titles, authors, ids…', 'Nothing matches.', 'New folder', 'Folder name', 'Rename', 'Delete folder',
-      'Delete the folder “{name}”? The documents in it stay in the library.', 'Drag documents here.', 'Folder actions', 'Not in a folder',
+      'Delete the folder “{name}”? What is in it moves up a level; its documents stay in the library.', 'Drag documents here.', 'Folder actions', 'Not in a folder',
       ['Order', 'By kind', 'By date added', 'By last opened'], 'Today', 'Past 7 days', 'Past 30 days', 'Earlier']),
     zh: lib(['搜索标题、作者、编号…', '没有匹配的文档。', '新建文件夹', '文件夹名称', '重命名', '删除文件夹',
-      '删除文件夹“{name}”？里面的文档会留在文献库里。', '把文档拖到这里。', '文件夹操作', '不放在文件夹里',
+      '删除文件夹“{name}”？里面的文档和子文件夹会移到上一层，文档仍留在文献库里。', '把文档拖到这里。', '文件夹操作', '不放在文件夹里',
       ['排序', '按类型', '按添加时间', '按最近打开'], '今天', '最近 7 天', '最近 30 天', '更早']),
   };
   for (const [code, words] of Object.entries(F)) Object.assign(S[code], words);
@@ -136,6 +136,12 @@ window.DR_I18N = (() => {
     zh: ['在文献库里的名称', '恢复原标题', '新建笔记', '不针对某段文字、写给整篇的笔记，放在标题旁'],
   };
   for (const [code, [a, b, c, d]] of Object.entries(NAME)) Object.assign(S[code], { d_name: a, d_unname: b, n_paper_note: c, n_paper_note_tip: d });
+  // a folder inside another, and up out of it
+  const NEST = {
+    en: ['New folder inside', 'Move up a level'],
+    zh: ['新建子文件夹', '移到上一层'],
+  };
+  for (const [code, [a, b]] of Object.entries(NEST)) Object.assign(S[code], { f_new_sub: a, f_up: b });
   // a question's field and its turns: send it, stop it while the model answers, take a turn out of the conversation
   const turn = (w) => ({ n_send: w[0], n_stop: w[1], n_turn_del: w[2], n_turn_del_q: w[3] });
   const Q = {

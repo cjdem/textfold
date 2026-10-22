@@ -37,8 +37,8 @@
   POST /api/papers/restore    {papers: [ids]}: those deleted last back from papers/.trash, in their folders (the
                               reader's Undo); {papers: the list, folders, restored: [ids]}
   POST /api/papers/name       {paper, name}: what the reader calls it in the library ("": its own title again); the list
-  GET  /api/folders           the reader's folders and which document is in which (library.py)
-  POST /api/folders           {op: new | rename | delete | move, ...}: one change; the folders after it
+  GET  /api/folders           the reader's folders (inside one another) and which document is in which (library.py)
+  POST /api/folders           {op: new | rename | delete | nest | move, ...}: one change; the folders after it
   POST /api/openrouter/start   {back}: the OpenRouter consent URL (OAuth PKCE); GET /oauth/openrouter is its return
   GET  /api/zotero             Zotero Desktop (its local API): running, its libraries, the one chosen (zotero.py)
   GET  /api/zotero/collections ?lib=users/0 | groups/<id>: the library's collections, each with its parent

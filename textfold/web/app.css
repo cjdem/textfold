@@ -79,7 +79,7 @@
 .sb-fhead:hover { background: var(--surface); }
 #sidebar .sb-fhead svg { width: 16px; height: 16px; color: var(--muted); }
 #sidebar .sb-fhead .sb-chev { width: 13px; height: 13px; color: var(--faint); transform: rotate(90deg); transition: transform .15s var(--ease); }
-.sb-folder.shut:not(.found) .sb-chev { transform: none !important; }
+.sb-folder.shut:not(.found) > .sb-frow .sb-chev { transform: none !important; }
 .sb-fname { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sb-fn { font: 500 11.5px var(--sans); color: var(--faint); font-variant-numeric: tabular-nums; }
 .sb-fmenu { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); width: 24px; height: 24px; padding: 0; border: 0; border-radius: 7px;
@@ -87,7 +87,7 @@
 .sb-frow:hover .sb-fmenu, .sb-fmenu:focus-visible { opacity: 1; }
 .sb-fmenu:hover { background: var(--line-2); color: var(--ink); }
 .sb-fitems { margin: 0 0 4px 13px; padding-left: 4px; border-left: 1px solid var(--line-2); }
-.sb-folder.shut:not(.found) .sb-fitems { display: none; }
+.sb-folder.shut:not(.found) > .sb-fitems { display: none; }
 .sb-fempty { padding: 6px 9px 8px; font-size: 12.5px; color: var(--faint); }
 .sb-list.searching .sb-fempty { display: none; }
 .sb-fname-in, .sb-dname-in { flex: 1; min-width: 0; height: 32px; margin: 2px 0; padding: 0 9px; font: 600 13px var(--sans); color: var(--ink); background: var(--card);
@@ -112,6 +112,7 @@
 .sb-menu button:has(svg) { display: flex; align-items: center; gap: 8px; }
 #sidebar .sb-menu svg { width: 16px; height: 16px; color: var(--muted); }
 .sb-mname { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sb-menu [data-to] { padding-left: calc(10px + var(--d, 0) * 14px); }   /* a folder in the list, indented by how deep it is */
 .sb-menu [aria-checked="true"]::after { content: '✓'; color: var(--accent); font-weight: 600; }
 .sb-mlabel { padding: 6px 10px 3px; font: 600 11.5px var(--sans); color: var(--muted); }
 .sb-msep { height: 1px; margin: 4px 6px; background: var(--line-2); }

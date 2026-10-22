@@ -232,8 +232,11 @@ replies, notes) moves to `papers/.trash/<id>-<time>/`, with its place in the lib
 and dates), from where it comes back whole with `POST /api/papers/restore` (the reader's Undo: its folder if that is
 still there, its name, its dates). The delete route also takes several at once (`{papers: [ids]}`): the ones being generated stay, and
 the answer says which went and which stayed. A paper being generated cannot be deleted. The list is searched (Ctrl+K or /), ordered by kind, by when each document came in or by when it was
-last opened, and kept in folders, one level deep, a document in one at most: dragged there, or moved from the menu a
-right click opens on it. A document takes a name in the library (right click, **Rename**; its own title written back, or
+last opened, and kept in folders inside one another, a document in one at most: dragged there, or moved from the menu a
+right click opens on it. A folder holds folders as deep as the reader makes them: **New folder inside** and **Move up a
+level** in its menu, or its head dragged into another (not into itself, nor into one inside it), and a folder's count
+takes in the documents in the folders inside it. Deleting a folder moves what is in it, documents and folders, up into
+its parent. A document takes a name in the library (right click, **Rename**; its own title written back, or
 the field emptied, gives the title again): shown in the list, the page's title and its head, with its own title below;
 the search covers it too. Folders, names and dates are in `library.json` beside `papers/` (`library.py`). The format, the contract for every export, is `docs/notes-format.md`; the server keeps notes in
 `papers/<id>/notes.json`, a static page in the browser.
@@ -445,7 +448,7 @@ textfold/models.py   API model catalog; settings; resolving a model id
 textfold/openrouter.py  OpenRouter one-click authorization (OAuth PKCE)
 textfold/llm.py     cached API model calls; llm_openai.py: OpenAI-compatible endpoints
 textfold/build.py    reader pages: app mode (served) and static mode (one file)
-textfold/library.py  the sidebar's library: folders, the names given documents, when each came in and was last opened (library.json)
+textfold/library.py  the sidebar's library: folders inside one another, the names given documents, when each came in and was last opened (library.json)
 textfold/notes.py    the reader's notes (docs/notes-format.md) and questions answered by the model
 textfold/cards.py    a document's reading card (docs/reading-card-format.md): evidence, candidates, staleness, Markdown
 textfold/fold.py     the TextFold format (docs/format.md) and a document at one level as Markdown (python -m textfold get)
