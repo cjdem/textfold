@@ -2,5 +2,9 @@
 import runpy
 import sys
 
+try:
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+except (AttributeError, ValueError, OSError):
+    pass
 print("PaperFold is now TextFold: python -m textfold " + " ".join(sys.argv[1:]), file=sys.stderr)
 runpy.run_module("textfold", run_name="__main__", alter_sys=True)

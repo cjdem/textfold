@@ -154,7 +154,7 @@ class Doc:
         doc = {k: v for k, v in {**self.meta, "authors": authors or [a for a in self.meta.get("authors", []) if not NOBODY.match(a)]}.items() if v}
         sc = {"pages": self.pages, "metadata": {"file_suffix": self.ext, "producer": {"name": "textfold"}, "document": doc}}
         self.out.mkdir(parents=True, exist_ok=True)
-        (self.out / "structured_content.json").write_text(json.dumps(sc))   # ASCII-escaped: read with the system's encoding
+        (self.out / "structured_content.json").write_text(json.dumps(sc), encoding="utf-8")   # ASCII-escaped, so any reader sees plain ASCII
         return self.out
 
 

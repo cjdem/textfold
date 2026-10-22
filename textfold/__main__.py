@@ -102,10 +102,19 @@ def mineru_cmd(args):
     return 0
 
 
+def _utf8_streams():
+    """The document's text (titles, quotes) reaches stdout/stderr as UTF-8, whatever the locale's codepage is: on
+    Windows a redirected or piped stream is otherwise cp936 (or another legacy codepage) and a character outside it
+    raises instead of printing."""
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding="utf-8", errors="replace")
+        except (AttributeError, ValueError, OSError):
+            pass
+
+
 def main():
-    # a pipe or a file takes the system's encoding (GBK on a Chinese Windows); the CLI speaks UTF-8, as it reads it
-    if hasattr(sys.stdout, "reconfigure"):
-        sys.stdout.reconfigure(encoding="utf-8")
+    _utf8_streams()
     if sys.argv[1:2] == ["--version"]:
         from . import __version__
         return print(f"TextFold {__version__}")

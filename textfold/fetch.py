@@ -47,7 +47,7 @@ def fetch(pid, root: Path, force=False):
         "license": lic.group(1) if lic else "",
     }
     # ASCII-escaped: read with the system's encoding, and a title can hold a character GBK lacks
-    meta_f.write_text(json.dumps(meta, indent=2))
+    meta_f.write_text(json.dumps(meta, indent=2), encoding="utf-8")
     return d
 
 

@@ -241,7 +241,7 @@ def _write(pid, data):
 
 def _meta(pid):
     try:
-        return json.loads((store.pdir(pid) / "meta.json").read_text())
+        return json.loads((store.pdir(pid) / "meta.json").read_text(encoding="utf-8"))
     except (OSError, ValueError):
         return {"id": pid, "title": pid}
 

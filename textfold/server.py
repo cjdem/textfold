@@ -158,7 +158,7 @@ class Jobs:
             if job["kind"] == "generate" and stage not in ("queued", "fetch") and (store.pdir(job["pid"]) / "meta.json").exists():
                 if not job.get("title"):   # a new paper's title, once it is parsed
                     try:
-                        job["title"] = json.loads((store.pdir(job["pid"]) / "meta.json").read_text())["title"]
+                        job["title"] = json.loads((store.pdir(job["pid"]) / "meta.json").read_text(encoding="utf-8"))["title"]
                     except (OSError, ValueError, KeyError):
                         pass
         return progress
@@ -382,7 +382,7 @@ def landing_page(jobs):
     boot = {"papers": listed(), "folders": library.folders(), "jobs": jobs.list(), "model": name(chosen) if chosen else "",
             "askName": name(ask) if ask and ask != chosen else "",
             "langs": [[code, v[1]] for code, v in langs.LANGS.items()]}
-    t = (build.WEB / "app.html").read_text()
+    t = (build.WEB / "app.html").read_text(encoding="utf-8")
     return t.replace("{{HEAD}}", build.fonts_head(build.APP_ASSETS)).replace("{{BOOT}}", json.dumps(boot, ensure_ascii=False).replace("</", "<\\/"))
 
 
@@ -399,7 +399,7 @@ def addressed_here(host):
 def make_handler(jobs):
     class Handler(BaseHTTPRequestHandler):
         def send(self, code, body, ctype="application/json; charset=utf-8", cache="no-store"):
-            data = body if isinstance(body, bytes) else body.encode()
+            data = body if isinstance(body, bytes) else body.encode("utf-8")
             try:   # (the reader stopped waiting — a question stopped, a page left or reloaded — at the body or, as
                 # Windows' WinError 10053 does, mid-headers: every ConnectionError is the reader having gone, not an error)
                 self.send_response(code)
@@ -589,7 +589,7 @@ def make_handler(jobs):
                         return self.json({"error": "no such PDF"}, 404)
                     if not engine.readable(engine.kind_of(src) or "pdf"):
                         return self.json({"error": "needs-mineru-key"}, 409)
-                    name = json.loads((store.pdir(pid) / "meta.json").read_text()).get("source", {}).get("name") or "document.pdf"
+                    name = json.loads((store.pdir(pid) / "meta.json").read_text(encoding="utf-8")).get("source", {}).get("name") or "document.pdf"
                     lang = body.get("lang") if body.get("lang") in langs.LANGS else "en"
                     return self.json(jobs.convert(pid, src, name, lang, tier, replace=True))
                 if u.path == "/api/jobs/stop":
@@ -603,7 +603,7 @@ def make_handler(jobs):
                         pid = local.import_text(text, name)
                     except ValueError:
                         return self.json({"error": "not-markdown"}, 400)
-                    return self.json({"paper": pid, "title": json.loads((store.pdir(pid) / "meta.json").read_text())["title"]})
+                    return self.json({"paper": pid, "title": json.loads((store.pdir(pid) / "meta.json").read_text(encoding="utf-8"))["title"]})
                 if u.path == "/api/export":   # the paper as one file, saved by the reader for themself
                     pid, lang = str(body.get("paper") or ""), str(body.get("lang") or "en")
                     if not store.valid_id(pid) or not (store.pdir(pid) / "meta.json").exists():

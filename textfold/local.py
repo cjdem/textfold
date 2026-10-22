@@ -133,9 +133,8 @@ def store_doc(pid, html, meta, raw_name, raw, resolver, sizes=False):
         (tmp / "source.html").write_text(semantic.normalize(html, resolve_img=resolver(tmp / "img"), sizes=sizes),
                                          encoding="utf-8")
         (tmp / raw_name).write_text(raw, encoding="utf-8")
-        # ASCII-escaped, like the layers and the notes: meta.json is read with the system's encoding, and a title can
-        # hold a character GBK lacks (the ✩ an Elsevier paper puts after its title, measured on a GBK Windows machine)
-        (tmp / "meta.json").write_text(json.dumps(meta, indent=2))
+        # ASCII-escaped, like the layers and the notes: a title may hold any character, and escaping keeps it plain ASCII
+        (tmp / "meta.json").write_text(json.dumps(meta, indent=2), encoding="utf-8")
         shutil.rmtree(d, ignore_errors=True)
         tmp.rename(d)
     finally:
@@ -143,6 +142,21 @@ def store_doc(pid, html, meta, raw_name, raw, resolver, sizes=False):
     return pid
 
 
+def _read(p):
+    """A text file as text: UTF-8 first (the encoding of the web, and of this app's own files), then GBK (a Chinese
+    Windows's codepage), and as UTF-8 with stand-ins when neither holds. The BOM comes off with -sig."""
+    data = p.read_bytes()
+    for enc in ("utf-8-sig", "gbk"):
+        try:
+            text = data.decode(enc)
+            break
+        except UnicodeDecodeError:
+            continue
+    else:
+        text = data.decode("utf-8", "replace")
+    return text.replace("\r\n", "\n").replace("\r", "\n")   # (as Path.read_text gives them: a re-import keeps its id)
+
+
 def import_file(path):
     p = Path(path).expanduser().resolve()
-    return import_text(p.read_text(encoding="utf-8", errors="replace"), p.name, p.parent)
+    return import_text(_read(p), p.name, p.parent)

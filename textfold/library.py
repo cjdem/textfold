@@ -33,7 +33,9 @@ def _times(d, key):
 
 def load():
     try:
-        d = json.loads(path().read_text())
+        d = json.loads(path().read_text(encoding="utf-8"))
+    except UnicodeDecodeError:
+        raise   # (an older codepage's file: R3 migrates it; never read it as empty and save that over it)
     except (OSError, ValueError):
         d = {}
     folders = [{"id": f["id"], "name": f["name"]} for f in d.get("folders") or []
@@ -48,8 +50,8 @@ def _save(d):
     f = path()
     f.parent.mkdir(parents=True, exist_ok=True)
     tmp = f.with_name(f.name + ".tmp")
-    # ASCII-escaped: a folder's name is the reader's, in any language, and this is read with the system's encoding
-    tmp.write_text(json.dumps(d, indent=1))
+    # ASCII-escaped: a folder's name is the reader's, in any language, and the file stays plain ASCII
+    tmp.write_text(json.dumps(d, indent=1), encoding="utf-8")
     tmp.replace(f)
 
 

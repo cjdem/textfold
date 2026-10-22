@@ -45,8 +45,8 @@ class StoredText(unittest.TestCase):
         stored = self.ascii_json(store.pdir("pdf-star") / "meta.json")
         self.assertEqual(stored["title"], TITLE)
         self.assertEqual(stored["label"], meta["label"])
-        # the reader's own read (the system's encoding) gets the same title back
-        self.assertEqual(json.loads((store.pdir("pdf-star") / "meta.json").read_text())["title"], TITLE)
+        # the reader's own read (UTF-8) gets the same title back
+        self.assertEqual(json.loads((store.pdir("pdf-star") / "meta.json").read_text(encoding="utf-8"))["title"], TITLE)
 
     def test_a_folder_name_with_a_star_is_stored_and_read_back(self):
         library.change({"op": "new", "name": f"Thesis {STAR}"})
@@ -61,7 +61,7 @@ class StoredText(unittest.TestCase):
         d = store.pdir("pdf-zotero-star")
         d.mkdir(parents=True)
         (d / "meta.json").write_text(json.dumps({"id": "pdf-zotero-star", "title": "Before",
-                                                 "source": {"kind": "pdf", "name": "file.pdf"}}))
+                                                 "source": {"kind": "pdf", "name": "file.pdf"}}), encoding="utf-8")
         zotero.link("users/0", "ITEM1", "pdf-zotero-star", f"Index {STAR}",
                     {"title": TITLE, "authors": ["Yanpeng Hu"], "date": "2020", "citekey": "Hu2020"})
         self.assertEqual(self.ascii_json(self.tmp_path() / "zotero.json")["users/0/ITEM1"]["title"],

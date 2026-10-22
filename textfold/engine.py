@@ -150,7 +150,8 @@ def _get(url, dest):
     curl is used when there is one (Windows ships it), urllib otherwise."""
     curl = shutil.which("curl")
     if curl:
-        r = subprocess.run([curl, "-sS", "-f", "-L", "--max-time", "600", "-o", str(dest), url], capture_output=True, text=True)
+        r = subprocess.run([curl, "-sS", "-f", "-L", "--max-time", "600", "-o", str(dest), url], capture_output=True, text=True,
+                           encoding="utf-8", errors="replace")
         if r.returncode or not Path(dest).exists():
             raise RuntimeError(f"the result could not be downloaded: {(r.stderr or '').strip()[-300:]}")
         return

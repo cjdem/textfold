@@ -571,7 +571,7 @@ class ConvertedPdf(unittest.TestCase):
             pdfdoc.store_pdf(self.pid, Path(tempfile.mkdtemp()), {}, "x.pdf", "fast", replace=True)
         self.assertTrue((d / "card.json").exists())
         self.assertTrue((d / "notes.json").exists())
-        self.assertEqual(json.loads((d / "card.json").read_text())["format"], cards.FORMAT)
+        self.assertEqual(json.loads((d / "card.json").read_text(encoding="utf-8"))["format"], cards.FORMAT)
 
     def test_a_save_during_a_replaced_conversion_is_not_overwritten(self):
         from textfold import engine, local, pdfdoc

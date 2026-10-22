@@ -436,8 +436,8 @@ def store_pdf(pid, folder, sc, name, tier, replace=False):
             from . import zotero
             zotero.apply(pid)   # read from a Zotero item's file: the item's own title, authors and citekey
             # ASCII-escaped, as MinerU's own zip is: these are read with the system's encoding (place, read_output)
-            (d / "layout.json").write_text(json.dumps(layout_of(sc)))
-            (d / "structured_content.json").write_text(json.dumps(sc))
+            (d / "layout.json").write_text(json.dumps(layout_of(sc)), encoding="utf-8")
+            (d / "structured_content.json").write_text(json.dumps(sc), encoding="utf-8")
         finally:
             if keep.exists():
                 for f in keep.iterdir():
@@ -481,7 +481,7 @@ def place(pid):
     f = store.pdir(pid) / "layout.json"
     if not f.exists():
         return {}
-    blocks = json.loads(f.read_text())
+    blocks = json.loads(f.read_text(encoding="utf-8"))
     words = lambda s: set(re.findall(r"\w+", s.lower()))  # noqa: E731
     bw = [words(b["t"]) for b in blocks]
     doc = store.parsed(pid)
@@ -509,7 +509,7 @@ def relayout(pid):
     import tempfile
     from . import engine
     d = store.pdir(pid)
-    meta = json.loads((d / "meta.json").read_text())
+    meta = json.loads((d / "meta.json").read_text(encoding="utf-8"))
     if (d / "layout.json").exists():
         return True
     if (meta.get("source") or {}).get("tier") != "fast":   # the accurate tier takes minutes: not on a page's request
@@ -518,10 +518,10 @@ def relayout(pid):
         return False
     with tempfile.TemporaryDirectory() as tmp:
         out = engine.convert(d / "source.pdf", Path(tmp) / "out", "fast")
-        (d / "layout.json").write_text(json.dumps(layout_of(read_output(out))))
+        (d / "layout.json").write_text(json.dumps(layout_of(read_output(out))), encoding="utf-8")
     return True
 
 
 def read_output(folder):
     """MinerU's structured content from an output folder (its zip unpacked)."""
-    return json.loads((Path(folder) / "structured_content.json").read_text())
+    return json.loads((Path(folder) / "structured_content.json").read_text(encoding="utf-8"))

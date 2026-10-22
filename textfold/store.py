@@ -109,7 +109,7 @@ def _file(pid, name):
 
 def read(pid, name):
     f = _file(pid, name)
-    return json.loads(f.read_text()) if f.exists() else None
+    return json.loads(f.read_text(encoding="utf-8")) if f.exists() else None
 
 
 def write(pid, name, data):
@@ -174,7 +174,7 @@ def languages(pid):
 
 def parsed(pid):
     d = pdir(pid)
-    return parse(_read_html(d / "source.html"), json.loads((d / "meta.json").read_text()))
+    return parse(_read_html(d / "source.html"), json.loads((d / "meta.json").read_text(encoding="utf-8")))
 
 
 def _read_html(path):
@@ -235,7 +235,7 @@ def papers():
         mf = d / "meta.json"
         if d.name.startswith(".") or not mf.exists():
             continue
-        meta = json.loads(mf.read_text())
+        meta = json.loads(mf.read_text(encoding="utf-8"))
         en = read(d.name, "en")
         langs_ = (["en"] if en else []) + languages(d.name)
         titles = {}
@@ -247,7 +247,7 @@ def papers():
         nf = d / "notes.json"
         out.append({"id": d.name, "title": meta["title"], "titles": titles, "authors": meta.get("authors", []),
                     "langs": langs_, "updated": max(mtimes) if mtimes else mf.stat().st_mtime,
-                    "notes": len(json.loads(nf.read_text()).get("notes", [])) if nf.exists() else 0,
+                    "notes": len(json.loads(nf.read_text(encoding="utf-8")).get("notes", [])) if nf.exists() else 0,
                     **({"zotero": True} if meta.get("zotero") else {})})
     return sorted(out, key=lambda p: -p["updated"])
 

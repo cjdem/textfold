@@ -67,7 +67,7 @@ def skipped(command: str) -> bool:
 
 def run(args, cwd=None, env=None):
     return subprocess.run(
-        args, cwd=cwd, env=env, capture_output=True, text=True, timeout=TIMEOUT,
+        args, cwd=cwd, env=env, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=TIMEOUT,
     )
 
 
@@ -165,7 +165,7 @@ def main() -> int:
         print(f"no tests/ under {root}: nothing to run", file=sys.stderr)
         return 0
 
-    env = dict(os.environ, TEXTFOLD_NO_MODELS="1")
+    env = dict(os.environ, TEXTFOLD_NO_MODELS="1", PYTHONUTF8="1", PYTHONIOENCODING="utf-8")
     try:
         done = run(interpreter(root) + ["-m", "unittest", "discover", "tests"], cwd=root, env=env)
     except subprocess.TimeoutExpired:
