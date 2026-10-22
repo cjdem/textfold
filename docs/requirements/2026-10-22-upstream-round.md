@@ -57,7 +57,7 @@
 | R3 | 完成 | optimize | 旧 TextFold 的 GBK 库按代码页读入，下一次保存写 UTF-8 | `4f15560` | R2 | 中 |
 | R4 | 完成 | optimize | 只支持流式的 API 服务 | `8e7569b` | 无 | 中 |
 | R5 | 完成 | optimize | 模型回复的多种 JSON 形状 | `09e9d37` | 无 | 中 |
-| R6 | 待做 | optimize | `TEXTFOLD_NO_MODELS` 下不调用模型 | `1761a95` | 无 | 小 |
+| R6 | 进行中 | optimize | `TEXTFOLD_NO_MODELS` 下不调用模型 | `1761a95` | 无 | 小 |
 | R7 | 待做 | optimize | EPUB 章节先解码再解析 | `13d7794` | 无 | 小 |
 | R8 | 待做 | optimize | 翻译漏段重试（只取 `d457cfa` 的翻译部分） | `d457cfa` | 无 | 中 |
 | R9 | 待做 | optimize | 应用 payload 带 Anthropic SDK | `f260244` | 无 | 小 |
