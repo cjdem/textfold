@@ -58,6 +58,25 @@
   const headEls = [];                     // [chunk, heading element, stake element]
   D.chunks.forEach((c) => c.units.forEach((uid) => { chunkOf[uid] = c; }));
   const store = { get(k) { try { return localStorage.getItem(k); } catch { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch { /* private window */ } } };
+  // the type as this reader likes it, for every text (kept in this browser): its size, the column's width and the font
+  // of the author's words (reader.css: --fs, html[data-width], html[data-font]); set before anything is drawn, and
+  // changed from the Aa menu beside the language's
+  const TYPE_KEY = 'textfold.type';
+  const SIZES = [0.86, 0.93, 1, 1.08, 1.16, 1.25, 1.35], WIDTHS = ['narrow', 'standard', 'wide'];
+  const TYPE0 = { size: 1, width: 'standard', font: 'serif' };
+  let type = (() => {
+    let v = null;
+    try { v = JSON.parse(store.get(TYPE_KEY) || 'null'); } catch { /* (written by hand) */ }
+    if (!v || typeof v !== 'object') return { ...TYPE0 };
+    return { size: SIZES.includes(v.size) ? v.size : 1, width: WIDTHS.includes(v.width) ? v.width : 'standard', font: v.font === 'sans' ? 'sans' : 'serif' };
+  })();
+  function applyType() {
+    const r = document.documentElement;
+    if (type.size === 1) r.style.removeProperty('--fs'); else r.style.setProperty('--fs', String(type.size));
+    if (type.width === 'standard') delete r.dataset.width; else r.dataset.width = type.width;
+    if (type.font === 'serif') delete r.dataset.font; else r.dataset.font = type.font;
+  }
+  applyType();
 
   // ── a unit in the current language ───────────────────────────────────
   function view(uid) {
@@ -443,6 +462,8 @@
     langBtn.title = t.language;
     legendBtn.textContent = t.legend;
     legendBtn.title = t.legend_title;
+    typeBtn.title = t.ty_title; typeBtn.setAttribute('aria-label', t.ty_title);
+    if (!typeMenu.hidden) renderTypeMenu();
     bar.querySelectorAll('button').forEach((b) => { b.textContent = t.levels[+b.dataset.l]; });
     requestAnimationFrame(() => { geom = null; placeThumb(); });
     legend.replaceChildren();
@@ -926,6 +947,18 @@
     return sheet;
   }
   function mirrorLang() { zhost.setAttribute('lang', document.documentElement.lang); zhost.dataset.lang = lang; }
+  // and the type's (applyType): the sandbox lays a level out with the page's rules for them (a sans-serif paragraph is
+  // smaller); without them the last frame of a zoom sat apart from the page it gave way to
+  function mirrorType() {
+    const r = document.documentElement;
+    for (const k of ['font', 'width']) { if (r.dataset[k]) zhost.dataset[k] = r.dataset[k]; else delete zhost.dataset[k]; }
+    for (const k of ['app', 'compare']) zhost.classList.toggle(k, r.classList.contains(k));   // the page's own column cap
+    // the size is an inline --fs on <html>; the sandbox's copy of the sheet has :host { --fs: 1 }, which would otherwise
+    // win over the inherited value, and every level but the current one would be laid out at 100%
+    const fs = r.style.getPropertyValue('--fs');
+    if (fs) zhost.style.setProperty('--fs', fs); else zhost.style.removeProperty('--fs');
+  }
+  mirrorType();
   // KaTeX's stylesheet, once the page has it (loaded, or carried inside), is wanted inside too (drawn formulas in the
   // copies and the sandbox)
   let katexInside = false;
@@ -2321,6 +2354,65 @@
     if (n) setTimeout(() => openNote(n), 300);
   }
 
+  // ── the type's menu (Aa): the size a step at a time (its percentage: the usual size again), the column's width and
+  //    the font. Each change shows at once, the paragraph being read kept where it was on the screen ──
+  const typePick = h('div', 'typepick');
+  const typeBtn = h('button', 'typebtn', '<span aria-hidden="true">Aa</span>');
+  typeBtn.type = 'button';
+  typeBtn.setAttribute('aria-haspopup', 'dialog');
+  typeBtn.setAttribute('aria-expanded', 'false');
+  const typeMenu = h('div', 'langmenu typemenu');
+  typeMenu.hidden = true;
+  typeMenu.setAttribute('role', 'dialog');
+  typePick.append(typeBtn, typeMenu);
+  const isType0 = () => type.size === TYPE0.size && type.width === TYPE0.width && type.font === TYPE0.font;
+  function renderTypeMenu() {
+    const t = T[ui], k = SIZES.indexOf(type.size);
+    const seg = (key, vals, names) => `<div class="ty-seg" role="radiogroup" aria-label="${esc(t[`ty_${key}`])}">` +
+      vals.map((v, i) => `<button type="button" role="radio" aria-checked="${type[key] === v}" data-${key}="${v}">${esc(names[i])}</button>`).join('') + '</div>';
+    typeMenu.setAttribute('aria-label', t.ty_title);
+    typeMenu.innerHTML = `<div class="ty-row"><span class="ty-l">${esc(t.ty_size)}</span><div class="ty-size">` +
+      `<button type="button" class="ty-a sm" data-step="-1" aria-label="${esc(t.ty_smaller)}" title="${esc(t.ty_smaller)}"${k === 0 ? ' disabled' : ''}>A</button>` +
+      `<button type="button" class="ty-pct" data-step="0" title="${esc(t.ty_usual)}">${Math.round(type.size * 100)}%</button>` +
+      `<button type="button" class="ty-a lg" data-step="1" aria-label="${esc(t.ty_larger)}" title="${esc(t.ty_larger)}"${k === SIZES.length - 1 ? ' disabled' : ''}>A</button></div></div>` +
+      `<div class="ty-row ty-wrow"><span class="ty-l">${esc(t.ty_width)}</span>${seg('width', WIDTHS, [t.ty_narrow, t.ty_standard, t.ty_wide])}</div>` +
+      `<div class="ty-row"><span class="ty-l">${esc(t.ty_font)}</span>${seg('font', ['serif', 'sans'], [t.ty_serif, t.ty_sans])}</div>` +
+      `<button type="button" class="ty-reset"${isType0() ? ' hidden' : ''}>${esc(t.ty_reset)}</button>`;
+  }
+  function setType(next) {
+    if (busy) return;   // (not while a zoom plays)
+    snapNow();
+    const anchor = defaultAnchor();
+    type = { ...type, ...next };
+    store.set(TYPE_KEY, JSON.stringify(type));
+    applyType(); mirrorType();
+    settle(anchor);
+    capEpoch++; relayout(); geom = null; placeThumb(); warmSoon();
+  }
+  function closeTypeMenu() { typeMenu.hidden = true; typeBtn.setAttribute('aria-expanded', 'false'); }
+  typeBtn.addEventListener('click', () => {
+    if (!typeMenu.hidden) return closeTypeMenu();
+    closeLangMenu();
+    renderTypeMenu(); typeMenu.hidden = false; typeBtn.setAttribute('aria-expanded', 'true');
+  });
+  typeMenu.addEventListener('click', (e) => {
+    const b = e.target.closest('button');
+    if (!b || b.disabled) return;
+    const k = SIZES.indexOf(type.size), d = +b.dataset.step;
+    if (b.dataset.step) setType({ size: d ? SIZES[Math.max(0, Math.min(SIZES.length - 1, k + d))] : 1 });
+    else if (b.dataset.width) setType({ width: b.dataset.width });
+    else if (b.dataset.font) setType({ font: b.dataset.font });
+    else setType({ ...TYPE0 });
+    // drawn anew: the key that was pressed keeps the focus (the reset, gone: the first)
+    const sel = b.dataset.step ? `[data-step="${b.dataset.step}"]` : b.dataset.width ? `[data-width="${b.dataset.width}"]` : b.dataset.font ? `[data-font="${b.dataset.font}"]` : null;
+    renderTypeMenu();
+    const again = (sel && typeMenu.querySelector(sel)) || typeMenu.querySelector('button');
+    if (again && !again.disabled) again.focus(); else typeMenu.querySelector('.ty-pct').focus();
+  });
+  // (by where the click was when it happened: the menu is drawn anew by its own clicks; capture, so the notes' and the
+  // exports' buttons, which stop the click at themselves, close it too)
+  addEventListener('click', (e) => { if (!typeMenu.hidden && !e.composedPath().includes(typePick)) closeTypeMenu(); }, true);
+
   // ── the notes button: how many, and the exports ──
   const nbtn = h('button', 'notesbtn');
   nbtn.type = 'button';
@@ -2345,7 +2437,7 @@
     store.set('dr-keep-mine', keepMine ? '1' : '0');
     notesChanged([...notesOf.keys()]);
   });
-  (document.querySelector('.langpick') || document.getElementById('langbtn')).before(npick);
+  (document.querySelector('.langpick') || document.getElementById('langbtn')).before(npick, typePick);
   function updateNotesBtn() {
     const t = T[ui], n = notes.filter((x) => shown(x.anchor)).length;
     nbtn.hidden = false;   // always there: the exports (the paper as PDF too) are in its menu
@@ -2913,6 +3005,7 @@ math { font-size: 1.05em; }
     scroller.addEventListener('scroll', () => requestAnimationFrame(pageCount), { passive: true });
     scroller.addEventListener('click', onPageClick);
     document.documentElement.classList.add('compare');
+    mirrorType();
     try { localStorage.setItem(CMP_KEY, '1'); } catch { /* private window */ }
     cmpLabel();
     reflowKeeping(keep);
@@ -2999,6 +3092,7 @@ math { font-size: 1.05em; }
     cmp.pane.remove();
     cmp = null;
     document.documentElement.classList.remove('compare');
+    mirrorType();
     document.documentElement.style.removeProperty('--pdfw');
     try { localStorage.setItem(CMP_KEY, '0'); } catch { /* private window */ }
     cmpLabel();
@@ -3389,6 +3483,7 @@ math { font-size: 1.05em; }
     e.stopPropagation();
     nmenu.hidden = true;
     hideSaveMenu();
+    closeTypeMenu();
     if (!langMenu.hidden) return closeLangMenu();
     renderLangMenu(); langMenu.hidden = false; langBtn.setAttribute('aria-expanded', 'true');
   });
@@ -3478,6 +3573,7 @@ math { font-size: 1.05em; }
     else if (e.key === 'l' && AVAIL.length > 1) setLang(AVAIL[(AVAIL.indexOf(lang) + 1) % AVAIL.length]);
     else if (e.key === 'Escape' && !savemenu.hidden) { hideSaveMenu(); savebtn.focus(); }
     else if (e.key === 'Escape' && !langMenu.hidden) closeLangMenu();
+    else if (e.key === 'Escape' && !typeMenu.hidden) { closeTypeMenu(); typeBtn.focus(); }
     else if (e.key === 'Escape' && localLevel.size) setLevel(level);
     else return;
     e.preventDefault();

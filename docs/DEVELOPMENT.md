@@ -117,6 +117,15 @@ keys `1`–`5` jump to a level, `-`/`=` step, `L` cycles languages, clicking a p
 the reader is still, the screen is laid out at each level ahead of time (in a hidden copy, one level per idle moment),
 and a zoom plays those keyframes; the page takes over again at rest.
 
+The Aa menu beside the language's sets the type for every text in this browser (`localStorage` `textfold.type`): the
+size in seven steps from 86% to 135% (the whole column scales with it, so a line holds as many words), the column's
+width (narrow, standard, wide, capped so the margins keep the notes their room: `--colw`, `--colmax`) and the font of
+the author's words (serif or sans-serif; the written levels stay sans and are told by colour and size). It is CSS's
+`--fs`, `html[data-width]` and `html[data-font]`; the zoom's sandbox, whose copy of the sheet rewrites `html[…]` to
+`:host(…)`, is given the font, width and size too (`mirrorType`; the size is an inline `--fs`, which the sandbox's
+own `:host { --fs: 1 }` would otherwise override), or the last frame of a zoom would sit apart from the page it gave
+way to. A printed page is the usual size: the print rule resets `--fs` and the column with `!important`.
+
 A Chinese document's folded levels leave out what is not argument: an apparatus line (a contents line, a footnote)
 exists only at Full, and a background unit whose takeaway stepped down is read at Brief and Key but not at Takeaway or
 Topic. A sentence a page break cut in half is joined at its first word. `ladder.dress` writes the join into the layer

@@ -30,10 +30,14 @@ served from `/static/vendor/`.
 *Check:* `grep -rn "https://" textfold/web/` for a new external fetch. A new
 `vendor/` subdirectory is the pattern to follow, not an exception.
 
-## Serif is the author's; sans is a summary
+## Serif is the author's; sans is a summary (the reader may set the author in sans)
 
 At every level the words that survive the next zoom-out are darker, and a level
 change moves each surviving word to its new place rather than swapping the text.
+
+A reader can set the author's words in sans too (the Aa menu, `html[data-font="sans"]`); the
+written levels are then sans as well and are told from the author's by colour and size. A
+change that leans on serif-versus-sans alone to mark what is written must hold in both fonts.
 
 *Check:* this is the reader's core promise. A change to rendering, levels or the
 morph either preserves it or is a change to the product, not an optimization.

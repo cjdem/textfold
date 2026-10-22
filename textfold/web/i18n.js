@@ -149,6 +149,13 @@ window.DR_I18N = (() => {
       ['自动', '关闭', '极低', '低', '中', '高', '很高', '极高', '超高']]),
   };
   for (const [code, words] of Object.entries(M)) Object.assign(S[code], words);
+  // the type's menu in the reader (Aa): the size, the column's width, the font of the author's words
+  const tys = (w) => ({ ty_title: w[0], ty_size: w[1], ty_smaller: w[2], ty_larger: w[3], ty_usual: w[4], ty_width: w[5], ty_narrow: w[6], ty_standard: w[7], ty_wide: w[8], ty_font: w[9], ty_serif: w[10], ty_sans: w[11], ty_reset: w[12] });
+  const TY = {
+    en: tys(["Text size, width and font", "Size", "Smaller", "Larger", "The usual size", "Width", "Narrow", "Standard", "Wide", "Font", "Serif", "Sans-serif", "Reset"]),
+    zh: tys(["字号、栏宽和字体", "字号", "缩小", "放大", "默认大小", "栏宽", "窄", "标准", "宽", "字体", "衬线", "无衬线", "恢复默认"]),
+  };
+  for (const [code, words] of Object.entries(TY)) Object.assign(S[code], words);
   // the reading card (card.js, cards.py): four sections of points, each with the passage that supports it
   const CARD = {
     en: {
