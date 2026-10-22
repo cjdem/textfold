@@ -19,7 +19,7 @@
 [English](README.md) · **简体中文**
 
 **粘贴链接：** 任意网页 · arXiv · PubMed Central · bioRxiv · medRxiv · 维基百科 · GitHub<br>
-**拖入文件：** PDF · Word · PowerPoint · Excel · EPUB · HTML · CSV · 图片 · Markdown · 纯文本
+**拖入一个或多个文件：** PDF · Word · PowerPoint · Excel · EPUB · HTML · CSV · 图片 · Markdown · 纯文本
 
 **[下载软件 ↓](#开始使用)** · [最新 ↓](#最新)
 
@@ -87,7 +87,7 @@ python -m pip install git+https://github.com/cjdem/textfold
 python -m textfold serve
 ```
 
-在浏览器里打开 `http://localhost:3017`。第一次使用先[连接一个模型](#连接模型)，然后粘贴链接或拖入文件，再选择语言。需要在 Windows 上使用 Python 3.9 或更新版本。
+在浏览器里打开 `http://localhost:3017`。第一次使用先[连接一个模型](#连接模型)，然后粘贴链接或拖入一个或多个文件，再选择语言。需要在 Windows 上使用 Python 3.9 或更新版本。
 
 | 粘贴或拖入 | TextFold 读到的 |
 |---|---|

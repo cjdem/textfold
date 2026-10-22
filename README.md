@@ -21,7 +21,7 @@
 **English** · [简体中文](README.zh-CN.md)
 
 **Paste a link:** any web page · arXiv · PubMed Central · bioRxiv · medRxiv · Wikipedia · GitHub<br>
-**Drop a file:** PDF · Word · PowerPoint · Excel · EPUB · HTML · CSV · pictures · Markdown · text
+**Drop one or more files:** PDF · Word · PowerPoint · Excel · EPUB · HTML · CSV · pictures · Markdown · text
 
 **[Download the app ↓](#get-started)** · [What's new ↓](#whats-new)
 
@@ -89,7 +89,7 @@ python -m pip install git+https://github.com/cjdem/textfold
 python -m textfold serve
 ```
 
-Open `http://localhost:3017`. The first time, [connect a model](#connect-a-model); then paste a link or drop a file, and pick a language. You need Python 3.9 or newer on Windows.
+Open `http://localhost:3017`. The first time, [connect a model](#connect-a-model); then paste a link or drop one or more files, and pick a language. You need Python 3.9 or newer on Windows.
 
 | Paste or drop | What TextFold reads |
 |---|---|

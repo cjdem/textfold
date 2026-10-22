@@ -30,9 +30,12 @@ the reader's pages (`textfold/web/`) inside, and `pip install .` gives the `text
 always is. Run from a clone, papers are
 kept in the clone; installed, in the system's folder for app data (`store.app_data()`, shared with the desktop app).
 
-The landing takes a link or ID (arXiv, PubMed Central, Europe PMC, bioRxiv, medRxiv, a DOI, Wikipedia), or a Markdown
-file (the dashed box under the bar, or dropped anywhere on the page), and a language; a line under the bar names
-the sources it reads; the sidebar lists every paper generated so far. In a paper,
+The landing takes a link or ID (arXiv, PubMed Central, Europe PMC, bioRxiv, medRxiv, a DOI, Wikipedia), or one or more
+files (the dashed box under the bar, or dropped anywhere on the page), and a language; a line under the bar names
+the sources it reads; the sidebar lists every paper generated so far. Several files go up one at a time, each into the
+server's own queue (conversion, then its levels), at most 50 at once; a file already in the library, or the same file
+twice in one batch, is not added twice, and the card says what was taken, what waits for a MinerU key, and what
+failed; a failed upload or conversion that may pass is offered again. In a paper,
 the language menu switches between generated languages, generates a new one, or regenerates the current one.
 One language, the reader's (two languages: English, 简体中文 — `langs.LANGS` is the list): the browser's, or the
 one last chosen (kept in the browser, `pf-ui-lang`). The
@@ -258,7 +261,9 @@ text, no arXiv id or DOI changes the route, and no online paper or local text pa
 `mineru_api_key`, the server answers `needs-mineru-key` with HTTP 409 and removes the refused upload. With a key, the
 file is uploaded to `mineru.net/api/v4`, read there, and its zip (`*_content_list_v2.json`, `images/`) written into the
 same `structured_content.json` the reader consumes (boxes from 0-1000 to 0-1; tiers mapped to `pipeline`/`vlm`; a PDF
-with no text read once more with OCR). Fast is MinerU's pipeline tier; accurate is its vision model. PDFium
+with no text read once more with OCR). Fast is MinerU's pipeline tier; accurate is its vision model. The landing's
+batch card and the MinerU settings state its limits: at most 600 pages per file, and a priority quota of 2,000 pages a
+day. PDFium
 (`pypdfium2`) remains only to cut figures from the original page using MinerU's boxes. A PDF imported before this
 change opens from its stored result. The document leaves this computer for conversion.
 `pdfdoc.py` turns `structured_content.json` into the document: running heads and page numbers out, the title from the

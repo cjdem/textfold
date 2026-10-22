@@ -524,6 +524,125 @@
   const extOf = (name) => ((/\.([a-z0-9]+)$/i.exec(name || '') || [])[1] || '').toLowerCase();
   const forEngine = (file) => isPdf(file) || ENGINE_EXT.includes(extOf(file.name)) || LEGACY_EXT.includes(extOf(file.name));
   const isText = (file) => TEXT_EXT.includes(extOf(file.name));
+  // The server names a file it reads by its bytes (pdfdoc.pid_of: sha256, first 16 hex, pdf- for a PDF): read here, so
+  // a file already in the library, or sent twice in one batch, is not uploaded (the server would queue another job for
+  // it). Empty when the browser has no SubtleCrypto: the upload goes on and the server's own dedupe decides.
+  async function filePid(file) {
+    if (!(window.crypto && window.crypto.subtle)) return '';
+    try {
+      const buf = await file.arrayBuffer();
+      const hex = [...new Uint8Array(await window.crypto.subtle.digest('SHA-256', buf))]
+        .map((b) => b.toString(16).padStart(2, '0')).join('').slice(0, 16);
+      // (the bytes decide, as on the server: take_file routes on `%PDF-`, and only an accepted file's name matters)
+      return (new TextDecoder().decode(buf.slice(0, 5)) === '%PDF-' ? 'pdf-' : 'doc-') + hex;
+    } catch { return ''; }
+  }
+  // Several files at once (dropped, or chosen together): each goes to the server in turn, one upload at a time, and its
+  // job waits in the server's queues, which read the files and write their levels one after another (the sidebar shows
+  // each, with its stop). Files given while others are still going up wait for them. Says what came of them: how many
+  // were taken, which need a MinerU key, why any was not, and any job that fails or is stopped later. The page stays
+  // where it is. step(k, file) says which file is going up; done(got) is called after the uploads and each time a job
+  // ends.
+  let adding = Promise.resolve();
+  let queued = 0;   // (batches sent or waiting: a new one says it is waiting only when this is not 0)
+  function addFiles(files, lang, step, done, again = false) {
+    queued++;
+    const run = adding.then(async () => {
+      const MAX = 50;
+      const got = { taken: 0, pdfs: 0, mineru: [], skipped: [], failed: [], stopped: [], retry: [], pids: new Set(), jobIds: new Map() };
+      files = [...files];
+      if (files.length > MAX) {
+        for (const f of files.slice(MAX)) got.skipped.push([f.name, t().fl_too_many]);
+        files = files.slice(0, MAX);
+      }
+      // (the library once up front: a file already in it is skipped before it is uploaded, and the list is fresh even
+      // on a page opened long ago; after that the sidebar's own poll keeps it current)
+      try { papers = await api('/api/papers'); } catch { /* the list it has */ }
+      const watchJob = (job, name, file) => {
+        if (!job || !job.id) return;
+        let ended = false;
+        watch(job, (j) => {   // (the sidebar has it meanwhile; this only says how it ended)
+          if (live(j) || ended) return;
+          ended = true;
+          if (j.status === 'error') {
+            if (j.error === 'needs-mineru-key') got.mineru.push(name);   // (a picture, whose conversion asked for it)
+            else {
+              got.failed.push([name, errText(j.error)]);
+              // (readable: the file was read and only its levels failed — its paper stays, with Continue in the sidebar;
+              // a conversion that left no paper is the one to choose again)
+              if (file && !j.readable) got.retry.push(file);
+            }
+          } else if (j.status === 'stopped') got.stopped.push(name);
+          done(got);
+        });
+      };
+      for (const [k, file] of files.entries()) {
+        step(k, file);
+        const why = forEngine(file)
+          ? (file.size > 100 * 1024 * 1024 ? (isPdf(file) ? t().pdf_large : t().file_large) : '')
+          : isText(file)
+            ? (file.size > 12_000_000 ? t().fl_md_large : (!modelName ? t().fl_no_model : ''))
+            : t().md_only;
+        if (why) { got.skipped.push([file.name, why]); continue; }
+        try {
+          let pid = '', job = null;
+          if (forEngine(file)) {
+            const known = await filePid(file);
+            if (known && (got.pids.has(known) || papers.some((p) => p.id === known))) {
+              got.skipped.push([file.name, t().fl_duplicate]); continue;
+            }
+            const seen = new Set(jobs.map((j) => j.id));   // (before this upload: a job the page already knew is not ours to stop)
+            const d = await uploadFile(file, lang);
+            pid = d.paper || (d.job && d.job.pid) || '';
+            job = d.job || null;
+            if (pid && (got.pids.has(pid) || papers.some((p) => p.id === pid))) {
+              got.skipped.push([file.name, t().fl_duplicate]);
+              // (the server queues a job for a paper it has; a repeated file must not leave one, so stop the one just
+              // queued — a job this page already knew, another tab's or this batch's first copy, is left alone)
+              if (job && job.id && !seen.has(job.id) && job.id !== got.jobIds.get(pid)) await stopJob(job.id);
+              continue;
+            }
+            if (pid) got.pids.add(pid);
+            if (isPdf(file)) got.pdfs++;
+          } else {
+            const r = await api('/api/import', { name: file.name, text: await file.text() });
+            pid = r.paper;
+            // (the import stores the same text and title under the same paper as before: no new paper. In a batch, the
+            // paper being there means the file is already added, and no job is started; on a retry it may be there
+            // because the import succeeded and the job did not, so the job is what is asked for.)
+            if (got.pids.has(pid) || (!again && papers.some((p) => p.id === pid))) {
+              got.skipped.push([file.name, t().fl_duplicate]); continue;
+            }
+            got.pids.add(pid);
+            job = await submit(pid, lang, false, () => {});
+          }
+          got.taken++;
+          if (pid) got.jobIds.set(pid, job && job.id);
+          watchJob(job, file.name, file);
+        } catch (x) {
+          if (x.message === 'needs-mineru-key') { got.mineru.push(file.name); if (isPdf(file)) got.pdfs++; continue; }
+          got.skipped.push([file.name, x.message === 'too-large' && !forEngine(file) ? t().fl_md_large : errText(x.message)]);
+          // (the summary offers again what may pass on a second try — a busy server, a network error, a temporary
+          // failure; a file the server refused for what is in it would only fail the same way)
+          if (!['legacy-format', 'bad-file', 'not-pdf', 'too-large', 'not-supported', 'not-markdown', 'empty'].includes(x.message))
+            got.retry.push(file);
+        }
+      }
+      return got;
+    });
+    adding = run.catch(() => {}).finally(() => { queued--; });
+    return run.then((got) => { done(got); return got; });
+  }
+  // what came of them, as lines: a heading, the lines under it, the files not taken (name: why, a few at most)
+  function filesSaid(got, m, T) {
+    const lines = [];
+    if (got.taken) lines.push(modelName ? T.fl_queue : T.fl_read);
+    if (got.mineru.length) lines.push(T.fl_mineru.replace('{n}', got.mineru.length));
+    if (got.pdfs) lines.push(T.mineru_limits);
+    const not = got.skipped.slice(0, 6).map(([name, why]) => `${name}: ${why}`);
+    if (got.skipped.length > 6) not.push('…');
+    return [T.fl_added.replace('{n}', got.taken).replace('{m}', m), lines, not];
+  }
   // OpenRouter's consent page. In the browser: this tab goes there and comes back with the key. Inside the app: the
   // system browser (where the reader is signed in) goes there, and the app waits for the key, then offers the models.
   async function connectOpenRouter(back) {
@@ -594,6 +713,8 @@
   // ── on a reader page: generate a language, or regenerate the current one ──
   if (PAPER) {
     const toast = h('div', 'gen-toast'); toast.hidden = true; toasts.append(toast);
+    // (a batch's summary, kept apart from a generation's toast: the two can be up at once, and neither rewrites the other)
+    const fileToast = h('div', 'gen-toast'); fileToast.hidden = true; toasts.append(fileToast);
     // a Markdown file dropped on a paper's page: stored, then generated from the landing (?start=)
     let over = 0;
     const hasFile = (e) => [...((e.dataTransfer && e.dataTransfer.types) || [])].includes('Files');
@@ -605,9 +726,48 @@
     document.addEventListener('dragenter', (e) => { if (hasFile(e)) { over++; say(t().drop_md); } });
     document.addEventListener('dragleave', () => { if (--over <= 0) { over = 0; if (toast.textContent === t().drop_md) toast.hidden = true; } });
     document.addEventListener('dragover', (e) => { if (hasFile(e)) e.preventDefault(); });
+    // several dropped here: they go in from this page, which stays open, and the toast says what came of them. A newer
+    // batch takes the toast over, and a closed one stays closed, so a job ending later cannot raise it again.
+    let batch = 0;
+    async function dropFiles(files, again = false) {
+      const T = t(), lang = (window.__reader && window.__reader.lang) || uiLang, mine = ++batch;
+      let closed = false;
+      const draw = (got) => {
+        if (closed || mine !== batch) return;
+        const [head, lines, not] = filesSaid(got, files.length, T);
+        const acts = (got.retry.length ? `<button type="button" class="g-go primary g-retry">${esc(T.fl_retry)}</button>` : '') +
+          (got.mineru.length ? `<button type="button" class="g-go${got.retry.length ? '' : ' primary'} g-mineru">${esc(T.mineru_settings)}</button>` : '');
+        fileToast.hidden = false;
+        fileToast.innerHTML = `${got.taken ? sign('mark') : sign('warn', 'warn')}<b>${esc(head)}</b>${shut(T.close)}` +
+          lines.map((l) => `<span class="g-note">${esc(l)}</span>`).join('') +
+          (not.length ? `<span class="g-note">${esc(T.fl_skipped)}<br>${not.map(esc).join('<br>')}</span>` : '') +
+          (got.failed.length ? `<span class="g-note">${esc(T.fl_failed)}<br>${got.failed.slice(0, 6).map(([n, why]) => esc(`${n}: ${why}`)).join('<br>')}</span>` : '') +
+          (got.stopped.length ? `<span class="g-note">${esc(T.fl_stopped)} ${esc(got.stopped.slice(0, 6).join(', '))}</span>` : '') +
+          (acts ? `<span class="g-acts">${acts}</span>` : '');
+        fileToast.querySelector('.g-x').onclick = () => { closed = true; fileToast.hidden = true; };
+        const r = fileToast.querySelector('.g-retry');
+        if (r) r.onclick = () => { closed = true; fileToast.hidden = true; dropFiles(got.retry.slice(), true); };
+        const m = fileToast.querySelector('.g-mineru');
+        if (m) m.onclick = () => { closed = true; fileToast.hidden = true; openSettings({ mineru: true }); };
+      };
+      const step = (k, file) => {
+        if (closed || mine !== batch) return;
+        fileToast.hidden = false;
+        fileToast.innerHTML = `${sign('down')}<b>${esc(T.fl_adding.replace('{k}', k + 1).replace('{n}', files.length))}</b>` +
+          `<span class="g-stage">${esc(file.name)}</span><span class="sb-prog"><i style="width:${Math.round((100 * k) / files.length) + 4}%"></i></span>`;
+      };
+      // (an earlier batch still uploading: say this one is waiting; otherwise say which file is about to go up, while
+      // the library is read, rather than leave an earlier summary or a blank toast)
+      if (queued) {
+        fileToast.hidden = false;
+        fileToast.innerHTML = `${sign('down')}<b>${esc(T.fl_waiting)}</b>`;
+      } else step(0, files[0]);
+      await addFiles(files, lang, step, draw, again);
+    }
     document.addEventListener('drop', async (e) => {
       if (!e.dataTransfer.files.length) return;
       e.preventDefault(); over = 0;
+      if (e.dataTransfer.files.length > 1) { dropFiles([...e.dataTransfer.files]); return; }
       const file = e.dataTransfer.files[0];
       if (forEngine(file)) {
         say(isPdf(file) ? t().pdf_reading : t().file_reading);
@@ -619,10 +779,11 @@
         return;
       }
       if (!isText(file)) { say(t().md_only, 4000); return; }
+      if (file.size > 12_000_000) { say(t().fl_md_large, 4000); return; }   // (the import's own limit)
       try {
         const r = await api('/api/import', { name: file.name, text: await file.text() });
         location.href = `/?start=${encodeURIComponent(r.paper)}&t=${encodeURIComponent(r.title)}`;
-      } catch (x) { say(errText(x.message), 4000); }
+      } catch (x) { say(x.message === 'too-large' ? t().fl_md_large : errText(x.message), 4000); }
     });
     // a generation of this paper in the toast: its stage and a stop button; done, the page again, at the paragraph being
     // read (the reader picks it up from sessionStorage). `note` says why the page is here before its levels are.
@@ -639,6 +800,13 @@
         const T2 = t();
         if (j.status === 'error') { closable(T2.failed, errText(j.error), true); return; }
         if (j.status === 'stopped') { closable(T2.stopped, ''); return; }
+        // (anything may have used this toast since — a drag hint, another generation's end: draw the generation's own
+        // parts again, and show it, rather than dereference a missing stage or progress bar on the next poll)
+        if (!toast.querySelector('.g-stage') || !toast.querySelector('.sb-prog i')) {
+          toast.hidden = false;
+          toast.innerHTML = `${sign('mark')}<b>${esc(T2.generating)} · ${esc(name)}</b><span class="g-stage"></span>` +
+            `<span class="sb-prog"><i style="width:4%"></i></span>`;
+        }
         if (!toast.querySelector('.g-stop')) {
           toast.insertAdjacentHTML('beforeend', `<button type="button" class="g-stop">${esc(T2.stop)}</button>`);
           toast.querySelector('.g-stop').onclick = () => stopJob(j.id);
@@ -883,17 +1051,61 @@
       if (!file) return;
       if (forEngine(file)) { openUpload(file); return; }
       if (!isText(file)) { fail(t().md_only); return; }
+      if (file.size > 12_000_000) { fail(t().fl_md_large); return; }   // (the import's own limit)
       if (!modelName) { fail(t().no_model); return; }
       try {
         const r = await api('/api/import', { name: file.name, text: await file.text() });
         start(r.paper, r.title);
-      } catch (x) { fail(errText(x.message)); }
+      } catch (x) { fail(x.message === 'too-large' ? t().fl_md_large : errText(x.message)); }
+    }
+    // several at once: they go in one after another, and the card says what came of them; the page stays here, the
+    // sidebar showing each (one file opens as before)
+    function openFiles(list) {
+      const files = [...list];
+      if (!files.length) return;
+      if (files.length < 2) { openFile(files[0]); return; }
+      beginBatch(files, false);
+    }
+    // a retry stays a batch even for one file: the summary (and its Retry, if it fails again) is where it came from
+    async function beginBatch(files, again) {
+      err.hidden = true;
+      const T = t(), mine = {};
+      latest = mine;
+      card.hidden = false;
+      const step = (k, file) => {
+        if (latest !== mine) return;
+        card.innerHTML = `<div class="jc-t">${esc(T.fl_adding.replace('{k}', k + 1).replace('{n}', files.length))}</div><div class="jc-s">${esc(file.name)}</div>` +
+          `<span class="sb-prog"><i style="width:${Math.round((100 * k) / files.length) + 4}%"></i></span>`;
+      };
+      // (an earlier batch still uploading: say this one is waiting; otherwise say which file is about to go up, while
+      // the library is read, rather than leave an earlier summary up)
+      if (queued) card.innerHTML = `<div class="jc-t">${esc(T.fl_waiting)}</div>`;
+      else step(0, files[0]);
+      const draw = (got) => {
+        if (latest !== mine) return;
+        const [head, lines, not] = filesSaid(got, files.length, T);
+        const acts = (got.retry.length ? `<button type="button" class="primary jc-retry">${esc(T.fl_retry)}</button>` : '') +
+          (got.mineru.length ? `<button type="button" class="${got.retry.length ? '' : 'primary '}jc-mineru">${esc(T.mineru_settings)}</button>` : '');
+        card.innerHTML = `<div class="jc-head"><div class="jc-t">${esc(head)}</div><button type="button" class="jc-stop jc-close">${esc(T.close)}</button></div>` +
+          lines.map((l) => `<div class="jc-s">${esc(l)}</div>`).join('') +
+          (not.length ? `<div class="jc-n">${esc(T.fl_skipped)}</div>${not.map((l) => `<div class="jc-e">${esc(l)}</div>`).join('')}` : '') +
+          (got.failed.length ? `<div class="jc-n">${esc(T.fl_failed)}</div>${got.failed.slice(0, 6).map(([n, why]) => `<div class="jc-e">${esc(n)}: ${esc(why)}</div>`).join('')}` : '') +
+          (got.stopped.length ? `<div class="jc-n">${esc(T.fl_stopped)} ${esc(got.stopped.slice(0, 6).join(', '))}</div>` : '') +
+          (acts ? `<div class="jc-acts">${acts}</div>` : '');
+        card.querySelector('.jc-close').onclick = () => { card.hidden = true; };
+        const r = card.querySelector('.jc-retry');
+        if (r) r.onclick = () => { card.hidden = true; beginBatch(got.retry.slice(), true); };
+        const m = card.querySelector('.jc-mineru');
+        if (m) m.onclick = () => { card.hidden = true; openSettings({ mineru: true }); };
+      };
+      await addFiles(files, sel.value, step, draw, again);
     }
     const fileIn = document.getElementById('file'), zone = document.getElementById('dropzone');
+    fileIn.multiple = true;
     fileIn.accept = [...ENGINE_EXT, ...TEXT_EXT].map((x) => `.${x}`).join(',');
     zone.title = [...ENGINE_EXT, ...TEXT_EXT].filter((x) => !['htm', 'mht', 'jpeg', 'tif', 'markdown', 'mdown'].includes(x)).map((x) => `.${x}`).join(' ');
     zone.onclick = () => fileIn.click();
-    fileIn.onchange = () => { openFile(fileIn.files[0]); fileIn.value = ''; };
+    fileIn.onchange = () => { openFiles(fileIn.files); fileIn.value = ''; };   // (openFiles copies the list first)
     let depth = 0;   // dragenter and dragleave fire for every child the file passes over
     const dropping = (on) => { zone.classList.toggle('dragging', on); document.getElementById('dropzone-t').textContent = on ? t().drop_md : t().drop_zone; };
     document.addEventListener('dragenter', (e) => { if ([...e.dataTransfer.types].includes('Files')) { depth++; dropping(true); } });
@@ -902,7 +1114,7 @@
     document.addEventListener('drop', (e) => {
       if (!e.dataTransfer.files.length) return;
       e.preventDefault(); depth = 0; dropping(false);
-      openFile(e.dataTransfer.files[0]);
+      openFiles(e.dataTransfer.files);
     });
     renderLanding();
     // the landing is built before a local provider's background probe answers: look again for a moment, so a model
@@ -1160,6 +1372,7 @@
           <input id="st-mineru-key" class="st-mineru-key" type="password" autocomplete="off" spellcheck="false" placeholder="${esc(m.api ? t.mineru_key_kept : t.mineru_key_ph)}">
           <button type="button" class="st-btn st-mineru-save">${esc(t.save)}</button>
           ${m.api ? `<button type="button" class="st-btn danger st-mineru-clear">${esc(t.mineru_clear)}</button>` : ''}</div>
+        <div class="st-item"><div class="st-main"><b>${esc(t.mineru_limits_h)}</b><span class="st-meta">${esc(t.mineru_limits)}</span></div></div>
         <div class="st-item"><div class="st-main"><b>${esc(t.mineru_privacy_h)}</b><span class="st-meta">${esc(t.mineru_privacy)}</span></div></div>
         <div class="st-item"><label class="st-main" for="st-tier"><b>${esc(t.tier)}</b></label><select class="st-tiersel" id="st-tier">${['fast', 'accurate'].map((k) =>
           `<option value="${k}"${(data.pdfTier || 'fast') === k ? ' selected' : ''}>${esc(t['tier_' + k])}</option>`).join('')}</select></div>

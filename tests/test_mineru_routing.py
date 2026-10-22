@@ -1,4 +1,5 @@
 """PDFs go straight to MinerU; only TextFold's own Office/E-book/CSV/HTML readers stay local."""
+import hashlib
 import tempfile
 import unittest
 from pathlib import Path
@@ -36,6 +37,37 @@ class PdfRouting(unittest.TestCase):
         self.assertEqual((reply, code), ({"job": {"id": "mineru"}, "via": "pdf"}, 200))
         jobs.convert.assert_called_once()
         jobs.submit.assert_not_called()
+
+    def test_the_same_bytes_are_the_same_paper(self):
+        """The landing reads a file's pid before uploading it: the same bytes must be the same paper, one job per upload.
+
+        The browser (app.js `filePid`) copies this name to skip a duplicate before uploading. The exact name is pinned,
+        so a change here fails the test rather than silently letting the browser's pre-check stop matching.
+        """
+        jobs = mock.Mock()
+        jobs.convert.return_value = {"id": "mineru"}
+        headers = {"X-Name": "paper.pdf", "X-Lang": "en"}
+        data = b"%PDF-1.7\nsame\n"
+        with mock.patch.object(engine, "available", return_value=True):
+            server.take_pdf(jobs, data, headers)
+            server.take_pdf(jobs, data, headers)
+            server.take_pdf(jobs, b"%PDF-1.7\nother\n", headers)
+        pids = [c.args[0] for c in jobs.convert.call_args_list]
+        self.assertEqual(len(pids), 3)
+        self.assertEqual(pids[0], "pdf-" + hashlib.sha256(data).hexdigest()[:16])
+        self.assertEqual(pids[0], pids[1])   # (a second file of the same bytes is skipped in the browser)
+        self.assertNotEqual(pids[0], pids[2])
+
+    def test_an_office_file_is_named_by_its_bytes_too(self):
+        """The browser's other branch (doc-) is pinned as well: an Office file of the same bytes is the same paper."""
+        jobs = mock.Mock()
+        jobs.submit.return_value = {"id": "local"}
+        data = b"<html><body><p>same bytes</p></body></html>"
+        with mock.patch.object(server.office, "reads", return_value=True), \
+             mock.patch.object(server.office, "save"):
+            reply, code = server.take_file(jobs, data, {"X-Name": "same.html", "X-Lang": "en"})
+        self.assertEqual((code, reply.get("via")), (200, "file"))
+        self.assertEqual(jobs.submit.call_args.args[0], "doc-" + hashlib.sha256(data).hexdigest()[:16])
 
     def test_a_pdf_without_a_key_is_refused_without_leaving_a_file(self):
         with mock.patch.object(engine, "available", return_value=False):
