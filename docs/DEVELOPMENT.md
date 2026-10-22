@@ -184,7 +184,12 @@ being read or all of them; the file opens in that language and keeps its notes a
 viewer's browser, `D.saved`; with the original PDF if chosen, and PDF.js, so that the file opens the side-by-side view
 by itself: `D.pdf`, `D.pdfjs`, and a converted PDF's page map, `D.pdfmap`), or a PDF at the level being read (the
 column as it stands, paragraphs opened in place included, every paragraph drawn at that level first, the notes of the
-kinds chosen under their paragraphs, the level named on top and the TextFold mark at the end; Ctrl+P prints the same).
+kinds chosen under their paragraphs, the level named on top and the TextFold mark at the end; Ctrl+P prints the same),
+or Markdown at the level being read: in the language being read, each heading, the section summaries where the level
+shows one (Topic, Takeaway, Key, and Brief in a CJK document), the paragraphs as bullets at the written levels and as
+paragraphs at Brief and Full, the marks chosen under their paragraph (a highlight alone in the author's words, `==…==`),
+and at Topic an outline that an outliner or a mind-map plugin draws. It is the text's paragraphs, headings and lists:
+display equations, figures and tables are not in it.
 Only the marks: one small HTML page made in the browser (the passages quoted, or each mark in its whole paragraph if
 chosen; the notes, the questions and answers with their citations as labels, formulas as MathML, a link to the source,
 the mark), a PDF, Markdown for Obsidian (block ids, callouts, links back) or the notes data (JSON, with `made_by`).

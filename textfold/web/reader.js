@@ -2615,32 +2615,106 @@
     const m = D.meta;
     return { format: 'textfold/notes', version: 1, made_by: `${BRAND} · ${REPO}`, paper: { id: m.id, version: m.version, title: m.title, url: m.abs_url, ...(m.snapshot ? { snapshot: m.snapshot } : {}) }, notes: inOrder(kinds) };
   }
+  const mdQuote = (s) => s.split('\n').map((l) => `> ${l}`);
+  // a Markdown file's head: its properties (Obsidian's), the title, the byline
+  function mdHead(title, props, format) {
+    const m = D.meta, q = (s) => JSON.stringify(String(s || ''));
+    return ['---', `title: ${q(m.title)}`, `authors: ${JSON.stringify(m.authors || [])}`,
+      m.abs_url ? `arxiv: ${q(m.id + (m.version || ''))}` : `source: ${q(sourceName(m))}`,
+      ...(m.abs_url ? [`url: ${m.abs_url}`] : []), ...(m.snapshot ? [`snapshot: ${m.snapshot}`] : []), `license: ${m.license || ''}`, ...(D.app ? [`reader: ${location.origin}/p/${m.id}`] : []),
+      ...props, `exported: ${new Date().toISOString().slice(0, 10)}`, `tags: [${PAPER ? 'paper' : 'text'}]`, ...(format ? [`format: ${format}`] : []), '---', '',
+      `# ${title}`, '', ...(title !== m.title ? [`*${m.title}*`, ''] : []),
+      [(m.authors || []).map(flipName).join(', '), m.abs_url ? `[${sourceName(m)}](${m.abs_url})` : sourceName(m)].filter(Boolean).join(' · '), ''];
+  }
+  // one note: its passage quoted (or the whole paragraph around it), its block id, the reader's words, the link back;
+  // a conversation as one callout, the first question as its title, each later one in bold
+  function noteMd(n, para) {
+    const out = [], said = n.kind === 'ask' ? turnsOf(n).filter((x) => x.a) : [];
+    if (said.length) {
+      const around = para && paraOf(n.anchor, true);
+      out.push(...mdQuote(`[!question] ${said[0].q}`), ...(around ? mdQuote(around) : n.anchor.quote.exact ? mdQuote(`*${n.anchor.quote.exact}*`) : []));
+      said.forEach((x, k) => out.push('>', ...(k ? mdQuote(`**${x.q}**`) : []), ...(k ? ['>'] : []), ...mdQuote(answerText(x.a)), '>', ...mdQuote(`→ ${x.takeaway}`)));
+    } else if (!whole(n.anchor)) out.push(...mdQuote((para && paraOf(n.anchor, true)) || n.anchor.quote.exact));   // (a note on the whole paper quotes nothing)
+    out.push('', `^${n.id}`, '');
+    if (n.text && n.text.trim()) out.push(n.text.trim(), '');
+    out.push(`[${T[ui].n_open}](${noteLink(n)})`, '');
+    return out;
+  }
   // Markdown for Obsidian: a note per paper; each highlight a quote with a block id (^n-…) other notes can link to,
   // each question a callout; every one links back to its place in the reader
   function notesMarkdown(kinds, para) {
-    const m = D.meta, t = T[ui], q = (s) => JSON.stringify(String(s || ''));
-    const out = ['---', `title: ${q(m.title)}`, `authors: ${JSON.stringify(m.authors || [])}`,
-      m.abs_url ? `arxiv: ${q(m.id + (m.version || ''))}` : `source: ${q(sourceName(m))}`,
-      ...(m.abs_url ? [`url: ${m.abs_url}`] : []), ...(m.snapshot ? [`snapshot: ${m.snapshot}`] : []), `license: ${m.license || ''}`, ...(D.app ? [`reader: ${location.origin}/p/${m.id}`] : []),
-      `exported: ${new Date().toISOString().slice(0, 10)}`, `tags: [${PAPER ? 'paper' : 'text'}]`, 'format: textfold/notes@1', '---', '',
-      `# ${m.title}`, '', [(m.authors || []).map(flipName).join(', '), m.abs_url ? `[${sourceName(m)}](${m.abs_url})` : sourceName(m)].filter(Boolean).join(' · '), ''];
+    const out = mdHead(D.meta.title, [], 'textfold/notes@1');
     let sec = null;
-    const quote = (s) => s.split('\n').map((l) => `> ${l}`);
     for (const n of inOrder(kinds)) {
       const g = groupOf(n.anchor);
       if (g && g !== sec) { sec = g; out.push(`## ${g}`, ''); }
-      const said = n.kind === 'ask' ? turnsOf(n).filter((x) => x.a) : [];
-      if (said.length) {   // the conversation as one callout: the first question as its title, each later one in bold
-        const whole_ = para && paraOf(n.anchor, true);
-        out.push(...quote(`[!question] ${said[0].q}`), ...(whole_ ? quote(whole_) : n.anchor.quote.exact ? quote(`*${n.anchor.quote.exact}*`) : []));
-        said.forEach((x, k) => out.push('>', ...(k ? quote(`**${x.q}**`) : []), ...(k ? ['>'] : []), ...quote(answerText(x.a)), '>', ...quote(`→ ${x.takeaway}`)));
-      } else out.push(...quote((para && paraOf(n.anchor, true)) || n.anchor.quote.exact));
-      out.push('', `^${n.id}`, '');
-      if (n.text && n.text.trim()) out.push(n.text.trim(), '');
-      out.push(`[${t.n_open}](${noteLink(n)})`, '');
+      out.push(...noteMd(n, para));
     }
     out.push('---', '', `*Made with [${BRAND}](${REPO})*`, '');
     return out.join('\n');
+  }
+  // the whole text as Markdown at the level being read (a paragraph opened in place, as it is open), in the language
+  // being read: each heading, the section's summary where the level shows one (Topic, Takeaway, Key), then its
+  // paragraphs, a bullet each at the written levels and a paragraph each at Brief and Full. The marks chosen sit
+  // under their paragraph (or section, or the title) as the notes' own file writes them; a highlight alone, in the
+  // author's words that Brief and Full show, is marked in them (==…==) instead. At Topic it is an outline: the
+  // headings and the paragraphs' topics, which an outliner or a mind-map plugin draws as a map
+  const LEVEL_NAMES = ['topic', 'takeaway', 'key', 'brief', 'full'];
+  const piecesText = (pcs) => pcs.map((p, n) => (p.gap ? '…' : typeof p.tok === 'string' ? p.tok : tokPlain(p.tok)) + (n < pcs.length - 1 && (p.gap || p.tok.s || pcs[n + 1].gap) ? ' ' : '')).join('').replace(/\s+/g, ' ').trim();
+  const secTitle = (c) => ((trOf(c) && trOf(c).title) || c.title || '').replace(/\s+/g, ' ').trim();
+  const headingOf = (c) => `${c.num || ''} ${secTitle(c)}`.trim();
+  const summaryOf = (c) => { const lad = (trOf(c) && trOf(c).lad) || c.lad; return lad && lad.take.length ? toksText(lad.take, 0, lad.take.length - 1) : ''; };
+  // a unit's words at this level, with the reader's highlights marked where the level shows their words: by the anchor's
+  // tokens, not by a search in the text (a word that repeats would otherwise mark the wrong one, or split it). A highlight
+  // whose whole passage the level does not show is left for the note under the paragraph
+  function markedText(uid, L, marks) {
+    const pcs = pieces(uid, L), starts = new Set(), ends = new Set(), inline = new Set();
+    for (const n of marks) {
+      const a = n.anchor.tokens;
+      if (kindOf(n) !== 'hl' || !a || n.anchor.lang !== lang) continue;
+      const at = pcs.map((p, k) => (p.i !== undefined && p.i >= a[0] && p.i <= a[1] ? k : -1)).filter((k) => k >= 0);
+      const have = new Set(at.map((k) => pcs[k].i));
+      if (!at.length || !Array.from({ length: a[1] - a[0] + 1 }, (_, j) => a[0] + j).every((i) => have.has(i))) continue;
+      starts.add(at[0]); ends.add(at[at.length - 1]); inline.add(n);
+    }
+    const parts = pcs.map((p, k) => (p.gap ? '…' : typeof p.tok === 'string' ? p.tok : tokPlain(p.tok)) + (k < pcs.length - 1 && (p.gap || p.tok.s || pcs[k + 1].gap) ? ' ' : ''));
+    pcs.forEach((p, k) => { if (starts.has(k)) parts[k] = `\u0001${parts[k]}`; if (ends.has(k)) parts[k] = parts[k].replace(/(\s*)$/, '\u0001$1'); });
+    return { text: parts.join('').replace(/\s+/g, ' ').trim().replace(/\u0001/g, '=='), inline };
+  }
+  function docMarkdown(kinds) {
+    const m = D.meta, t = T[ui], title = m.name || (lang !== 'en' && m.titles && m.titles[lang]) || m.title;
+    const out = mdHead(title, [`level: ${LEVEL_NAMES[level]}`, `lang: ${lang}`], null);
+    out.push(`*${t.levels[level]} · ${BRAND}*`, '');
+    const mine = new Map();
+    for (const n of inOrder(kinds)) { const k = keyOf(n.anchor); if (!mine.has(k)) mine.set(k, []); mine.get(k).push(n); }
+    const notesAt = (k) => (mine.get(k) || []).flatMap((n) => noteMd(n, false));
+    out.push(...notesAt('¶'));
+    for (const c of D.chunks) {
+      const sc = secs.get(c.id);
+      if (!sc || (level < 4 && sc.sec.classList.contains('ref'))) continue;   // (dropped at the folded levels, as on the page)
+      if (c.num || c.title) out.push(`${'#'.repeat(Math.min(6, c.level || 2))} ${headingOf(c)}`, '');
+      const sum = level <= 2 || (CJK_DOC && level === 3) ? summaryOf(c) : '';   // (a CJK document shows the summary at Brief too)
+      if (sum) out.push(`**${sum}**`, '');
+      out.push(...notesAt(`§${c.id}`));
+      let list = false;   // (bullets that follow one another: one list)
+      for (const uid of c.units) {
+        const L = levelOf(uid), u = U[uid], marks = mine.get(uid) || [];
+        const marked = unitEl.has(uid) ? markedText(uid, L, L >= 3 ? marks : []) : { text: '', inline: new Set() };
+        const text = marked.text, under = marks.filter((n) => !marked.inline.has(n));
+        if (!text && !under.length) continue;
+        const bullet = L <= 2 || u.role === 'item';
+        if (text) {
+          if (!bullet && list) out.push('');
+          out.push(bullet ? `${L > 2 && u.marker && /\d/.test(u.marker) ? u.marker : '-'} ${text}` : u.role === 'caption' ? `*${text}*` : text);
+          if (!bullet) out.push('');
+          list = bullet;
+        }
+        if (under.length) { if (list) out.push(''); list = false; for (const n of under) out.push(...noteMd(n, false)); }
+      }
+      if (list) out.push('');
+    }
+    out.push('---', '', `*Made with [${BRAND}](${REPO})*`, '');
+    return out.join('\n').replace(/\n{3,}/g, '\n\n');
   }
   // PDF of the paper as it stands: the level being read (with the paragraphs opened in place), the highlights, and
   // the notes and conversations under their paragraphs; a line naming the level on top, the TextFold mark at the
@@ -2724,9 +2798,10 @@
     for (const n of notes) if (shown(n.anchor)) counts[kindOf(n)]++;
     const total = counts.hl + counts.note + counts.ask;
     if (!total && sv.what === 'marks') sv.what = 'whole';
-    const fmts = sv.what === 'whole' ? [...(D.app ? ['html'] : []), 'pdf'] : ['html', 'pdf', 'md', 'json'];   // (a page that is a file already prints)
+    const fmts = sv.what === 'whole' ? [...(D.app ? ['html'] : []), 'pdf', 'md'] : ['html', 'pdf', 'md', 'json'];   // (a page that is a file already prints)
     if (!fmts.includes(sv.fmt)) sv.fmt = fmts[0];
-    const fmtName = { html: t.sv_html, pdf: sv.what === 'whole' ? t.sv_pdf_level.replace('{level}', t.levels[level]) : t.sv_pdf, md: t.sv_md, json: t.sv_json };
+    const fmtName = { html: t.sv_html, pdf: sv.what === 'whole' ? t.sv_pdf_level.replace('{level}', t.levels[level]) : t.sv_pdf,
+      md: sv.what === 'whole' ? t.sv_md_level.replace('{level}', t.levels[level]) : t.sv_md, json: t.sv_json };
     const radio = (name, value, label, sub, off) => `<label class="sv-opt${off ? ' off' : ''}"><input type="radio" name="${name}" value="${value}"` +
       `${sv[name] === value ? ' checked' : ''}${off ? ' disabled' : ''}><span><b>${esc(label)}</b>${sub ? `<em>${esc(sub)}</em>` : ''}</span></label>`;
     const box = (k, label) => `<label class="sv-box${counts[k] ? '' : ' off'}"><input type="checkbox" name="kind" value="${k}"` +
@@ -2809,8 +2884,8 @@
       return;
     }
     const whole = sv.what === 'whole';
-    const [file, type, make] = whole
-      ? [`${name}.html`, 'text/html', async () => {   // made by the server: the levels, the languages, the notes chosen
+    const [file, type, make] = whole && sv.fmt === 'md' ? [`${name} (${t.levels[level]}).md`, 'text/markdown', () => docMarkdown(kinds)]
+      : whole ? [`${name}.html`, 'text/html', async () => {   // made by the server: the levels, the languages, the notes chosen
         working();
         const r = await fetch('/api/export', { method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ paper: D.meta.id, lang, langs: sv.langs === 'all' ? 'all' : 'current', kinds: [...kinds], pdf: !!sv.pdf && PDF_OK }) });
