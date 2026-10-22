@@ -117,7 +117,8 @@ class Routes(unittest.TestCase):
     def test_the_bridge_routes_are_gone(self):
         for path, method in (("/api/bridge", "GET"), ("/api/bridge/start", "POST")):
             with self.subTest(path=path):
-                request = urllib.request.Request(self.url(path), data=b"{}", method=method,
+                data = b"{}" if method == "POST" else None   # (a GET with a body can be aborted on Windows)
+                request = urllib.request.Request(self.url(path), data=data, method=method,
                                                  headers={"Content-Type": "application/json"})
                 with self.assertRaises(urllib.error.HTTPError) as cm:
                     urllib.request.urlopen(request, timeout=2)
