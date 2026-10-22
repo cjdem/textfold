@@ -56,7 +56,7 @@
 | R2 | 完成 | optimize | 所有文本读写显式 UTF-8 | `c1b3fd3` | 无 | 中 |
 | R3 | 完成 | optimize | 旧 TextFold 的 GBK 库按代码页读入，下一次保存写 UTF-8 | `4f15560` | R2 | 中 |
 | R4 | 完成 | optimize | 只支持流式的 API 服务 | `8e7569b` | 无 | 中 |
-| R5 | 进行中 | optimize | 模型回复的多种 JSON 形状 | `09e9d37` | 无 | 中 |
+| R5 | 完成 | optimize | 模型回复的多种 JSON 形状 | `09e9d37` | 无 | 中 |
 | R6 | 待做 | optimize | `TEXTFOLD_NO_MODELS` 下不调用模型 | `1761a95` | 无 | 小 |
 | R7 | 待做 | optimize | EPUB 章节先解码再解析 | `13d7794` | 无 | 小 |
 | R8 | 待做 | optimize | 翻译漏段重试（只取 `d457cfa` 的翻译部分） | `d457cfa` | 无 | 中 |
@@ -154,6 +154,7 @@
 | 2026-10-22 | R2 | optimize | `4f8eff6` | 214，OK | 无阻断发现；1 个数据安全问题、1 个钩子编码问题、若干措辞/测试已修 | 所有文本 I/O 显式 UTF-8；命令行导入支持 GBK/BOM/CRLF；GBK 的 library/zotero 不再被静默清空；旧文件迁移留给 R3 |
 | 2026-10-22 | R3 | optimize | `02bc0e2` | 222，OK | 两轮：第一轮推翻“读时写回”（比较与替换非原子，会丢并发保存），第二轮修完记录/测试/文档的 7 处问题；无阻断发现 | 与计划不同：读只解码不写（GBK 文件保持原样，下一次保存写 UTF-8），两边都无法解码的文件报错而非用替换字符后保存；`store.codepage()` 在 3.9/3.10 用 GetACP，不再受 UTF-8 模式影响；`zotero.apply` 改临时文件+替换；未触及阅读器，zoom 平滑度未测 |
 | 2026-10-22 | R4 | optimize | `0aacd72` | 239，OK | 三轮：第一轮发现重试路径读截断错误体、200 错误体让“流式+无 JSON 模式”形状不可达（都已修）；第二、三轮修记录措辞与测试强度；无阻断发现 | SSE 回复合并成一个 completion；只有被拒后才加 `stream`，所有旧形状的首请求逐字节不变；`_content` 留给 R5，仅内联“200 不是 completion 就前进”；流式请求通常没有 usage，成本记不到；未触及阅读器，zoom 平滑度未测 |
+| 2026-10-22 | R5 | optimize | `d46d2cb` | 257，OK | 三轮：第一轮发现非对象翻译回复会静默保存不完整层、单 chunk 文档不回退；第二轮发现 pipeline 对请求语言忽略 `failed`、守卫测试空转；第三轮修测试强度；无阻断发现 | 回复按 list / JSON 字符串 / id-keyed / 字符串 section / parts 读；读不出的 chunk 本地回退并丢弃缓存；请求语言的失败部分不保存为当前；失败任务最后 12 行日志 print 到 stdout（MyGo 的 server.log）；未触及阅读器，zoom 平滑度未测 |
 
 ## 停止条件
 
