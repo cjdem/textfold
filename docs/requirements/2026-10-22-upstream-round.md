@@ -70,7 +70,7 @@
 | R16 | 完成 | feature | Aa 菜单 + 缩放沙箱 font/width | `f76eb4d` + `c38804e` | R14/R15 之后 | 中 |
 | R17 | 完成 | feature | 主题、行距、阅读位置、专注模式 | `e5bd668` + `a670e57` + `920a270` | R16 | 中 |
 | R18a | 完成 | feature | 标题层级 | `fb9f95c`（标题部分） | R16/R17 | 小 |
-| R18b | 进行中 | feature | Topic 分组 / 思维导图 | `fb9f95c`（地图部分） | R18a | 大 |
+| R18b | 完成 | feature | Topic 分组 / 思维导图 | `fb9f95c`（地图部分） | R18a | 大 |
 | R18c | 待做 | feature | margins 开关（链接 / 问答 / 笔记） | `fb9f95c`（margins 部分） | R16 | 小 |
 | R19 | 待做 | feature | 侧栏固定 | `b977bba` | R16/R18c | 中 |
 | R20 | 待做 | feature | 整篇文本按当前层级/语言存 Markdown | `7d94f25` | R16 后 | 中 |
@@ -173,6 +173,8 @@
 | 2026-10-23 | R17 | feature | `d86253d` | 370，OK | 一轮：1 条阻断——`card.css`（本 fork 专属的阅读卡抽屉）的深色规则只跟系统，浅色主题下深色系统会出现浅底浅字（对比度约 1.6–1.8:1）；已修（每条规则同时按 `html[data-theme="dark"]` 生效并加契约测试）。非阻断：两个标签页写位置映射可能互相覆盖（localStorage 无 CAS，记入 Pitfalls）、新 CSS 测试原先无法失败（已改为断言 `var(--lh, 1)`、不再有 `:not([data-theme="light"])`、paper 的系统深色规则、卡片规则）、字体就绪后的第二次回位会打断已滚动的读者（现在位置移动后不再回位）、`color-scheme` 只跟显式选择（已补系统深色）、落地页忽略旧 `theme` 键（app.js 已同步映射）、Aa 对话框无障碍名仍是“字号、栏宽和字体”（已改“阅读外观”）、DEVELOPMENT 对 `--lh` 覆盖范围说过头且守卫里的 `#s=` 无页面使用（已改） | 明暗（跟随系统/浅/深）+ 风格（默认/纸张）可组合、行距紧凑/标准/宽松（`--lh`）、阅读位置（`localStorage` `textfold.pos`，回位提示与进度线）、专注模式（F/Esc，边缘唤回）；app 落地页同步主题；未目视回位/进度线/触摸唤回（预览面板无 rAF），未测 zoom 平滑度；记录见 `docs/changes/2026-10-22-reader-theme-focus.md` |
 
 | 2026-10-23 | R18a | feature | `441883c` | 373，OK | 一轮，无阻断；测试强度三项已修（断言 `calc(… * var(--fs))`、边距与内边距、`looks()` 复制阴影、Topic 卡片所有带阴影的标题规则都取消），DEVELOPMENT 措辞过头已改；另指出 640px 以下论文标题上限 26px 低于节标题 27px（上游原样，记入 Pitfalls）；一次全量测试出现本地 socket 的 `ConnectionAbortedError`，连续两次重跑 373 OK，与本改动无关 | R18 按审阅建议拆成三次（R18a 标题层级、R18b Topic 分组/思维导图、R18c margins）；本次只取 `fb9f95c` 的标题部分：节 27px 带下划线（inset shadow，`looks()` 带进缩放副本）、小节 21.5px、下一级 18.5px 与正文同大、最深一级 `--ink-2`；Topic 卡片标题 13.5px 无下划线；未测 zoom 平滑度；记录见 `docs/changes/2026-10-22-reader-heading-scale.md` |
+
+| 2026-10-23 | R18b | feature | `92b8ec3` | 377，OK | 一轮，无阻断；8 条非阻断已修（Aa 字号变化后地图布局不更新——`setType` 重绘、否则清 render key；PDF 并排开关不同步——`openCompare`/`closeCompare` 调 `mapSync`；专注模式地图仍盖在页上——进入时隐藏、退出时恢复且 `mapSync` 拒绝 focus；并排/原段展开时仍显示切换——`updateBar` 一并隐藏；两条测试不能失败（kick 行、`mapSync` 条件、分组 next/prev 与守卫已精确断言）；DEVELOPMENT 的 Topic 标题与分支配色描述；记录误写 `done()` 负责缩放后同步，实为 `rest()`→`updateBar()`） | `fb9f95c` 的地图部分：章节有下级小节时成为一组卡片的行头（`parent`/`top`/`newrow`），缩放条旁可在卡片与思维导图间切换（`textfold.topicview`）；地图在 Topic 静止时覆盖页面，缩放/滚轮/捏合前先隐藏，章节可折叠、主题词点击回到 Key；地图随语言与字号重绘，并排 PDF 与专注模式不显示；未目视点击主题回 Key（预览面板无 rAF）；未测 zoom 平滑度；记录见 `docs/changes/2026-10-22-topic-mind-map.md` |
 
 ## 停止条件
 
