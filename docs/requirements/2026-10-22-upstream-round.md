@@ -69,7 +69,7 @@
 | R15 | 完成 | optimize | CJK 规则只作用于中日文 | `6e2cada` | R14 | 中 |
 | R16 | 完成 | feature | Aa 菜单 + 缩放沙箱 font/width | `f76eb4d` + `c38804e` | R14/R15 之后 | 中 |
 | R17 | 完成 | feature | 主题、行距、阅读位置、专注模式 | `e5bd668` + `a670e57` + `920a270` | R16 | 中 |
-| R18a | 进行中 | feature | 标题层级 | `fb9f95c`（标题部分） | R16/R17 | 小 |
+| R18a | 完成 | feature | 标题层级 | `fb9f95c`（标题部分） | R16/R17 | 小 |
 | R18b | 待做 | feature | Topic 分组 / 思维导图 | `fb9f95c`（地图部分） | R18a | 大 |
 | R18c | 待做 | feature | margins 开关（链接 / 问答 / 笔记） | `fb9f95c`（margins 部分） | R16 | 小 |
 | R19 | 待做 | feature | 侧栏固定 | `b977bba` | R16/R18c | 中 |
@@ -171,6 +171,8 @@
 | 2026-10-23 | R16 | feature | `534d1a7` | 366，OK | 一轮：1 条阻断——`mirrorType` 只镜像了 font/width，而字号是 `<html>` 上的内联 `--fs`，沙箱样式表里的 `:host { --fs: 1 }` 会盖过继承值，非默认字号下相邻关键帧按 100% 布局、缩放末尾错位（verifier 在 headless Chrome 复现：108% 时页面 740px/19.98px、沙箱 700px/18.5px）；已修——把 `--fs` 内联到沙箱宿主并加测试。另修：沙箱缺 `app` 类使 MyGo 应用里 `--colmax` 与页面不同（现镜像 `app`/`compare`）、点击笔记/导出/图例时 Aa 菜单不关（改为捕获阶段监听）、保留高亮/段落预览/引用/笔记列表高亮仍用衬线（改用 `--text`）、记录声称 DEVELOPMENT 写了打印重置而实际没写、`invariants.md` 仍把“衬线=作者”写成单一规则（均已补） | 阅读器 Aa 菜单：字号 86%–135%（整栏随之缩放）、栏宽窄/标准/宽（`--colmax` 给边注留位）、作者文字衬线/无衬线；存于 `localStorage`（每浏览器、每篇通用）；缩放沙箱 `mirrorType` 同步 font/width/`--fs` 与 `app`/`compare`；打印恢复默认字号。浏览器核对中文界面、108%→740px、窄栏 648px、无衬线生效、重置与持久化、关闭方式；预览面板不跑 rAF，缩放动画与末尾对齐按机制核对、未目视；未测 zoom 平滑度；记录见 `docs/changes/2026-10-22-reader-type-menu.md` |
 
 | 2026-10-23 | R17 | feature | `d86253d` | 370，OK | 一轮：1 条阻断——`card.css`（本 fork 专属的阅读卡抽屉）的深色规则只跟系统，浅色主题下深色系统会出现浅底浅字（对比度约 1.6–1.8:1）；已修（每条规则同时按 `html[data-theme="dark"]` 生效并加契约测试）。非阻断：两个标签页写位置映射可能互相覆盖（localStorage 无 CAS，记入 Pitfalls）、新 CSS 测试原先无法失败（已改为断言 `var(--lh, 1)`、不再有 `:not([data-theme="light"])`、paper 的系统深色规则、卡片规则）、字体就绪后的第二次回位会打断已滚动的读者（现在位置移动后不再回位）、`color-scheme` 只跟显式选择（已补系统深色）、落地页忽略旧 `theme` 键（app.js 已同步映射）、Aa 对话框无障碍名仍是“字号、栏宽和字体”（已改“阅读外观”）、DEVELOPMENT 对 `--lh` 覆盖范围说过头且守卫里的 `#s=` 无页面使用（已改） | 明暗（跟随系统/浅/深）+ 风格（默认/纸张）可组合、行距紧凑/标准/宽松（`--lh`）、阅读位置（`localStorage` `textfold.pos`，回位提示与进度线）、专注模式（F/Esc，边缘唤回）；app 落地页同步主题；未目视回位/进度线/触摸唤回（预览面板无 rAF），未测 zoom 平滑度；记录见 `docs/changes/2026-10-22-reader-theme-focus.md` |
+
+| 2026-10-23 | R18a | feature | `441883c` | 373，OK | 一轮，无阻断；测试强度三项已修（断言 `calc(… * var(--fs))`、边距与内边距、`looks()` 复制阴影、Topic 卡片所有带阴影的标题规则都取消），DEVELOPMENT 措辞过头已改；另指出 640px 以下论文标题上限 26px 低于节标题 27px（上游原样，记入 Pitfalls）；一次全量测试出现本地 socket 的 `ConnectionAbortedError`，连续两次重跑 373 OK，与本改动无关 | R18 按审阅建议拆成三次（R18a 标题层级、R18b Topic 分组/思维导图、R18c margins）；本次只取 `fb9f95c` 的标题部分：节 27px 带下划线（inset shadow，`looks()` 带进缩放副本）、小节 21.5px、下一级 18.5px 与正文同大、最深一级 `--ink-2`；Topic 卡片标题 13.5px 无下划线；未测 zoom 平滑度；记录见 `docs/changes/2026-10-22-reader-heading-scale.md` |
 
 ## 停止条件
 
