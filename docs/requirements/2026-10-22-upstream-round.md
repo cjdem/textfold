@@ -64,7 +64,7 @@
 | R10 | 完成 | feature | 多文件导入：逐文件队列，不用 MinerU batch | `f0c731d` | R1–R9 | 中 |
 | R11 | 完成 | feature | 可配置 MinerU v4 base URL，默认官方 | `77a2344` | R10 后或并行 | 小 |
 | R12 | 完成 | feature | self-hosted V1 adapter（条件项） | fork-specific（不做） | R11；仅确有自部署时 | 大 |
-| R13 | 待做 | feature | 中文 Brief 句子切分 | `770fb08` | R4/R5 之后 | 中 |
+| R13 | 进行中 | feature | 中文 Brief 句子切分 | `770fb08` | R4/R5 之后 | 中 |
 | R14 | 待做 | feature | 中文五级折叠 | `4897e24` | R13 | 大 |
 | R15 | 待做 | optimize | CJK 规则只作用于中日文 | `6e2cada` | R14 | 中 |
 | R16 | 待做 | feature | Aa 菜单 + 缩放沙箱 font/width | `f76eb4d` + `c38804e` | R14/R15 之后 | 中 |
