@@ -71,7 +71,7 @@
 | R17 | 完成 | feature | 主题、行距、阅读位置、专注模式 | `e5bd668` + `a670e57` + `920a270` | R16 | 中 |
 | R18a | 完成 | feature | 标题层级 | `fb9f95c`（标题部分） | R16/R17 | 小 |
 | R18b | 完成 | feature | Topic 分组 / 思维导图 | `fb9f95c`（地图部分） | R18a | 大 |
-| R18c | 进行中 | feature | margins 开关（问答 / 笔记；链接本 fork 已移除） | `fb9f95c`（margins 部分） | R16 | 小 |
+| R18c | 完成 | feature | margins 开关（问答 / 笔记；链接本 fork 已移除） | `fb9f95c`（margins 部分） | R16 | 小 |
 | R19 | 待做 | feature | 侧栏固定 | `b977bba` | R16/R18c | 中 |
 | R20 | 待做 | feature | 整篇文本按当前层级/语言存 Markdown | `7d94f25` | R16 后 | 中 |
 | R21 | 待做 | feature | 批量删除/恢复 + 侧栏多选 | `15d7b8a` + `d80e779` | 无 | 中 |
@@ -175,6 +175,7 @@
 | 2026-10-23 | R18a | feature | `441883c` | 373，OK | 一轮，无阻断；测试强度三项已修（断言 `calc(… * var(--fs))`、边距与内边距、`looks()` 复制阴影、Topic 卡片所有带阴影的标题规则都取消），DEVELOPMENT 措辞过头已改；另指出 640px 以下论文标题上限 26px 低于节标题 27px（上游原样，记入 Pitfalls）；一次全量测试出现本地 socket 的 `ConnectionAbortedError`，连续两次重跑 373 OK，与本改动无关 | R18 按审阅建议拆成三次（R18a 标题层级、R18b Topic 分组/思维导图、R18c margins）；本次只取 `fb9f95c` 的标题部分：节 27px 带下划线（inset shadow，`looks()` 带进缩放副本）、小节 21.5px、下一级 18.5px 与正文同大、最深一级 `--ink-2`；Topic 卡片标题 13.5px 无下划线；未测 zoom 平滑度；记录见 `docs/changes/2026-10-22-reader-heading-scale.md` |
 
 | 2026-10-23 | R18b | feature | `92b8ec3` | 377，OK | 一轮，无阻断；8 条非阻断已修（Aa 字号变化后地图布局不更新——`setType` 重绘、否则清 render key；PDF 并排开关不同步——`openCompare`/`closeCompare` 调 `mapSync`；专注模式地图仍盖在页上——进入时隐藏、退出时恢复且 `mapSync` 拒绝 focus；并排/原段展开时仍显示切换——`updateBar` 一并隐藏；两条测试不能失败（kick 行、`mapSync` 条件、分组 next/prev 与守卫已精确断言）；DEVELOPMENT 的 Topic 标题与分支配色描述；记录误写 `done()` 负责缩放后同步，实为 `rest()`→`updateBar()`） | `fb9f95c` 的地图部分：章节有下级小节时成为一组卡片的行头（`parent`/`top`/`newrow`），缩放条旁可在卡片与思维导图间切换（`textfold.topicview`）；地图在 Topic 静止时覆盖页面，缩放/滚轮/捏合前先隐藏，章节可折叠、主题词点击回到 Key；地图随语言与字号重绘，并排 PDF 与专注模式不显示；未目视点击主题回 Key（预览面板无 rAF）；未测 zoom 平滑度；记录见 `docs/changes/2026-10-22-topic-mind-map.md` |
+| 2026-10-23 | R18c | feature | `db85a58` | 378，OK | 一轮，无阻断；8 条非阻断：7 条已修（点击切换、按下方向、焦点选择器、存储键均无断言——已加精确断言；`html[data-hide~="notes"] .paper-head > .lside` 在本 fork 是死选择器——已删；mirror 注释与记录高估了沙箱对边注的作用——已改；DEVELOPMENT 的 `mirrorType` 一句未提 hide——已补），第 5 条“两标签页改类型会互相覆盖”是 `localStorage` 既有行为，记入记录的并发说明；verifier 另在 headless Chrome（1400/800px）确认两个 `.lside` 宿主与 `.side-notes` 都被隐藏、`.side` 空壳高 0、沙箱的 `:host([data-hide~="notes"])` 选择器生效，并用 Node 跑真实解析代码验证 null/旧值/上游形状/损坏 JSON，另确认上游的一行隐藏规则确被层级规则盖过 | 取 `fb9f95c` 的 margins 部分：Aa 菜单新增“页边”一行，AI 问答 / 我的笔记各自显示或隐藏（`html[data-hide]`，随类型存 `localStorage` `textfold.type`，恢复默认清除，`mirrorType` 同步进缩放沙箱）；本 fork 已移除论证链接（`f80969e`），故只有两个边注、不移植第三个，`.side-links` 选择器也不带入；上游一行隐藏规则被 `.u[data-l] > .lside` 与 `.doc[data-level] .chunk > .lside` 盖过（上游同序，疑为潜在缺陷），本 fork 加深选择器并加特异性契约测试；未目视问答边注（`TEXTFOLD_NO_MODELS=1` 无模型回答）、未目视多笔记堆叠与打印；未测 zoom 平滑度；记录见 `docs/changes/2026-10-22-reader-margins.md` |
 
 ## 停止条件
 
