@@ -130,6 +130,12 @@ window.DR_I18N = (() => {
     zh: ['移到文件夹', '移出文件夹'],
   };
   for (const [code, [a, b]] of Object.entries(MV)) Object.assign(S[code], { f_move_to: a, f_take_out: b });
+  // a document's name in the library, and a note of the reader's own on the whole text
+  const NAME = {
+    en: ['Name in the library', 'Use its own title', 'New note', 'A note of your own on the whole text, not on a passage: it sits by the title'],
+    zh: ['在文献库里的名称', '恢复原标题', '新建笔记', '不针对某段文字、写给整篇的笔记，放在标题旁'],
+  };
+  for (const [code, [a, b, c, d]] of Object.entries(NAME)) Object.assign(S[code], { d_name: a, d_unname: b, n_paper_note: c, n_paper_note_tip: d });
   // a question's field and its turns: send it, stop it while the model answers, take a turn out of the conversation
   const turn = (w) => ({ n_send: w[0], n_stop: w[1], n_turn_del: w[2], n_turn_del_q: w[3] });
   const Q = {

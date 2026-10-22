@@ -36,6 +36,7 @@
                               failed: [ids]} (a folder that could not move is put back in the library, not lost)
   POST /api/papers/restore    {papers: [ids]}: those deleted last back from papers/.trash, in their folders (the
                               reader's Undo); {papers: the list, folders, restored: [ids]}
+  POST /api/papers/name       {paper, name}: what the reader calls it in the library ("": its own title again); the list
   GET  /api/folders           the reader's folders and which document is in which (library.py)
   POST /api/folders           {op: new | rename | delete | move, ...}: one change; the folders after it
   POST /api/openrouter/start   {back}: the OpenRouter consent URL (OAuth PKCE); GET /oauth/openrouter is its return
@@ -364,13 +365,22 @@ PAGES = {}  # pid -> (signature of its layers and template, rendered page)
 RELAYOUT = threading.Lock()
 
 
+def assembled(pid, only=None):
+    """The paper as the reader needs it (store.assemble), under the name the reader gave it in the library, if any."""
+    doc = store.assemble(pid, only)
+    name = library.name_of(pid)
+    if name:
+        doc["meta"]["name"] = name
+    return doc
+
+
 def reader_page(pid):
     layers = store.pdir(pid) / "layers"
     sig = tuple(sorted((f.name, f.stat().st_mtime) for f in layers.glob("*.json"))) if layers.exists() else ()
-    sig += ((build.WEB / "template.html").stat().st_mtime,)  # a changed page template re-renders too
+    sig += ((build.WEB / "template.html").stat().st_mtime, library.name_of(pid))  # a changed page template, or name, re-renders too
     hit = PAGES.get(pid)
     if not hit or hit[0] != sig:
-        hit = (sig, build.page(store.assemble(pid), app=True))
+        hit = (sig, build.page(assembled(pid), app=True))
         PAGES[pid] = hit
     return hit[1]
 
@@ -378,6 +388,27 @@ def reader_page(pid):
 def listed():
     """The papers for the list: those on disk, with when each came in and was last opened."""
     return library.stamp(store.papers())
+
+
+def trash_paper(pid):
+    """A paper to papers/.trash with its place in the library, under the lock the name route takes: a name written
+    while the folder is moving cannot outlive the delete (the library would list a document that is gone)."""
+    with store.LOCK:
+        kept = library.forget(pid)
+        try:
+            store.trash(pid, kept)
+        except OSError:
+            library.remember(pid, kept)   # (the folder could not move: the library stays as it was)
+            raise
+
+
+def name_paper(pid, value):
+    """What the reader calls a document, under the lock a delete holds while its folder moves: no name is written for a
+    document whose folder is being taken away (or was, a moment ago)."""
+    with store.LOCK:
+        if not store.valid_id(pid) or not (store.pdir(pid) / "meta.json").exists():
+            raise KeyError(pid)
+        return library.name(pid, value)
 
 
 def busy_deleting(jobs):
@@ -621,7 +652,7 @@ def make_handler(jobs):
                     if not store.valid_id(pid) or not (store.pdir(pid) / "meta.json").exists():
                         return self.json({"error": "no such paper"}, 404)
                     kinds = {k for k in body.get("kinds") or [] if k in ("hl", "note", "ask")}
-                    doc = store.assemble(pid, only=[lang] if body.get("langs") == "current" else None)
+                    doc = assembled(pid, only=[lang] if body.get("langs") == "current" else None)
                     chosen = [n for n in notes.read(pid)["notes"] if notes.kind(n) in kinds]
                     saved = {"notes": chosen, "saved": uuid.uuid4().hex[:12], "lang": lang}
                     if body.get("pdf") and pdf.has_source(pid):   # the original beside it: the file, and PDF.js to show it
@@ -681,11 +712,9 @@ def make_handler(jobs):
                         return self.json({"error": "busy"}, 409)
                     deleted, failed = [], []
                     for pid in [p for p in there if p not in live]:   # (its place in the library goes with it, for an Undo)
-                        kept = library.forget(pid)
                         try:
-                            store.trash(pid, kept)
+                            trash_paper(pid)
                         except OSError:
-                            library.remember(pid, kept)   # (the folder could not move: the library stays as it was)
                             if not many:
                                 raise
                             failed.append(pid)
@@ -703,6 +732,12 @@ def make_handler(jobs):
                         if kept is not None:
                             restored.append(pid)
                     return self.json({"papers": listed(), "folders": library.folders(), "restored": restored})
+                if u.path == "/api/papers/name":
+                    try:
+                        name_paper(str(body.get("paper", "")), body.get("name"))
+                    except KeyError:
+                        return self.json({"error": "no such paper"}, 404)
+                    return self.json(listed())
                 if u.path == "/api/folders":
                     try:
                         return self.json(library.change(body))

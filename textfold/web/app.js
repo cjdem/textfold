@@ -41,6 +41,7 @@
   let editing = null;      // a folder's name being written: 'new', or the folder's id
   let dragging = null;     // the documents being dragged to a folder (one, or those picked)
   let moving = null;       // the document (or documents) a new folder is being named for (its menu's New folder…)
+  let renaming = null;     // the document whose name in the library is being written
   let menu = null;         // a folder's or a document's menu, while it is open
   let stale = false;       // the list as polled while a menu was open: drawn when it closes
   const chosen = new Set();   // the documents picked to be moved or deleted together (⌘/Ctrl- or Shift-click, a row's Select)
@@ -95,7 +96,11 @@
     const pending = jobs.filter((j) => !listed.has(j.pid) && live(j));
     const item = (p) => {
       const j = jobFor(p.id);
-      const title = (p.titles && p.titles[uiLang]) || p.title;
+      const own = (p.titles && p.titles[uiLang]) || p.title, title = p.name || own;
+      if (renaming === p.id) {
+        return `<div class="sb-row" data-pid="${p.id}" data-q="${esc(hay(p))}"><input class="sb-dname-in" value="${esc(title)}" placeholder="${esc(own)}" ` +
+          `aria-label="${esc(T.d_name)}" title="${esc(T.d_name)}" maxlength="200" spellcheck="false"></div>`;
+      }
       const langs = p.langs.map((l) => `<span${l === uiLang ? ' class="on"' : ''}>${SHORT[l] || l}</span>`).join('');
       const active = PAPER && PAPER.id === p.id;
       const unfinished = !j && !p.langs.length;   // stopped (or failed) before its first language: a click goes on with it
@@ -165,8 +170,8 @@
     if (dragging) return;   // (drawn again after the drop: the row being dragged stays where the drag began)
     if (html === lastSidebar) { side.querySelector('.rail-open').classList.toggle('busy', busy); return; }
     const scrolled = side.querySelector('.sb-list') ? side.querySelector('.sb-list').scrollTop : 0;
-    const act = document.activeElement, typing = act && side.contains(act) && act.matches('.sb-q, .sb-fname-in')
-      ? { sel: act.matches('.sb-q') ? '.sb-q' : '.sb-fname-in', value: act.value, a: act.selectionStart, b: act.selectionEnd } : null;
+    const act = document.activeElement, typing = act && side.contains(act) && act.matches('.sb-q, .sb-fname-in, .sb-dname-in')
+      ? { sel: ['.sb-q', '.sb-fname-in', '.sb-dname-in'].find((s) => act.matches(s)), value: act.value, a: act.selectionStart, b: act.selectionEnd } : null;
     closeMenu();
     side.innerHTML = html;
     lastSidebar = html;
@@ -207,7 +212,7 @@
   async function deletePaper(pid) {
     const T = t(), p = papers.find((x) => x.id === pid);
     if (!p) return;
-    const title = (p.titles && p.titles[uiLang]) || p.title;
+    const title = p.name || (p.titles && p.titles[uiLang]) || p.title;
     if (!confirm(T.del_confirm.replace('{title}', title).replace('{n}', p.notes || 0))) return;
     await deleteAll([pid], T.del_done.replace('{title}', title));
   }
@@ -312,7 +317,7 @@
   // ── the library's search and folders ────────────────────────────────
   // a search narrows the list as it is typed: every word, in a title (any language's), an author or an id, accents aside
   function fold(s) { return String(s || '').normalize('NFD').replace(/\p{M}/gu, '').toLowerCase(); }
-  function hay(p) { return fold([p.title, ...Object.values(p.titles || {}), ...(p.authors || []), p.id].join(' ')); }
+  function hay(p) { return fold([p.name || '', p.title, ...Object.values(p.titles || {}), ...(p.authors || []), p.id].join(' ')); }
   function applySearch() {
     const list = side.querySelector('.sb-list');
     if (!list) return;
@@ -366,6 +371,9 @@
     } else if (e.target.matches('.sb-fname-in')) {
       if (e.key === 'Enter') { e.preventDefault(); saveName(e.target.value); }
       else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); editing = null; moving = null; renderSidebar(); }
+    } else if (e.target.matches('.sb-dname-in')) {
+      if (e.key === 'Enter') { e.preventDefault(); saveDocName(e.target.value); }
+      else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); renaming = null; renderSidebar(); }
     } else if (e.target.matches('.sb-list .sb-item') && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
       const all = [...side.querySelectorAll('.sb-list .sb-row:not([hidden]) .sb-item')].filter((a) => a.offsetParent);
       const n = all.indexOf(e.target) + (e.key === 'ArrowDown' ? 1 : -1);
@@ -375,6 +383,7 @@
   });
   side.addEventListener('focusout', (e) => {   // a name left: kept when it has one
     if (e.target.matches('.sb-fname-in') && editing !== null) saveName(e.target.value);
+    else if (e.target.matches('.sb-dname-in') && renaming !== null) saveDocName(e.target.value);
   });
   function editName(id, pid = null) {
     editing = id; moving = pid;
@@ -391,6 +400,29 @@
       catch (err) { alert(err.message); }
     }
     renderSidebar();
+  }
+  // a document's name in the library, written in its row: what the reader calls it (its own title stays its own;
+  // written back, or emptied, the name goes)
+  function editDocName(pid) {
+    renaming = pid;
+    renderSidebar();
+    const f = side.querySelector('.sb-dname-in');
+    if (f) { f.focus(); f.select(); }
+  }
+  async function saveDocName(value) {
+    const pid = renaming, p = papers.find((x) => x.id === pid), name = value.trim();
+    renaming = null;
+    if (!p || name === (p.name || '')) { renderSidebar(); return; }
+    const own = [p.title, ...Object.values(p.titles || {})].includes(name);
+    if (!p.name && (own || !name)) { renderSidebar(); return; }
+    await nameDoc(pid, own ? '' : name);
+  }
+  async function nameDoc(pid, name) {
+    try { papers = await api('/api/papers/name', { paper: pid, name }); }
+    catch (err) { alert(err.message); }
+    renderSidebar();
+    const p = papers.find((x) => x.id === pid);
+    if (PAPER && PAPER.id === pid && p && window.__reader && window.__reader.rename) window.__reader.rename(p.name || '');
   }
   async function moveTo(pids, folder) {   // (one, or those picked: they are let go of)
     const many = Array.isArray(pids);
@@ -420,19 +452,22 @@
     (a) => { if (a.dataset.act === 'rename') editName(id); else deleteFolder(id); }, at);
   }
   // a document's, at a right click on it: into a folder (however far down the list it is), out of its own, into a new
-  // one named there, or deleted
+  // one named there; its name in the library; picked; or deleted
   function docMenu(btn, pid, at) {
-    const T = t(), here = folders.of[pid] || null;
+    const T = t(), here = folders.of[pid] || null, p = papers.find((x) => x.id === pid);
     const fs = folders.folders.map((f) => `<button type="button" role="menuitemradio" aria-checked="${f.id === here}" data-to="${f.id}">` +
       `${FOLDER}<span class="sb-mname">${esc(f.name)}</span></button>`).join('');
     showMenu(btn, (fs ? `<div class="sb-mlabel">${esc(T.f_move_to)}</div>${fs}` : '') +
       (here ? `<button type="button" role="menuitem" data-to="">${esc(T.f_take_out)}</button>` : '') +
       `<button type="button" role="menuitem" data-act="new">${FOLDER_NEW}<span class="sb-mname">${esc(T.f_new)}…</span></button>` +
-      `<div class="sb-msep" role="separator"></div>` +
+      `<div class="sb-msep" role="separator"></div><button type="button" role="menuitem" data-act="rename">${esc(T.f_rename)}</button>` +
+      (p && p.name ? `<button type="button" role="menuitem" data-act="unname">${esc(T.d_unname)}</button>` : '') +
       (chosen.has(pid) ? '' : `<button type="button" role="menuitem" data-act="pick" title="${esc(selTip(T))}">${esc(T.sel_pick)}</button>`) +
       `<button type="button" role="menuitem" class="danger" data-act="delete">${esc(T.del_paper)}</button>`,
     (a) => {
       if (a.dataset.act === 'new') editName('new', pid);
+      else if (a.dataset.act === 'rename') editDocName(pid);
+      else if (a.dataset.act === 'unname') nameDoc(pid, '');
       else if (a.dataset.act === 'pick') { chosen.add(pid); chosenAt = pid; renderSidebar(); }
       else if (a.dataset.act === 'delete') deletePaper(pid);
       else if ((a.dataset.to || null) !== here) moveTo(pid, a.dataset.to || null);
@@ -489,7 +524,7 @@
   document.addEventListener('click', (e) => { if (menu && !menu.contains(e.target) && !e.target.closest('.sb-fmenu')) closeMenu(); });
   side.addEventListener('contextmenu', (e) => {
     const row = e.target.closest('.sb-row[data-pid]'), head = !row && e.target.closest('.sb-folder[data-folder] > .sb-frow');
-    if (!row && !(head && head.querySelector('.sb-fmenu'))) { closeMenu(); return; }   // (a name being written: the field's own)
+    if ((!row || !row.querySelector('.sb-item')) && !(head && head.querySelector('.sb-fmenu'))) { closeMenu(); return; }   // (a name being written: the field's own)
     e.preventDefault();
     const at = e.clientX || e.clientY ? { x: e.clientX, y: e.clientY } : null;   // (none from the keyboard: by the row)
     if (row && chosen.size > 1 && chosen.has(row.dataset.pid)) chosenMenu(row.querySelector('.sb-item'), at);

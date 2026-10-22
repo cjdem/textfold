@@ -163,7 +163,10 @@ Notes: select text anywhere (a paragraph at any level, a section's summary or it
 or ask the model about it (the answer, in the reading language, cites the paragraphs it rests on; a cite opens that
 paragraph to its full text in place). The reader's own notes sit in the left margin, the conversations with the model
 in the right. Full and Brief show whole cards, Key shows them compact, and Takeaway and Topic show only a
-mark, with the notes on hover. Highlights zoom with the words. `#n=<note id>` opens the reader at a note.
+mark, with the notes on hover. Highlights zoom with the words. `#n=<note id>` opens the reader at a note. A note of the
+reader's own can be on the whole text, not a passage (the notes menu's **New note**): it sits by the paper's title, is
+shown at every level, and opens beside the head; it has no quote and no Ask beside it, since the chat is where the whole
+paper is asked about.
 
 What the model is given for a question (`textfold/notes.py`, `prompt`): the title, the abstract and a line per section
 (with where the reader is); the level they read at and whose words it shows (at Key and below, a warning that the
@@ -175,7 +178,7 @@ prompt asks it to answer from the paper, say where, and keep general knowledge a
 
 The notes button opens the list of every highlight, note and question, by section and filtered by kind: a click flies
 to the passage (opening its paragraph in place where the zoom hides it) and opens the note; × deletes it after a
-second click. Below the list, **More export options…** opens the save dialog. The **Export** button beside the notes
+second click, and **New note** writes one on the whole text. Below the list, **More export options…** opens the save dialog. The **Export** button beside the notes
 opens a menu with **Export notes (Markdown)** — every highlight, note and question, with the whole-paragraph choice
 saved in the dialog — **Export reading card (Markdown)** in the app (the card drawer's own export; a paper without a
 card opens the drawer to make one), and **More export options…**, which opens the dialog where every other export is.
@@ -225,12 +228,14 @@ passage offers **Add to reading card**. The Markdown export writes the saved car
 
 In the app the mark (in the bar and in the sidebar's rail) leads home; the rail's second button opens the list of
 papers. A paper is deleted from the list after a prompt that says what goes with it: its folder (layers, model
-replies, notes) moves to `papers/.trash/<id>-<time>/`, with its place in the library (`library.json`: its folder and
-dates), from where it comes back whole with `POST /api/papers/restore` (the reader's Undo: its folder if that is still
-there, its dates). The delete route also takes several at once (`{papers: [ids]}`): the ones being generated stay, and
+replies, notes) moves to `papers/.trash/<id>-<time>/`, with its place in the library (`library.json`: its folder, name
+and dates), from where it comes back whole with `POST /api/papers/restore` (the reader's Undo: its folder if that is
+still there, its name, its dates). The delete route also takes several at once (`{papers: [ids]}`): the ones being generated stay, and
 the answer says which went and which stayed. A paper being generated cannot be deleted. The list is searched (Ctrl+K or /), ordered by kind, by when each document came in or by when it was
 last opened, and kept in folders, one level deep, a document in one at most: dragged there, or moved from the menu a
-right click opens on it. Folders and dates are in `library.json` beside `papers/` (`library.py`). The format, the contract for every export, is `docs/notes-format.md`; the server keeps notes in
+right click opens on it. A document takes a name in the library (right click, **Rename**; its own title written back, or
+the field emptied, gives the title again): shown in the list, the page's title and its head, with its own title below;
+the search covers it too. Folders, names and dates are in `library.json` beside `papers/` (`library.py`). The format, the contract for every export, is `docs/notes-format.md`; the server keeps notes in
 `papers/<id>/notes.json`, a static page in the browser.
 
 Over a paper the sidebar opens from its rail and covers the text. Its pin (`localStorage` `textfold.sbpin`) keeps it
@@ -440,7 +445,7 @@ textfold/models.py   API model catalog; settings; resolving a model id
 textfold/openrouter.py  OpenRouter one-click authorization (OAuth PKCE)
 textfold/llm.py     cached API model calls; llm_openai.py: OpenAI-compatible endpoints
 textfold/build.py    reader pages: app mode (served) and static mode (one file)
-textfold/library.py  the sidebar's library: folders, when each document came in and was last opened (library.json)
+textfold/library.py  the sidebar's library: folders, the names given documents, when each came in and was last opened (library.json)
 textfold/notes.py    the reader's notes (docs/notes-format.md) and questions answered by the model
 textfold/cards.py    a document's reading card (docs/reading-card-format.md): evidence, candidates, staleness, Markdown
 textfold/fold.py     the TextFold format (docs/format.md) and a document at one level as Markdown (python -m textfold get)

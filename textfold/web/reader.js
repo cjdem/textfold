@@ -444,8 +444,9 @@
     document.documentElement.lang = I18N.htmlLang(lang);
     document.documentElement.dataset.lang = lang;
     mirrorLang();
-    const trTitle = lang !== 'en' && m.titles && m.titles[lang];
-    paperHead.innerHTML = `<h1>${esc(trTitle || m.title)}</h1>${trTitle ? `<div class="orig">${esc(m.title)}</div>` : ''}<div class="authors">${esc((m.authors || []).map(flipName).join(', '))}</div>` +
+    // the reader's name for it in the library (m.name), if they gave one, over its own title in this language
+    const trTitle = lang !== 'en' && m.titles && m.titles[lang], below = m.name ? trTitle || m.title : trTitle ? m.title : '';
+    paperHead.innerHTML = `<h1>${esc(m.name || trTitle || m.title)}</h1>${below ? `<div class="orig">${esc(below)}</div>` : ''}<div class="authors">${esc((m.authors || []).map(flipName).join(', '))}</div>` +
       (m.license || m.snapshot ? `<div class="license">${[m.license ? `<a href="${esc(m.license)}" target="_blank" rel="noopener">${esc(licenseName(m.license, t))}</a>` : '',
         m.snapshot ? esc(t.snapshot.replace('{date}', longDate(m.snapshot))) : ''].filter(Boolean).join(' · ')}</div>` : '');
     [...paperHead.children].forEach((c) => { c.dataset.id = `ph:${c.className || c.tagName}`; });
@@ -1572,6 +1573,7 @@
   // the reader's own notes. The reader on the left in warm ink, the machine on the right in cool ink.
   const secs = new Map();   // section id -> { c, sec, hd, st }
   function hostOf(key) {
+    if (key === '¶') return { el: paperHead, after: null };   // the whole paper: its head (the reader's notes on it)
     if (!key.startsWith('§')) return { el: unitEl.get(key), after: null };
     const s = secs.get(key.slice(1));
     return s ? { el: s.sec, after: s.hd } : null;
@@ -1775,6 +1777,7 @@
   // what a change of notes redraws: the units, their margin, the keyframes (which hold the marks)
   function notesChanged(uids) {
     for (const uid of new Set(uids)) {
+      if (uid === '¶') { renderNoteCards(uid); continue; }   // the whole paper: the notes on it, by its head
       if (uid.startsWith('§')) {   // a section: its heading's mark, its summary's marks, its margins
         const sc = secs.get(uid.slice(1));
         if (!sc) continue;
@@ -2030,7 +2033,7 @@
   // a question note is a conversation about its passage: every turn asked there, and a field to ask the next
   const turnsOf = (n) => n.thread || (n.ask ? [n.ask] : []);
   function openNote(n, draft = false, back = '') {   // back: a question stopped, in the field again to be put right
-    if (whole(n.anchor)) { openChat(n, back); return; }   // a conversation about the whole paper lives in the chat
+    if (whole(n.anchor) && n.kind === 'ask') { openChat(n, back); return; }   // a conversation about the whole paper lives in the chat
     const was = popNote && popNote.id === n.id && npop.querySelector('.np-input'), typed = was ? was.value : '';   // (drawn again: what is written stays)
     popNote = n; popDraft = draft;
     const t = T[ui], a = n.anchor, ask = n.kind === 'ask';
@@ -2046,7 +2049,7 @@
     }
     npop.innerHTML = `<div class="np-quote"><span class="np-where">${esc(whereA(a))}</span> ${esc(a.quote.exact.length > 160 ? a.quote.exact.slice(0, 157) + '…' : a.quote.exact)}` +
       `${ask ? `<span class="np-at">${esc(askedAt(a))}</span>` : ''}</div>${body}` +
-      (draft ? '' : `<div class="np-acts">${!ask ? `<button type="button" data-act="ask">${esc(t.n_ask)}</button>` : ''}` +
+      (draft ? '' : `<div class="np-acts">${!ask && !whole(a) ? `<button type="button" data-act="ask">${esc(t.n_ask)}</button>` : ''}` +
         `<button type="button" data-act="link">${esc(t.n_copy)}</button><button type="button" data-act="del">${esc(t.n_delete)}</button></div>`);
     texify(npop);
     npop.hidden = false;
@@ -2070,7 +2073,10 @@
   function closeNote() {
     if (!popNote) return;
     const field = npop.querySelector('.np-text');
-    if (field && !popDraft && field.value !== (popNote.text || '')) { clearTimeout(saveTimer); saveNote({ ...popNote, text: field.value }); }
+    if (popDraft) {   // (a draft let go with no words: not kept; one the debounce saved a moment ago is taken out again)
+      clearTimeout(saveTimer);
+      if ((!field || !field.value.trim()) && notes.some((x) => x.id === popNote.id)) deleteNote({ ...popNote, text: '' });
+    } else if (field && field.value !== (popNote.text || '')) { clearTimeout(saveTimer); saveNote({ ...popNote, text: field.value }); }
     popNote = null;
     if (npop.contains(document.activeElement)) document.activeElement.blur();   // the keys go back to the page
     npop.hidden = true;
@@ -2312,7 +2318,8 @@
   function renderNoteCards(key) {
     const list = notesOf.get(key) || [], t = T[ui], host = hostOf(key);
     if (!host || !host.el) return;
-    const mine = list.filter((n) => n.kind !== 'ask' && n.text && n.text.trim()), asks = list.filter((n) => n.kind === 'ask');
+    // (the conversations about the whole paper live in the chat: its head carries the reader's own notes alone)
+    const mine = list.filter((n) => n.kind !== 'ask' && n.text && n.text.trim()), asks = key === '¶' ? [] : list.filter((n) => n.kind === 'ask');
     const card = (n) => {
       const c = h('button', `ncard${n.kind === 'ask' ? ' ask' : ''}`);
       c.type = 'button';
@@ -2499,7 +2506,7 @@
       if (g && g !== sec) { sec = g; items += `<div class="nl-sec">${esc(g)}</div>`; }
       const body = k === 'ask'
         ? `<b>${esc((turns[0] || {}).q || '')}</b>${said ? `<span class="nl-a">${texLite(clipTex(said.takeaway, 120))}</span>` : ''}${a.quote.exact ? `<span class="nl-q">“${texLite(clipTex(a.quote.exact, 80))}”</span>` : ''}`
-        : k === 'note' ? `<span class="nl-t">${esc(clip(n.text.trim(), 150))}</span><span class="nl-q">“${texLite(clipTex(a.quote.exact, 80))}”</span>`
+        : k === 'note' ? `<span class="nl-t">${esc(clip(n.text.trim(), 150))}</span>${a.quote.exact ? `<span class="nl-q">“${texLite(clipTex(a.quote.exact, 80))}”</span>` : ''}`
         : `<span class="nl-hl">${texLite(clipTex(a.quote.exact, 150))}</span>`;
       const sure = nmSure === n.id;
       items += `<div class="nl-item ${k}" data-note="${esc(n.id)}"><button type="button" class="nl-go">${body}</button>` +
@@ -2507,7 +2514,8 @@
     }
     const tab = (f, label) => `<button type="button" class="nl-tab${nmFilter === f ? ' on' : ''}" data-f="${f}">${esc(label)}<em>${count[f]}</em></button>`;
     const list = nmenu.querySelector('.nl-list'), top = list ? list.scrollTop : 0;
-    nmenu.innerHTML = `<div class="nl-tabs">${tab('all', t.n_all)}${tab('hl', t.n_highlight)}${tab('note', t.n_note)}${tab('ask', t.n_ask)}</div>` +
+    nmenu.innerHTML = `<div class="nl-tabs">${tab('all', t.n_all)}${tab('hl', t.n_highlight)}${tab('note', t.n_note)}${tab('ask', t.n_ask)}` +
+      `<button type="button" class="nl-new" data-x="paper" title="${esc(t.n_paper_note_tip)}">＋ ${esc(t.n_paper_note)}</button></div>` +
       `<div class="nl-list">${items || `<div class="nm-note">${esc(t.n_none)}</div>`}</div>` +
       `<div class="nl-x"><button type="button" class="lm-item" data-x="save"><span>${esc(t.sv_more)}</span></button></div>` +
       (D.app ? '' : `<div class="nm-note">${esc(t.n_local)}</div>`);
@@ -2539,6 +2547,7 @@
     if (n) { nmenu.hidden = true; flyToNote(n); return; }
     if (nmSure) { nmSure = null; renderNotesMenu(); }
     if (e.target.closest('[data-x="save"]')) openSave();
+    if (e.target.closest('[data-x="paper"]')) { nmenu.hidden = true; newPaperNote(); }
   });
   // outside clicks close both menus even where a button stops the click from bubbling (the reading card's button does)
   addEventListener('click', (e) => {
@@ -2577,11 +2586,21 @@
   });
   // after any zoom under way (and a moment more)
   const afterZoom = (fn, wait = 0) => setTimeout(function tick() { if (busy) setTimeout(tick, 80); else fn(); }, wait);
+  // a note of the reader's own on the whole paper, not on a passage: written in a card by the paper's head (kept once
+  // it has words; an empty one goes when it closes)
+  function newPaperNote() {
+    if (popNote) closeNote();
+    scrollTo({ top: 0, behavior: 'smooth' });   // (the head opens the page)
+    const n = { id: noteId(), kind: 'note', text: '', thread: [],
+      anchor: { unit: null, section: null, on: 'paper', lang, level, tokens: null, sents: null, quote: { exact: '' } } };
+    afterZoom(() => openNote(n, true), 260);
+  }
   // a note from the list: the page flies to its passage (from the map, it first steps in to Key), opens the paragraph
   // to its full text in place where the zoom hides the passage, and opens the note there; Back returns
   function flyToNote(n) {
     const a = n.anchor, from = { y: scrollY, level, from: null };
-    if (whole(a)) { openChat(n); return; }
+    if (whole(a) && n.kind === 'ask') { openChat(n); return; }
+    if (whole(a)) { if (popNote) closeNote(); scrollTo({ top: 0, behavior: 'smooth' }); afterZoom(() => openNote(n), 260); return; }
     if (busy || !targetEl(a)) return;
     if (popNote) closeNote();
     const fly = () => {
@@ -4063,7 +4082,13 @@ math { font-size: 1.05em; }
     store.set(UI_KEY, code);
     if (AVAIL.includes(code) && code !== lang) setLang(code); else applyLang();
   }
-  window.__reader = { setLevel, setLang, setUi, get ui() { return ui; }, zoomBy, saveAs, jumpToEvidence,
+  // the name the reader gave the text in the library, changed while it is open: its head and the window's title follow
+  function rename(name) {
+    D.meta.name = name || undefined;
+    document.title = name || D.meta.title;
+    applyLang();
+  }
+  window.__reader = { setLevel, setLang, setUi, rename, get ui() { return ui; }, zoomBy, saveAs, jumpToEvidence,
     get langs() { return AVAIL; }, get meta() { return D.meta; }, get app() { return !!D.app; },
     get compared() { if (!cmp || !cmp.grams) return null; const ids = [...order.keys()]; return { units: ids.length, found: ids.filter((id) => locate(id)).length, words: cmp.words.length }; }, get level() { return level; }, get lang() { return lang; }, get pos() { return pos; },
     get staged() { return !!stage; }, get _caps() { return caps; }, get keyframes() { return caps.map((c) => (c ? c.P.size : 0)); },

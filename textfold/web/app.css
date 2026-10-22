@@ -90,8 +90,10 @@
 .sb-folder.shut:not(.found) .sb-fitems { display: none; }
 .sb-fempty { padding: 6px 9px 8px; font-size: 12.5px; color: var(--faint); }
 .sb-list.searching .sb-fempty { display: none; }
-.sb-fname-in { flex: 1; min-width: 0; height: 32px; margin: 2px 0; padding: 0 9px; font: 600 13px var(--sans); color: var(--ink); background: var(--card);
+.sb-fname-in, .sb-dname-in { flex: 1; min-width: 0; height: 32px; margin: 2px 0; padding: 0 9px; font: 600 13px var(--sans); color: var(--ink); background: var(--card);
   border: 1px solid var(--accent); border-radius: 8px; outline: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent); }
+/* a document's name in the library, written in its row */
+.sb-dname-in { display: block; width: 100%; height: 36px; font-weight: 550; font-size: 13.5px; }
 .sb-folder.drop { background: var(--accent-soft); box-shadow: inset 0 0 0 1.5px var(--accent); }
 .sb-folder.drop .sb-fhead:hover { background: none; }
 .sb-out { display: none; margin: 8px 0 4px; padding: 10px 9px; border: 1.5px dashed var(--line); border-radius: 9px; font-size: 12.5px; color: var(--muted); text-align: center; }

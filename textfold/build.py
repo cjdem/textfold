@@ -15,7 +15,7 @@ from pathlib import Path
 
 from PIL import Image
 
-from . import store
+from . import library, store
 from .fetch import fetch_images
 
 WEB = Path(__file__).resolve().parent / "web"   # the reader's pages, styles, scripts and vendor files
@@ -128,12 +128,15 @@ def page(doc, app=False, saved=None):
         if _has_tex(doc) or (saved and saved.get("notes")):   # (an answer's formulas need it too)
             head += _katex_inside()
             katex = "inside"
-    return (t.replace("{{TITLE}}", escape(doc["meta"]["title"])).replace("{{HEAD}}", head).replace("{{CLASS}}", cls)
+    return (t.replace("{{TITLE}}", escape(doc["meta"].get("name") or doc["meta"]["title"])).replace("{{HEAD}}", head).replace("{{CLASS}}", cls)
              .replace("{{SIDEBAR}}", side).replace("{{SCRIPTS}}", scripts).replace("{{DATA}}", payload(doc, app, katex, saved)))
 
 
 def export(pid):
     doc = store.assemble(pid)
+    name = library.name_of(pid)   # (the reader's name for it in the library, if they gave one)
+    if name:
+        doc["meta"]["name"] = name
     out = store.DATA / "out" / pid
     out.mkdir(parents=True, exist_ok=True)
     f = out / "index.html"
