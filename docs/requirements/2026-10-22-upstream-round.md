@@ -53,7 +53,7 @@
 |---|---|---|---|---|---|---|
 | R0 | 完成 | optimize | 移除 ChatGPT 本地桥；保留 OpenRouter 和普通 API providers | fork-specific | 无 | 中 |
 | R1 | 完成 | optimize | 本地服务器 Host 校验（DNS rebinding） | `4fee928` | 无 | 小 |
-| R2 | 待做 | optimize | 所有文本读写显式 UTF-8 | `c1b3fd3` | 无 | 中 |
+| R2 | 进行中 | optimize | 所有文本读写显式 UTF-8 | `c1b3fd3` | 无 | 中 |
 | R3 | 待做 | optimize | 旧 TextFold 的 GBK 库读一次并转 UTF-8 | `4f15560` | R2 | 中 |
 | R4 | 待做 | optimize | 只支持流式的 API 服务 | `8e7569b` | 无 | 中 |
 | R5 | 待做 | optimize | 模型回复的多种 JSON 形状 | `09e9d37` | 无 | 中 |
