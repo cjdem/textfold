@@ -64,7 +64,7 @@
 | R10 | 完成 | feature | 多文件导入：逐文件队列，不用 MinerU batch | `f0c731d` | R1–R9 | 中 |
 | R11 | 完成 | feature | 可配置 MinerU v4 base URL，默认官方 | `77a2344` | R10 后或并行 | 小 |
 | R12 | 完成 | feature | self-hosted V1 adapter（条件项） | fork-specific（不做） | R11；仅确有自部署时 | 大 |
-| R13 | 进行中 | feature | 中文 Brief 句子切分 | `770fb08` | R4/R5 之后 | 中 |
+| R13 | 完成 | feature | 中文 Brief 句子切分 | `770fb08` | R4/R5 之后 | 中 |
 | R14 | 待做 | feature | 中文五级折叠 | `4897e24` | R13 | 大 |
 | R15 | 待做 | optimize | CJK 规则只作用于中日文 | `6e2cada` | R14 | 中 |
 | R16 | 待做 | feature | Aa 菜单 + 缩放沙箱 font/width | `f76eb4d` + `c38804e` | R14/R15 之后 | 中 |
@@ -162,6 +162,7 @@
 | 2026-10-22 | R10 | feature | `f0c731d` | 284，OK | 两轮 + 一次窄复查：第一轮阻断（阅读页批量重画生成 toast，生成 watcher 在下次轮询抛错、watcher 不删除、侧栏不再更新）已改为独立 `fileToast`，并让生成 watcher 在 toast 被重画时重建自己的阶段/进度并把 toast 显示出来；第二轮发现单文件重试走了单文件路径（已改 `beginBatch`）、文本导入成功但生成调用失败后重试被当成“已添加”（重试时重新提交）、watcher 守卫未覆盖 `closable` 重画后缺进度条、批量文本超 JSON 上限报成 PDF 超 100 MB、重复兜底停止可能停掉别的标签页的 job（只停本页上传前不知道的 job）、`doc-` 前缀未钉（新增契约测试）、排队批次显示上一批进度（等待行）；窄复查确认无阻断，余下两项（上传期间别的页面新建的 job 不在快照里、重试文本可能多排一个 job）记入 Pitfalls | 浏览器逐文件上传到现有 `/api/files` 与 `/api/import`，每个文件一个 job，转换/生成队列各一次一个；最多 50 个；按内容 pid（SHA-256 前 16 位）在浏览器提前跳过重复，文本按导入 id 在导入后跳过；失败的上传/转换可从汇总重试；阅读页批量用独立 toast；侧栏逐文件进度/停止；MinerU 600 页/每天 2,000 页提示；未测 zoom 平滑度；记录见 `docs/changes/2026-10-22-multi-file-import.md` |
 | 2026-10-22 | R11 | feature | `77a2344` | 299，OK | 一轮 + 窄复查：无阻断。首轮发现手改孤立代理项让 `/api/models` 的 JSON 编码失败（已修：`status()` 替换不可编码字符）、非文本值被当成空/重置（已修：读拒绝、保存 400；文件里 null 仍视为没值）、记录里设置页圆点描述过时、旧需求文档仍像当前规则、测试数写错、poll 未覆盖、`https://@host` 被接受；窄复查确认七项已修，另修 null 文案与“代理项在路径末尾可被存成截断地址”（`base_ok` 连空的 `?`/`#` 也不收） | `mineru_api_url` 设置，默认 `https://mineru.net/api/v4`；`engine.base_ok` 校验/规范化（http(s)、host、无 query/fragment/登录信息/空白、去尾部 `/`）；非空不可用值在转换前以 `bad-mineru-url` 失败、不回退官方；`status()` 报 `base`/`official`/`baseOk` 且不抛；一次转换固定一个 base；`_put` 按签名 URL 的 scheme/port；设置页地址输入/保存/恢复官方；CLI 打印地址；只支持 v4，V1 留给 R12；未测真实自定义网关和 zoom 平滑度；记录见 `docs/changes/2026-10-22-mineru-base-url.md` |
 | 2026-10-22 | R12 | feature | —（不做） | — | — | 条件项评估后不做：本机没有 `mineru-kit`，也没有自部署 MinerU 的需求；R11 的 `mineru_api_url` 已覆盖 v4 兼容网关。按任务写明的“不做则保持 R11 的 v4-only”，未实现 `/v1/file_parse`、`/v1/tasks`、multipart、200 MiB/100 文件或 ZIP 输出映射。 | 无代码改动；`mineru-kit` 自部署仍不支持；确有需要时另开任务；R11 的地址设置保持。 |
+| 2026-10-22 | R13 | feature | `979c7ab` | 318，OK | 一轮 + 窄复查：首轮发现纯英文边界会因 ASCII `'` 与连续收尾符而改变（超过 12 句的英文段可能被切、后续 unit id 移动），以及 `cjk_heavy` 的“id 不移动”对混合段不成立——两条阻断；已改为按单元分派（无 CJK/。！？ 的单元走旧切分器），并修正文档、明确混合段“知情保留”；另修 guard 只数汉字（现随切分器含假名）、空 ladder 回退本地层、长段测试未钉 id；窄复查确认两条阻断已解，30k 纯 ASCII fuzz 与 main 0 差异，无新问题 | 含 CJK 或 。！？ 的单元按 。！？ 切句；纯英文单元仍走旧切分器（句号、编号、分段不变）；长 CJK 段不切块（提前取 `4897e24` 的 `cjk_heavy`，R14 不再取该 hunk）；`full` 改为单元原文，中文 Full 不再插入空格；`apply_en` 丢弃越界 evidence 并以首句回退；混合中英文段落仍可能改变分段（知情保留，重新生成）；未测 zoom 平滑度；记录见 `docs/changes/2026-10-22-chinese-brief.md` |
 
 ## 停止条件
 
