@@ -46,7 +46,8 @@
   border-radius: 8px; padding: 8px 10px; margin: 10px 0; }
 .cp-linkbtn { font: 600 11.5px var(--sans); color: var(--accent); background: none; border: 0; border-bottom: 1px solid currentColor;
   padding: 0 1px; margin-left: 4px; cursor: pointer; }
-@media (prefers-color-scheme: dark) { .cp-bad { color: #f3b3b3; background: #3b2222; } }
+@media (prefers-color-scheme: dark) { :root:not([data-theme]) .cp-bad { color: #f3b3b3; background: #3b2222; } }
+@media screen { :root[data-theme="dark"] .cp-bad { color: #f3b3b3; background: #3b2222; } }
 .cp-start, .cp-actions { display: flex; align-items: end; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin: 16px 0 10px; }
 .cp-start-acts, .cp-cand-acts { display: flex; gap: 8px; flex-wrap: wrap; }
 .cp-lang { display: flex; flex-direction: column; gap: 4px; font-size: 11.5px; color: var(--muted); }
@@ -73,7 +74,8 @@ button.cp-primary:hover { background: var(--accent-deep); color: #fff; }
 .cp-save .cp-err { color: #9c2f2f; }
 .cp-save .cp-ok { color: #2f7a4a; }
 .cp-save .cp-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); animation: cardpulse 1.1s infinite; }
-@media (prefers-color-scheme: dark) { .cp-save .cp-err { color: #f3b3b3; } .cp-save .cp-ok { color: #8bd3a9; } }
+@media (prefers-color-scheme: dark) { :root:not([data-theme]) .cp-save .cp-err { color: #f3b3b3; } :root:not([data-theme]) .cp-save .cp-ok { color: #8bd3a9; } }
+@media screen { :root[data-theme="dark"] .cp-save .cp-err { color: #f3b3b3; } :root[data-theme="dark"] .cp-save .cp-ok { color: #8bd3a9; } }
 .cp-sec { margin: 22px 0 8px; }
 .cp-sec > h3 { font: 700 14.5px/1.3 var(--sans); color: var(--ink); margin: 0 0 3px; }
 .cp-hint { font-size: 12px; color: var(--muted); margin: 0 0 10px; }
@@ -93,8 +95,12 @@ button.cp-primary:hover { background: var(--accent-deep); color: #fff; }
 .ci-checked { color: #2f7a4a; background: #e4f3ea; }
 .ci-recheck { color: var(--hl-ink); background: color-mix(in srgb, var(--hl) 20%, transparent); }
 @media (prefers-color-scheme: dark) {
-  .ci-state.check { color: #f0bf7c; background: #3a2c19; }
-  .ci-checked { color: #8bd3a9; background: #1f3529; }
+  :root:not([data-theme]) .ci-state.check { color: #f0bf7c; background: #3a2c19; }
+  :root:not([data-theme]) .ci-checked { color: #8bd3a9; background: #1f3529; }
+}
+@media screen {
+  :root[data-theme="dark"] .ci-state.check { color: #f0bf7c; background: #3a2c19; }
+  :root[data-theme="dark"] .ci-checked { color: #8bd3a9; background: #1f3529; }
 }
 .ci-acts { margin-left: auto; display: flex; gap: 2px; }
 .ci-acts button { font: 600 12px var(--sans); color: var(--muted); background: none; border: 0; border-radius: 6px;
@@ -109,9 +115,11 @@ button.cp-primary:hover { background: var(--accent-deep); color: #fff; }
 .ci-tools label { display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--muted); }
 .ci-tools select { width: auto; padding: 4px 7px; font-size: 12px; }
 .ci-checkbtn.on { color: #2f7a4a; border-color: color-mix(in srgb, #2f7a4a 45%, var(--line)); background: #e4f3ea; }
-@media (prefers-color-scheme: dark) { .ci-checkbtn.on { color: #8bd3a9; background: #1f3529; } }
+@media (prefers-color-scheme: dark) { :root:not([data-theme]) .ci-checkbtn.on { color: #8bd3a9; background: #1f3529; } }
+@media screen { :root[data-theme="dark"] .ci-checkbtn.on { color: #8bd3a9; background: #1f3529; } }
 .ci-issue { font-size: 11.5px; color: #9c5a12; margin-top: 6px; }
-@media (prefers-color-scheme: dark) { .ci-issue { color: #f0bf7c; } }
+@media (prefers-color-scheme: dark) { :root:not([data-theme]) .ci-issue { color: #f0bf7c; } }
+@media screen { :root[data-theme="dark"] .ci-issue { color: #f0bf7c; } }
 .ci-ev { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 9px; }
 .ci-ev-h { font: 600 10.5px var(--sans); color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
 .ci-none { font-size: 11.5px; color: var(--muted); font-style: italic; }

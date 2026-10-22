@@ -126,6 +126,19 @@ the author's words (serif or sans-serif; the written levels stay sans and are to
 own `:host { --fs: 1 }` would otherwise override), or the last frame of a zoom would sit apart from the page it gave
 way to. A printed page is the usual size: the print rule resets `--fs` and the column with `!important`.
 
+The Aa menu also sets the light: light, dark or the system's, and a style (the default, or paper, the warm unbleached
+page), two choices that combine — each style has its light and its dark — as `html[data-theme]` and
+`html[data-style]`; and the line spacing (tight, standard, loose: `--lh`, which multiplies the line-height of the
+levels' text, a section's line and figure captions; a print uses the standard spacing). The app reads the same stored
+choice before the reader is built on the landing (`app.js`), so the sidebar and the landing take the chosen brightness
+too. Beside it the menu offers focus (`F`, or `Esc` to leave): the top bar, the zoom bar, the sidebar and the chat move
+off the page and come back while the pointer is at their edge.
+
+The reader keeps where a text was being read — the paragraph at the reading line and the level, in `localStorage`
+`textfold.pos`, for the last 300 texts — and comes back there when the text is opened again without a place in its
+link, saying so with a word over the page and offering the beginning; a 2px line under the top bar shows how far in
+the text it is. A link that names a place (`#u=`, `#n=`, `#b=`, `#level=`) wins over the stored place.
+
 A Chinese document's folded levels leave out what is not argument: an apparatus line (a contents line, a footnote)
 exists only at Full, and a background unit whose takeaway stepped down is read at Brief and Key but not at Takeaway or
 Topic. A sentence a page break cut in half is joined at its first word. `ladder.dress` writes the join into the layer

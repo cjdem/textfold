@@ -152,10 +152,18 @@ window.DR_I18N = (() => {
   // the type's menu in the reader (Aa): the size, the column's width, the font of the author's words
   const tys = (w) => ({ ty_title: w[0], ty_size: w[1], ty_smaller: w[2], ty_larger: w[3], ty_usual: w[4], ty_width: w[5], ty_narrow: w[6], ty_standard: w[7], ty_wide: w[8], ty_font: w[9], ty_serif: w[10], ty_sans: w[11], ty_reset: w[12] });
   const TY = {
-    en: tys(["Text size, width and font", "Size", "Smaller", "Larger", "The usual size", "Width", "Narrow", "Standard", "Wide", "Font", "Serif", "Sans-serif", "Reset"]),
-    zh: tys(["字号、栏宽和字体", "字号", "缩小", "放大", "默认大小", "栏宽", "窄", "标准", "宽", "字体", "衬线", "无衬线", "恢复默认"]),
+    en: tys(["Reading appearance", "Size", "Smaller", "Larger", "The usual size", "Width", "Narrow", "Standard", "Wide", "Font", "Serif", "Sans-serif", "Reset"]),
+    zh: tys(["阅读外观", "字号", "缩小", "放大", "默认大小", "栏宽", "窄", "标准", "宽", "字体", "衬线", "无衬线", "恢复默认"]),
   };
   for (const [code, words] of Object.entries(TY)) Object.assign(S[code], words);
+  // the reader's brightness and style, line spacing and focus (Aa), and where a text was left
+  const rds = (w) => ({ ty_mode: w[0], ty_style: w[1], ty_auto: w[2], ty_light: w[3], ty_dark: w[4], ty_default: w[5], ty_paper: w[6], ty_lead: w[7], ty_tight: w[8], ty_loose: w[9], ty_focus: w[10], focus_on: w[11], pos_back: w[12], pos_top: w[13] });
+  const RDS = {
+    en: rds(["Appearance", "Style", "Auto", "Light", "Dark", "Default", "Paper", "Line spacing", "Tight", "Loose", "Focus", "Focus: press F or Esc to leave", "Back where you left off", "From the start"]),
+    zh: rds(["明暗", "风格", "跟随系统", "浅色", "深色", "默认", "纸张", "行距", "紧凑", "宽松", "专注模式", "专注模式：按 F 或 Esc 退出", "回到了上次读到的地方", "从头读"]),
+  };
+  for (const [code, words] of Object.entries(RDS)) Object.assign(S[code], words);
+  for (const [code, w] of Object.entries({ en: "Leave focus", zh: "退出专注" })) S[code].ty_focus_off = w;
   // the reading card (card.js, cards.py): four sections of points, each with the passage that supports it
   const CARD = {
     en: {

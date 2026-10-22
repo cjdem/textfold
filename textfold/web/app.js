@@ -8,6 +8,14 @@
   const readerEl = document.getElementById('paper-data');
   const PAPER = readerEl ? JSON.parse(readerEl.textContent).meta : null;   // the paper open in the reader, if any
   const store = { get(k) { try { return localStorage.getItem(k); } catch { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch { /* private window */ } } };
+  // the brightness and the style chosen in a paper's Aa menu (reader.js, textfold.type), on the landing too (the reader
+  // reads the older `theme` names as mode/style; so does this)
+  try {
+    const v = JSON.parse(store.get('textfold.type') || 'null') || {}, r = document.documentElement;
+    const mode = ['light', 'dark'].includes(v.mode) ? v.mode : ['light', 'dark'].includes(v.theme) ? v.theme : null;
+    if (mode) r.dataset.theme = mode;
+    if (v.style === 'paper' || v.theme === 'paper') r.dataset.style = 'paper';
+  } catch { /* (written by hand) */ }
   const SHORT = { en: 'EN', zh: '中' };
   const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const h = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
