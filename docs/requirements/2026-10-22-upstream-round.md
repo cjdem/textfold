@@ -61,7 +61,7 @@
 | R7 | 完成 | optimize | EPUB 章节先解码再解析 | `13d7794` | 无 | 小 |
 | R8 | 完成 | optimize | 翻译漏段重试（只取 `d457cfa` 的翻译部分） | `d457cfa` | 无 | 中 |
 | R9 | 完成 | optimize | 应用 payload 带 Anthropic SDK | `f260244` | 无 | 小 |
-| R10 | 进行中 | feature | 多文件导入：逐文件队列，不用 MinerU batch | `523e5f4` | R1–R9 | 中 |
+| R10 | 完成 | feature | 多文件导入：逐文件队列，不用 MinerU batch | `f0c731d` | R1–R9 | 中 |
 | R11 | 待做 | feature | 可配置 MinerU v4 base URL，默认官方 | fork-specific | R10 后或并行 | 小 |
 | R12 | 待做 | feature | self-hosted V1 adapter（条件项） | fork-specific | R11；仅确有自部署时 | 大 |
 | R13 | 待做 | feature | 中文 Brief 句子切分 | `770fb08` | R4/R5 之后 | 中 |
@@ -159,6 +159,7 @@
 | 2026-10-22 | R7 | optimize | `6606177` | 269，OK | 三轮：第一轮否决一行移植（head title 进正文、声明编码/UTF-16 读错）；第二轮发现标准 `encoding=` 声明让 lxml 拒绝整章、长注释绕过文档判断；第三轮只余措辞；无阻断发现 | 章节按 BOM、XML 声明或 meta charset 解码再解析；`_fragment` 先剥声明/注释/处理指令再判断整篇文档，head title 不进正文；SVG 章节保留文字；空章节跳过（以前整本 bad-file）；已转换的旧 EPUB 重新转换会丢层；未触及阅读器，zoom 平滑度未测 |
 | 2026-10-22 | R8 | optimize | `c6e6b4b` | 282，OK | 一轮长审查 + 一次窄复查：阻断项是单节文档“所有首轮调用失败”时在重试前就抛出（已改为先重试、两轮都失败才抛，并加测试）；高优先项是重试可能读回同一提示下缓存的漏段回复（已改为重试 `force=True` 真问模型）；其余（force 会用带缺口的层覆盖完整层、fill 全失败会让 job 失败而 also_zh 只记日志、`Jobs._same` 不看 force、单字母段落不算缺口）记入记录；窄复查确认修复正确、无新阻断 | 只取 `d457cfa` 的翻译部分：构建时漏段/失败调用立刻补问，存储层记录 `meta.gaps` 并在下次生成或打开该语言时只补缺口；阅读器显示“N 段未译”，应用打开时自动补译（每标签页每计数一次）；R5 的“失败 part 不保存”改为“带缺口保存后补齐”；`assemble` 的 takeaway 回退；未测 zoom 平滑度；记录见 `docs/changes/2026-10-22-translation-gaps.md` |
 | 2026-10-22 | R9 | optimize | `adac02e` | 282，OK；`go test ./...` 4 包 OK | 无阻断：verifier 在现有 payload 的 CPython 3.12 副本上跑了真实安装和最终 import 检查（`payload ok 1.17.0`）；指出 Go 测试过脆（已改成正则并钉住 `-s`/`app/`）、“应用没有 pip”说法不实（payload 带 pip 26.2.2，只是应用没有运行它的途径；已改文案）、包数与体积（+42 MB，已记）；`pyproject.toml` 的 `anthropic` extra 未钉版本属既有漂移，记入 Pitfalls | 只改 MyGo payload：`prepare-payload.mjs` 安装 `anthropic>=1.15,<2` 并在构建时 import 检查；`app/requirements.txt`、README、DEVELOPMENT 更新；新增 Go 测试钉住安装/检查契约；未照搬 Electron 文件；未重建完整 payload/安装包，未调用真实 Anthropic API；记录见 `docs/changes/2026-10-22-anthropic-sdk-payload.md` |
+| 2026-10-22 | R10 | feature | `f0c731d` | 284，OK | 两轮 + 一次窄复查：第一轮阻断（阅读页批量重画生成 toast，生成 watcher 在下次轮询抛错、watcher 不删除、侧栏不再更新）已改为独立 `fileToast`，并让生成 watcher 在 toast 被重画时重建自己的阶段/进度并把 toast 显示出来；第二轮发现单文件重试走了单文件路径（已改 `beginBatch`）、文本导入成功但生成调用失败后重试被当成“已添加”（重试时重新提交）、watcher 守卫未覆盖 `closable` 重画后缺进度条、批量文本超 JSON 上限报成 PDF 超 100 MB、重复兜底停止可能停掉别的标签页的 job（只停本页上传前不知道的 job）、`doc-` 前缀未钉（新增契约测试）、排队批次显示上一批进度（等待行）；窄复查确认无阻断，余下两项（上传期间别的页面新建的 job 不在快照里、重试文本可能多排一个 job）记入 Pitfalls | 浏览器逐文件上传到现有 `/api/files` 与 `/api/import`，每个文件一个 job，转换/生成队列各一次一个；最多 50 个；按内容 pid（SHA-256 前 16 位）在浏览器提前跳过重复，文本按导入 id 在导入后跳过；失败的上传/转换可从汇总重试；阅读页批量用独立 toast；侧栏逐文件进度/停止；MinerU 600 页/每天 2,000 页提示；未测 zoom 平滑度；记录见 `docs/changes/2026-10-22-multi-file-import.md` |
 
 ## 停止条件
 
