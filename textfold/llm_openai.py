@@ -4,11 +4,16 @@ compatible layer, MiniMax, a local Ollama, or a custom one (the providers of Tho
 Not every provider honours a JSON schema, so the schema rides in the prompt and JSON mode is asked for;
 a provider that rejects JSON mode is asked again without it.
 
+A service that answers only streamed (server-sent events) is read too: a reply that comes as a stream is joined into
+one, and a service that refuses a request not streamed is asked again with "stream": true. Every other endpoint gets
+the requests it got before: the stream is asked for only after it refused them.
+
 A reasoning level (spec["effort"]: off, low, medium, high; None for the model's own) is spelled the way each provider
 documents it. These spellings change as APIs change, so none of them is relied on: a request a provider refuses is
 sent again the next way, and last with no reasoning field at all, which every endpoint takes. The way that worked is
 remembered for the rest of the run.
 """
+import http.client
 import json
 import re
 import time
@@ -23,7 +28,56 @@ WAITS = (5, 15, 30, 45)   # seconds before asking again when rate-limited (free 
 def _post(url, body, headers, timeout):
     req = urllib.request.Request(url, data=json.dumps(body).encode(), headers=headers)
     with urllib.request.urlopen(req, timeout=timeout) as r:
-        return json.loads(r.read())
+        kind = r.headers.get("Content-Type") or ""
+        raw = r.read()
+    if "text/event-stream" in kind or raw.lstrip(b"\xef\xbb\xbf \t\r\n").startswith(b"data:"):
+        return _events(raw)   # (streamed, asked for or not)
+    return json.loads(raw)
+
+
+def _events(raw):
+    """A streamed reply (data: {chunk} lines, data: [DONE] last) as one chat completion: the pieces of its first
+    choice joined, its usage if a chunk carries one. A chunk that is only an error is given back as it came."""
+    text, usage = [], None
+    # (utf-8-sig: a stream may open with a byte-order mark; not splitlines: a reply may hold U+2028)
+    for line in raw.decode("utf-8-sig", errors="replace").split("\n"):
+        line = line.strip()
+        if not line.startswith("data:"):
+            continue
+        data = line[5:].strip()
+        if data == "[DONE]":
+            break
+        try:
+            chunk = json.loads(data)
+        except (ValueError, RecursionError):
+            continue
+        if not isinstance(chunk, dict):
+            continue
+        if chunk.get("error") and not chunk.get("choices"):
+            return chunk
+        usage = chunk.get("usage") or usage
+        for c in chunk.get("choices") or []:
+            if not isinstance(c, dict) or c.get("index", 0) != 0:
+                continue
+            part = c.get("delta") or c.get("message") or {}
+            piece = part.get("content") if isinstance(part, dict) else None
+            if isinstance(piece, list):
+                piece = "".join(str(p.get("text") or "") if isinstance(p, dict) else str(p)
+                                for p in piece if p is not None)
+            if isinstance(piece, str):
+                text.append(piece)
+    return {"choices": [{"message": {"content": "".join(text)}}], **({"usage": usage} if usage else {})}
+
+
+def _said(e, n=300):
+    """A failed response's first bytes as text. A body that is slow, truncated, absent or already closed must not
+    raise here: the reply's status is what matters, and the body only says why."""
+    try:
+        return e.read(n).decode(errors="replace")
+    except (OSError, ValueError, http.client.HTTPException) as exc:   # (ValueError: a response read once already)
+        return getattr(exc, "partial", b"").decode(errors="replace")
+    finally:
+        e.close()
 
 
 def reasoning(base, level):
@@ -66,28 +120,44 @@ def call(prompt, schema, spec, system, timeout):
         headers["X-Title"] = "TextFold"
     ways = reasoning(base, level)
     key = (base, spec["model"], level)
-    shapes = [(r, jm) for r in ways for jm in (True, False)]   # each reasoning shape with JSON mode, then without
+    shapes = [(r, jm, False) for r in ways for jm in (True, False)]   # each reasoning shape with JSON mode, then without
+    streamed = len(shapes)
+    shapes += [({}, jm, True) for jm in (True, False)]   # last, for a service that answers only streamed: the plain request
     start = _WORKED.get(key, 0)
     last, busy = None, 0
     i = start
     while i < len(shapes):
-        r, jm = shapes[i]
+        r, jm, st = shapes[i]
         try:
-            d = _post(f"{base}/chat/completions", {**body, **r, **({"response_format": {"type": "json_object"}} if jm else {})}, headers, timeout)
+            d = _post(f"{base}/chat/completions", {**body, **r, **({"response_format": {"type": "json_object"}} if jm else {}),
+                                                   **({"stream": True} if st else {})}, headers, timeout)
         except urllib.error.HTTPError as e:
             last = e
             if e.code in (429, 502, 503, 529) and busy < len(WAITS):   # rate-limited or busy: wait, then the same again
                 after = e.headers.get("Retry-After") if e.headers else None
+                e.close()   # (the body is not read: a slow or truncated one must not delay the retry)
                 time.sleep(min(60, float(after)) if after and after.replace(".", "", 1).isdigit() else WAITS[busy])
                 busy += 1
                 continue
             if e.code in (400, 404, 415, 422) and i + 1 < len(shapes):   # this shape refused: the next one
-                i += 1
+                said = _said(e)
+                # (a service that takes only a stream says so: straight to the streamed requests)
+                i = streamed if i < streamed and "stream" in said.lower() else i + 1
                 continue
-            raise RuntimeError(f"{spec.get('provider') or base}: HTTP {e.code} {e.read()[:300].decode(errors='replace')}")
+            raise RuntimeError(f"{spec.get('provider') or base}: HTTP {e.code} {_said(e)}")
         except urllib.error.URLError as e:
             raise RuntimeError(f"{spec.get('provider') or base}: {e.reason}")
-        text = (d.get("choices") or [{}])[0].get("message", {}).get("content") or ""
+        choices = d.get("choices") if isinstance(d, dict) else None
+        first = choices[0] if isinstance(choices, list) and choices else None
+        if not isinstance(first, dict):   # not a completion: an error sent with HTTP 200 (a stream's error chunk, say)
+            last = RuntimeError(f"{spec.get('provider') or base}: not a chat completion: "
+                                f"{str((d.get('error') or d.get('detail') or d) if isinstance(d, dict) else d)[:300]}")
+            if i + 1 < len(shapes):
+                i += 1
+                continue
+            raise last
+        msg = first.get("message")
+        text = (msg.get("content") if isinstance(msg, dict) else msg if isinstance(msg, str) else "") or ""
         text = re.sub(r"^```(?:json)?\s*|\s*```$", "", text.strip())
         m = re.search(r"\{.*\}", text, re.S)
         if not m and i + 1 < len(shapes) and r:   # an answer left in the reasoning, none in the reply: ask the plain way
