@@ -59,18 +59,20 @@
   D.chunks.forEach((c) => c.units.forEach((uid) => { chunkOf[uid] = c; }));
   const store = { get(k) { try { return localStorage.getItem(k); } catch { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch { /* private window */ } } };
   // the type as this reader likes it, for every text (kept in this browser): its size, the column's width, the font
-  // of the author's words, the colours and the line spacing (reader.css: --fs, html[data-width], html[data-font];
+  // of the author's words, the margins hidden, the colours and the line spacing (reader.css: --fs, html[data-width],
+  // html[data-font], html[data-hide]: the conversations on the right, the reader's notes on the left;
   // html[data-theme]: light or dark, the system's when none, and html[data-style]: the colours of either, the
   // default's when none; --lh); set before anything is drawn, and changed from the Aa menu beside the language's
   const TYPE_KEY = 'textfold.type';
-  const SIZES = [0.86, 0.93, 1, 1.08, 1.16, 1.25, 1.35], WIDTHS = ['narrow', 'standard', 'wide'];
+  const SIZES = [0.86, 0.93, 1, 1.08, 1.16, 1.25, 1.35], WIDTHS = ['narrow', 'standard', 'wide'], MARGINS = ['asks', 'notes'];
   const MODES = ['auto', 'light', 'dark'], STYLES = ['default', 'paper'], LEADS = { tight: 0.9, standard: 1, loose: 1.15 };
-  const TYPE0 = { size: 1, width: 'standard', font: 'serif', mode: 'auto', style: 'default', lead: 'standard' };
+  const TYPE0 = { size: 1, width: 'standard', font: 'serif', hide: [], mode: 'auto', style: 'default', lead: 'standard' };
   let type = (() => {
     let v = null;
     try { v = JSON.parse(store.get(TYPE_KEY) || 'null'); } catch { /* (written by hand) */ }
     if (!v || typeof v !== 'object') return { ...TYPE0 };
     return { size: SIZES.includes(v.size) ? v.size : 1, width: WIDTHS.includes(v.width) ? v.width : 'standard', font: v.font === 'sans' ? 'sans' : 'serif',
+      hide: Array.isArray(v.hide) ? MARGINS.filter((k) => v.hide.includes(k)) : [],
       mode: MODES.includes(v.mode) ? v.mode : MODES.includes(v.theme) ? v.theme : 'auto',   // (theme: a demo's name for it)
       style: STYLES.includes(v.style) ? v.style : v.theme === 'paper' ? 'paper' : 'default', lead: LEADS[v.lead] ? v.lead : 'standard' };
   })();
@@ -79,6 +81,7 @@
     if (type.size === 1) r.style.removeProperty('--fs'); else r.style.setProperty('--fs', String(type.size));
     if (type.width === 'standard') delete r.dataset.width; else r.dataset.width = type.width;
     if (type.font === 'serif') delete r.dataset.font; else r.dataset.font = type.font;
+    if (type.hide.length) r.dataset.hide = type.hide.join(' '); else delete r.dataset.hide;
     if (type.mode === 'auto') delete r.dataset.theme; else r.dataset.theme = type.mode;
     if (type.style === 'default') delete r.dataset.style; else r.dataset.style = type.style;
     if (type.lead === 'standard') r.style.removeProperty('--lh'); else r.style.setProperty('--lh', String(LEADS[type.lead]));
@@ -958,10 +961,10 @@
   }
   function mirrorLang() { zhost.setAttribute('lang', document.documentElement.lang); zhost.dataset.lang = lang; }
   // and the type's (applyType): the sandbox lays a level out with the page's rules for them (a sans-serif paragraph is
-  // smaller); without them the last frame of a zoom sat apart from the page it gave way to
+  // smaller), and a margin the page hides stays hidden there, so at the narrow and compare widths both lay out alike
   function mirrorType() {
     const r = document.documentElement;
-    for (const k of ['font', 'width', 'theme', 'style']) { if (r.dataset[k]) zhost.dataset[k] = r.dataset[k]; else delete zhost.dataset[k]; }
+    for (const k of ['font', 'width', 'hide', 'theme', 'style']) { if (r.dataset[k]) zhost.dataset[k] = r.dataset[k]; else delete zhost.dataset[k]; }
     for (const k of ['app', 'compare']) zhost.classList.toggle(k, r.classList.contains(k));   // the page's own column cap
     // the size is an inline --fs on <html>; the sandbox's copy of the sheet has :host { --fs: 1 }, which would otherwise
     // win over the inherited value, and every level but the current one would be laid out at 100%
@@ -2375,7 +2378,7 @@
   typeMenu.hidden = true;
   typeMenu.setAttribute('role', 'dialog');
   typePick.append(typeBtn, typeMenu);
-  const isType0 = () => type.size === TYPE0.size && type.width === TYPE0.width && type.font === TYPE0.font
+  const isType0 = () => type.size === TYPE0.size && type.width === TYPE0.width && type.font === TYPE0.font && !type.hide.length
     && type.mode === TYPE0.mode && type.style === TYPE0.style && type.lead === TYPE0.lead;
   function renderTypeMenu() {
     const t = T[ui], k = SIZES.indexOf(type.size);
@@ -2391,6 +2394,8 @@
       `<div class="ty-row"><span class="ty-l">${esc(t.ty_font)}</span>${seg('font', ['serif', 'sans'], [t.ty_serif, t.ty_sans])}</div>` +
       `<div class="ty-row"><span class="ty-l">${esc(t.ty_lead)}</span>${seg('lead', Object.keys(LEADS), [t.ty_tight, t.ty_standard, t.ty_loose])}</div>` +
       `<div class="ty-row ty-wrow"><span class="ty-l">${esc(t.ty_width)}</span>${seg('width', WIDTHS, [t.ty_narrow, t.ty_standard, t.ty_wide])}</div>` +
+      `<div class="ty-row"><span class="ty-l">${esc(t.ty_margin)}</span><div class="ty-seg ty-checks" role="group" aria-label="${esc(t.ty_margin)}">` +
+      MARGINS.map((k) => `<button type="button" aria-pressed="${!type.hide.includes(k)}" data-margin="${k}">${esc(t[`ty_m_${k}`])}</button>`).join('') + '</div></div>' +
       `<div class="ty-foot"><button type="button" class="ty-focus" data-focus="1">${esc(focusOn ? t.ty_focus_off : t.ty_focus)}<kbd>F</kbd></button>` +
       `<button type="button" class="ty-reset"${isType0() ? ' hidden' : ''}>${esc(t.ty_reset)}</button></div>`;
   }
@@ -2422,10 +2427,11 @@
     else if (b.dataset.style) setType({ style: b.dataset.style });
     else if (b.dataset.lead) setType({ lead: b.dataset.lead });
     else if (b.dataset.focus) { closeTypeMenu(); setFocus(!focusOn); return; }
+    else if (b.dataset.margin) { const k = b.dataset.margin; setType({ hide: MARGINS.filter((x) => (x === k) !== type.hide.includes(x)) }); }
     else setType({ ...TYPE0 });
     // drawn anew: the key that was pressed keeps the focus (the reset, gone: the first)
     const sel = b.dataset.step ? `[data-step="${b.dataset.step}"]` : b.dataset.width ? `[data-width="${b.dataset.width}"]` : b.dataset.font ? `[data-font="${b.dataset.font}"]`
-      : b.dataset.mode ? `[data-mode="${b.dataset.mode}"]` : b.dataset.style ? `[data-style="${b.dataset.style}"]` : b.dataset.lead ? `[data-lead="${b.dataset.lead}"]` : null;
+      : b.dataset.margin ? `[data-margin="${b.dataset.margin}"]` : b.dataset.mode ? `[data-mode="${b.dataset.mode}"]` : b.dataset.style ? `[data-style="${b.dataset.style}"]` : b.dataset.lead ? `[data-lead="${b.dataset.lead}"]` : null;
     renderTypeMenu();
     const again = (sel && typeMenu.querySelector(sel)) || typeMenu.querySelector('button');
     if (again && !again.disabled) again.focus(); else typeMenu.querySelector('.ty-pct').focus();

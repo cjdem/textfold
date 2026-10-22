@@ -127,17 +127,19 @@ size in seven steps from 86% to 135% (the whole column scales with it, so a line
 width (narrow, standard, wide, capped so the margins keep the notes their room: `--colw`, `--colmax`) and the font of
 the author's words (serif or sans-serif; the written levels stay sans and are told by colour and size). It is CSS's
 `--fs`, `html[data-width]` and `html[data-font]`; the zoom's sandbox, whose copy of the sheet rewrites `html[…]` to
-`:host(…)`, is given the font, width and size too (`mirrorType`; the size is an inline `--fs`, which the sandbox's
-own `:host { --fs: 1 }` would otherwise override), or the last frame of a zoom would sit apart from the page it gave
-way to. A printed page is the usual size: the print rule resets `--fs` and the column with `!important`.
+`:host(…)`, is given the font, width, hidden margins and size too (`mirrorType`; the size is an inline `--fs`, which
+the sandbox's own `:host { --fs: 1 }` would otherwise override), or the last frame of a zoom would sit apart from the
+page it gave way to. A printed page is the usual size: the print rule resets `--fs` and the column with `!important`.
 
 The Aa menu also sets the light: light, dark or the system's, and a style (the default, or paper, the warm unbleached
 page), two choices that combine — each style has its light and its dark — as `html[data-theme]` and
 `html[data-style]`; and the line spacing (tight, standard, loose: `--lh`, which multiplies the line-height of the
 levels' text, a section's line and figure captions; a print uses the standard spacing). The app reads the same stored
 choice before the reader is built on the landing (`app.js`), so the sidebar and the landing take the chosen brightness
-too. Beside it the menu offers focus (`F`, or `Esc` to leave): the top bar, the zoom bar, the sidebar and the chat move
-off the page and come back while the pointer is at their edge.
+too. The menu also shows or hides a margin: the conversations on the right, the reader's own notes on the left
+(`html[data-hide~="asks"]`, `[data-hide~="notes"]`; this fork no longer draws the argument links upstream also had, so
+there is no third). Beside it the menu offers focus (`F`, or `Esc` to leave): the top bar, the zoom bar, the sidebar and
+the chat move off the page and come back while the pointer is at their edge.
 
 The reader keeps where a text was being read — the paragraph at the reading line and the level, in `localStorage`
 `textfold.pos`, for the last 300 texts — and comes back there when the text is opened again without a place in its

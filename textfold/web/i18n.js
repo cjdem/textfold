@@ -156,6 +156,14 @@ window.DR_I18N = (() => {
     zh: tys(["阅读外观", "字号", "缩小", "放大", "默认大小", "栏宽", "窄", "标准", "宽", "字体", "衬线", "无衬线", "恢复默认"]),
   };
   for (const [code, words] of Object.entries(TY)) Object.assign(S[code], words);
+  // the margins, in the same menu: the conversations on the right, the reader's own notes on the left, each shown or
+  // hidden (the argument links upstream also has were removed from this reader, so there is no third)
+  const tym = (w) => ({ ty_margin: w[0], ty_m_asks: w[1], ty_m_notes: w[2] });
+  const TYM = {
+    en: tym(["Margins", "AI answers", "My notes"]),
+    zh: tym(["页边", "AI 问答", "我的笔记"]),
+  };
+  for (const [code, words] of Object.entries(TYM)) Object.assign(S[code], words);
   // Topic as cards or as a mind map (beside the zoom bar), and the map's own buttons
   const tvs = (w) => ({ tv_label: w[0], tv_cards: w[1], tv_map: w[2], mm_all: w[3], mm_secs: w[4], mm_hint: w[5] });
   const TV = {

@@ -37,11 +37,11 @@ class TypeMenu(unittest.TestCase):
 
     def test_every_word_the_menu_uses_exists(self):
         used = set(re.findall(r"\bt\.(ty_\w+)", text("reader.js")))
-        used |= {"ty_width", "ty_font"}   # (chosen by name: t[`ty_${key}`] in renderTypeMenu)
+        used |= {"ty_width", "ty_font", "ty_m_asks", "ty_m_notes"}   # (chosen by name: t[`ty_${key}`], t[`ty_m_${k}`])
         js = text("i18n.js")
         defined = set(self.keys())
-        defined |= set(re.findall(r"(ty_\w+): w\[\d+\]",
-                                  re.search(r"const rds = \(w\) => \(\{(.*?)\}\);", js, re.S).group(1)))
+        for block in ("const rds = ", "const tym = "):
+            defined |= set(re.findall(r"(ty_\w+): w\[\d+\]", re.search(block + r"\(w\) => \(\{(.*?)\}\);", js, re.S).group(1)))
         defined.add("ty_focus_off")       # (written by the loop after RDS)
         self.assertLessEqual(used, defined)
 
@@ -78,10 +78,56 @@ class TypeMenu(unittest.TestCase):
         js = text("reader.js")
         self.assertIn("const MODES = ['auto', 'light', 'dark'], STYLES = ['default', 'paper']", js)
         self.assertIn("LEADS = { tight: 0.9, standard: 1, loose: 1.15 }", js)
-        self.assertIn("const TYPE0 = { size: 1, width: 'standard', font: 'serif', mode: 'auto', style: 'default', lead: 'standard' }", js)
+        self.assertIn("const TYPE0 = { size: 1, width: 'standard', font: 'serif', hide: [], mode: 'auto', style: 'default', lead: 'standard' }", js)
         self.assertIn("POS_KEY = 'textfold.pos'", js)
         self.assertIn("else if (e.key === 'f' || e.key === 'F') setFocus(!focusOn);", js)
         self.assertIn("r.classList.toggle('focus', on);", js)
+
+    def test_the_margins_can_be_hidden(self):
+        js = text("i18n.js")
+        block = re.search(r"const tym = \(w\) => \(\{(.*?)\}\);", js, re.S).group(1)
+        keys = re.findall(r"(\w+): w\[\d+\]", block)
+        self.assertEqual(keys, ["ty_margin", "ty_m_asks", "ty_m_notes"])
+        body = re.search(r"const TYM = \{(.*?)\n  \};", js, re.S).group(1)
+        for lang in ("en", "zh"):
+            words = json.loads(re.search(rf"\b{lang}: tym\((\[.*?\])\)", body, re.S).group(1))
+            self.assertEqual(len(words), len(keys), lang)
+            for key, word in zip(keys, words):
+                self.assertTrue(word.strip(), f"{lang} {key}")
+        reader = text("reader.js")
+        self.assertIn("TYPE_KEY = 'textfold.type'", reader)
+        self.assertIn("WIDTHS = ['narrow', 'standard', 'wide'], MARGINS = ['asks', 'notes']", reader)
+        self.assertIn("hide: Array.isArray(v.hide) ? MARGINS.filter((k) => v.hide.includes(k)) : []", reader)
+        self.assertIn("if (type.hide.length) r.dataset.hide = type.hide.join(' '); else delete r.dataset.hide;", reader)
+        self.assertIn("for (const k of ['font', 'width', 'hide', 'theme', 'style'])", reader)
+        self.assertIn("font === TYPE0.font && !type.hide.length", reader)
+        # the button's state and the toggle: pressed is shown, and a click flips that one margin only
+        self.assertIn('aria-pressed="${!type.hide.includes(k)}"', reader)
+        self.assertIn("else if (b.dataset.margin) { const k = b.dataset.margin; setType({ hide: MARGINS.filter((x) => (x === k) !== type.hide.includes(x)) }); }", reader)
+        self.assertIn('b.dataset.margin ? `[data-margin="${b.dataset.margin}"]`', reader)   # the redrawn menu keeps the focus
+        css = text("reader.css")
+        self.assertIn('html[data-hide~="asks"] .side-notes', css)
+        # a hidden margin has to outrank every rule that shows it: the plain one does not, the level rules set
+        # display: flex further down the sheet, and the .doc[data-level] one outranks the attribute alone
+        for sel in ('html[data-hide~="notes"] .lside', 'html[data-hide~="notes"] .u > .lside',
+                    'html[data-hide~="notes"] .chunk > .lside',
+                    'html[data-hide~="notes"] .doc[data-level] .chunk > .lside'):
+            self.assertIn(sel, css)
+        # every rule that makes a margin a flex box is outranked by a hide selector for that margin
+        def spec(sel):   # (ids, classes and attributes, elements: no pseudo-class or ::-element here)
+            return (len(re.findall(r"#[\w-]+", sel)), len(re.findall(r"\.[\w-]+|\[[^\]]*\]", sel)),
+                    len(re.findall(r"(?:^|[\s>+~])([a-zA-Z][\w-]*)", sel)))
+        shown = [s for s in re.findall(r"([^{}]+)\{[^}]*display: *flex[^}]*\}", css) if ".lside" in s or ".side-notes" in s]
+        self.assertTrue(shown)
+        hide = re.search(r"html\[data-hide~=\"asks\"\][^{]*\{[^}]*display: none[^}]*\}", css).group(0).split("{")[0]
+        hide_sels = [s.strip() for s in hide.split(",")]
+        for rule in shown:
+            for sel in rule.split(","):
+                subject = ".side-notes" if ".side-notes" in sel else ".lside" if ".lside" in sel else None
+                if not subject:
+                    continue
+                outranks = [h for h in hide_sels if subject in h and spec(h) > spec(sel.strip())]
+                self.assertTrue(outranks, f"{sel.strip()} shows a margin no hide selector outranks")
 
     def test_the_page_can_be_light_dark_or_paper_and_the_lines_spaced(self):
         css = text("reader.css")
