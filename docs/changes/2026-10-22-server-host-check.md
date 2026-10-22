@@ -88,6 +88,9 @@ imported paper, `[]`, and `{"minted": false}`).
 - Duplicate `Host` headers and an absolute-form request target are not defended. Browsers cannot send either (Host is
   a forbidden header, one authority per request; absolute-form only goes to a configured proxy), and routing uses
   the path, never the target's authority. Verified with raw sockets, not a browser.
+- The first commit attempt failed in the pre-commit suite: R0's bridge-route test sent `b"{}"` with a GET, and
+  Windows aborted the connection before the 404 was read (`WinError 10053`). The test now sends a body only for
+  POST; three consecutive suite runs passed. That fix is on `main` as `69e92ad`.
 
 ## Rejected
 
