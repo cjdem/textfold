@@ -296,8 +296,11 @@ lists among the papers. The page may change the library chosen and
 nothing else: Zotero's address and data folder (`"zotero": {"base", "data_dir"}`) are set in the settings file only.
 `tests/test_zotero.py` runs it all against a fake Zotero.
 
-`TEXTFOLD_NO_MODELS=1` makes a server find no model at all (no API provider): for test servers and CI, so
-that nothing calls a model by accident. Without a model a document is still fetched and parsed, and reads as written.
+`TEXTFOLD_NO_MODELS=1` makes a server find no model at all (no API provider), and `llm.call` refuses to ask one
+whatever spec is handed to it — a test's, a direct caller's: for test servers and CI, so that nothing calls a model
+by accident. A reply already kept on disk is still read when the caller passes a spec; a call naming a model id is
+refused at resolution before the cache is consulted, and a `force` call is refused. Without a model a document is
+still fetched and parsed, and reads as written.
 
 ## No other server
 

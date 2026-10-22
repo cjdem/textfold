@@ -47,6 +47,12 @@ class Imports(unittest.TestCase):
 
 
 class Replies(unittest.TestCase):
+    def setUp(self):
+        env = mock.patch.dict(os.environ)
+        env.start()
+        self.addCleanup(env.stop)
+        os.environ.pop("TEXTFOLD_NO_MODELS", None)   # (the suite runs with it; these tests call a stand-in model)
+
     def test_a_cached_reply_with_utf8_is_written_and_read(self):
         with __import__("tempfile").TemporaryDirectory() as tmp:
             cache = Path(tmp)

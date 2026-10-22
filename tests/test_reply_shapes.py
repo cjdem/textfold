@@ -156,9 +156,10 @@ class ForgetTest(unittest.TestCase):
 
     def test_the_next_call_asks_again(self):
         spec = {"id": "test/model", "protocol": "openai", "effort": None}
-        with tempfile.TemporaryDirectory() as tmp, \
+        with tempfile.TemporaryDirectory() as tmp, mock.patch.dict(os.environ), \
                 mock.patch.object(llm, "spec_of", return_value=spec), \
                 mock.patch.object(llm, "_once", return_value=({"units": [UNIT]}, None)) as once:
+            os.environ.pop("TEXTFOLD_NO_MODELS", None)   # (the suite runs with it; the model here is a stand-in)
             rec, cached = llm.call("Fold this.", {}, "test/model", Path(tmp))
             self.assertFalse(cached)
             self.assertTrue(Path(rec["file"]).exists())   # (the reply is kept, and the caller can name it)

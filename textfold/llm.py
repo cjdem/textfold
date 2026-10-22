@@ -9,6 +9,7 @@ the prompt, the schema, the model or its effort changes. `force` skips the cache
 """
 import hashlib
 import json
+import os
 import re
 from pathlib import Path
 
@@ -102,6 +103,8 @@ def call(prompt, schema, model, cache_dir: Path, force=False, timeout=900, syste
             return {**_read_cache(f), "file": str(f)}, True
         except (OSError, ValueError):
             pass   # (a write that failed left it empty or partial: the call is made again, and the file rewritten)
+    if os.environ.get("TEXTFOLD_NO_MODELS"):   # (a test server, a program that only stores documents): a reply kept is
+        raise RuntimeError("No model is available: TEXTFOLD_NO_MODELS is set")   # read; none is asked, whatever is named
     note = None
     try:
         out, cost = _once(prompt, schema, spec, timeout, system)
