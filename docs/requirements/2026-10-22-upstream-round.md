@@ -66,7 +66,7 @@
 | R12 | 完成 | feature | self-hosted V1 adapter（条件项） | fork-specific（不做） | R11；仅确有自部署时 | 大 |
 | R13 | 完成 | feature | 中文 Brief 句子切分 | `770fb08` | R4/R5 之后 | 中 |
 | R14 | 完成 | feature | 中文五级折叠 | `4897e24` | R13 | 大 |
-| R15 | 进行中 | optimize | CJK 规则只作用于中日文 | `6e2cada` | R14 | 中 |
+| R15 | 完成 | optimize | CJK 规则只作用于中日文 | `6e2cada` | R14 | 中 |
 | R16 | 待做 | feature | Aa 菜单 + 缩放沙箱 font/width | `f76eb4d` + `c38804e` | R14/R15 之后 | 中 |
 | R17 | 待做 | feature | 主题、行距、阅读位置、专注模式 | `e5bd668` + `a670e57` + `920a270` | R16 | 中 |
 | R18 | 待做 | feature | 标题层级、Topic 分组/思维导图、margins | `fb9f95c` | R16/R17；可拆三次 | 大 |
@@ -164,6 +164,7 @@
 | 2026-10-22 | R12 | feature | —（不做） | — | — | 条件项评估后不做：本机没有 `mineru-kit`，也没有自部署 MinerU 的需求；R11 的 `mineru_api_url` 已覆盖 v4 兼容网关。按任务写明的“不做则保持 R11 的 v4-only”，未实现 `/v1/file_parse`、`/v1/tasks`、multipart、200 MiB/100 文件或 ZIP 输出映射。 | 无代码改动；`mineru-kit` 自部署仍不支持；确有需要时另开任务；R11 的地址设置保持。 |
 | 2026-10-22 | R13 | feature | `979c7ab` | 318，OK | 一轮 + 窄复查：首轮发现纯英文边界会因 ASCII `'` 与连续收尾符而改变（超过 12 句的英文段可能被切、后续 unit id 移动），以及 `cjk_heavy` 的“id 不移动”对混合段不成立——两条阻断；已改为按单元分派（无 CJK/。！？ 的单元走旧切分器），并修正文档、明确混合段“知情保留”；另修 guard 只数汉字（现随切分器含假名）、空 ladder 回退本地层、长段测试未钉 id；窄复查确认两条阻断已解，30k 纯 ASCII fuzz 与 main 0 差异，无新问题 | 含 CJK 或 。！？ 的单元按 。！？ 切句；纯英文单元仍走旧切分器（句号、编号、分段不变）；长 CJK 段不切块（提前取 `4897e24` 的 `cjk_heavy`，R14 不再取该 hunk）；`full` 改为单元原文，中文 Full 不再插入空格；`apply_en` 丢弃越界 evidence 并以首句回退；混合中英文段落仍可能改变分段（知情保留，重新生成）；未测 zoom 平滑度；记录见 `docs/changes/2026-10-22-chinese-brief.md` |
 | 2026-10-22 | R14 | feature | `e88c516` | 354，OK | 一轮 + 窄复查：首轮确认英文逐字节不变（本机英文论文 92 unit/16 chunk 的 prompt、local、assemble、section_ladder 与整次 build 全同），发现两条阻断——目录行成为下一段 Brief 的 glue、以 `……` 结尾的段落被当作断句；已修（`dress` 回溯时跳过 apparatus；`…` 计入 WHOLE）。另修目录点线把含 `…………` 的论点误判为 apparatus（现要求行末页码）、翻译的 section topic 预算被源文档覆盖（`section_ladder` 保留调用方预算，build 传文档预算）、主题丢掉 `P2P`/`3.5`/`第一章`、atom 变 `[object Object]` 并丢 glue、隐藏 unit 的笔记跳转零矩形、被抑制单元仍被补译、`tn=0` 仍在 Topic 显示、过时注释与 DEVELOPMENT 描述；窄复查确认两条阻断已解、无新问题，354 OK | 按单元/小节分派：中文（含日文假名）单元用字符预算（40/60/8/40）、claim 句、apparatus 抑制、背景降级、跨页 glue 和中文提示；英文文档的提示、层级与页面不变（逐字节比较）。未取 R15 的 `cjk_doc`/`meta.cjk`、reader 的 stake/ref/Topic 滚动、`l3` 移除和 `1.研究背景` 守卫；中文经 `tr-zh` 阅读时仍无 glue/l3。未测 zoom 平滑度；记录见 `docs/changes/2026-10-22-chinese-five-levels.md` |
+| 2026-10-23 | R15 | optimize | `7fcadc6` | 362，OK | 一轮，无阻断发现；英文逐字节不变（本机英文论文 92 unit/16 chunk 与 5 个英文/混合 fixture 的 mocked build 全同，层内无 `tn:0`/`l3`）。非阻断：中文论文里的英文段被 glue 拼成 `conditionThe`（已修——`dress` 只在两半都是 CJK 时拼接，加测试）、前 4000 字符采样会把英文摘要后的中文正文读成英文（上游继承，测试钉住并记入 Pitfalls）、`1.研究背景` 守卫只在句首生效（注释与文档如实描述）、gate 边界与 store 的 `cjk` 参数缺测试（后者经 `store.assemble` 已补）、记录高估了 `pieces` 只算一次（已改正）、旧层句子重编号（DEVELOPMENT 已警告） | 文档级 `cjk_doc`/`meta.cjk`；`l3`/`LISTY`/`_listy` 移除，降级单元在 Brief 与 Key 可读、Takeaway/Topic 隐藏；reader 的 CJK 规则全部按 `CJK_DOC` 生效（标记剥离、apparatus 隐藏、ref 小节、Brief 的 stake、Topic 滚动、空 stake）；`1.研究背景` 不再断句；浏览器核对中文页 Brief/Topic 与英文页 Brief 均符合预期；未测 zoom 平滑度；记录见 `docs/changes/2026-10-22-cjk-document-gate.md` |
 
 ## 停止条件
 
