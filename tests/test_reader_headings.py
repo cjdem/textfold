@@ -31,12 +31,14 @@ class Headings(unittest.TestCase):
 
     def test_a_section_has_a_rule_under_it(self):
         self.assertIn("box-shadow: inset 0 -1px 0 var(--line)", rule(".chunk.l2 > .hd"))
-        # ...and a Topic card has none: every Topic heading rule with a shadow cancels it
+        # ...and a Topic card has none: every Topic heading rule with a shadow cancels it, but the one that heads a
+        # group of cards (a section with sections under it, reader.js) draws its own rule
         cards = re.findall(r'\.doc\[data-level="0"\][^{]*\.hd[^{]*\{[^}]*box-shadow[^}]*\}', CSS)
-        self.assertTrue(cards)
-        for r in cards:
-            if "box-shadow" in r:
-                self.assertIn("box-shadow: none", r)
+        plain = [r for r in cards if ".parent" not in r]
+        self.assertTrue(plain)
+        for r in plain:
+            self.assertIn("box-shadow: none", r)
+        self.assertIn("box-shadow: inset 0 -1px 0 var(--line)", rule('.doc[data-level="0"] .chunk.parent > .hd'))
         self.assertIn("padding-bottom: 0", rule('.doc[data-level="0"] .chunk > .hd'))
         # the zoom's keyframe copies write out the shadow (looks), or the rule vanishes during a zoom
         js = (Path(__file__).resolve().parent.parent / "textfold" / "web" / "reader.js").read_text(encoding="utf-8")

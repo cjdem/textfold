@@ -119,8 +119,8 @@ and a zoom plays those keyframes; the page takes over again at rest.
 
 A heading carries its depth in its size: a section's 27px with a rule under it (an inset shadow, so the zoom's copies
 carry it, `looks()`), a subsection's 21.5px, the next as large as the serif text (18.5px), the deepest in a lighter ink
-(`--ink-2`); at Topic the heading is a card's label (13.5px, no rule). The sizes scale with `--fs`; a section's margins
-and padding do too.
+(`--ink-2`); at Topic the heading is a card's label (13.5px, no rule; the header of a group of cards is 17px with the
+rule, 14.5px and no rule when nested). The sizes scale with `--fs`; a section's margins and padding do too.
 
 The Aa menu beside the language's sets the type for every text in this browser (`localStorage` `textfold.type`): the
 size in seven steps from 86% to 135% (the whole column scales with it, so a line holds as many words), the column's
@@ -149,6 +149,13 @@ exists only at Full, and a background unit whose takeaway stepped down is read a
 Topic. A sentence a page break cut in half is joined at its first word. `ladder.dress` writes the join into the layer
 (`glue`); the page is marked `meta.cjk` and only such a page takes these rules, so an English section ends where its
 sentences do and shows as before.
+
+At Topic, a section with sections under it heads a row of their cards (`parent`, `top` for the shallowest, `newrow` for
+a section that follows a deeper one), and the choice beside the zoom bar switches Topic between those cards and a map
+of the text's outline (`textfold.topicview`, this browser): the title at the left, the top-level sections each a branch
+in a colour of its own (their subsections in their parent's colour), each paragraph's topic at a branch's end. The map is drawn over the page at rest at Topic and only then — the
+page stays under it, so a zoom plays from the cards as ever, the map gone as the zoom starts. A section folds and
+unfolds with a click (or "Sections only" folds them all to their sections), and a topic opens its paragraph at Key.
 
 Notes: select text anywhere (a paragraph at any level, a section's summary or its title) to highlight it, write a note,
 or ask the model about it (the answer, in the reading language, cites the paragraphs it rests on; a cite opens that

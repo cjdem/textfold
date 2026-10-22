@@ -436,6 +436,7 @@
 
   // everything that is text in the chrome or depends on the language but is not a unit
   function applyLang() {
+    if (mapReady) { renderTview(); mapKey = ''; if (mapShown) setTimeout(() => { if (mapShown) mapRender(); }); }   // (drawn again in the new language, once it is in)
     const t = T[ui], c = T[lang], m = D.meta;   // (c: the names of the paper's own parts, in the language it is read in)
     document.documentElement.lang = I18N.htmlLang(lang);
     document.documentElement.dataset.lang = lang;
@@ -607,6 +608,7 @@
 
   // ── FLIP ─────────────────────────────────────────────────────────────
   let busy = false, queued = null;
+  let mapReady = false, mapShown = false;   // the Topic map drawn as a mind map (below): set up, and over the page now
 
   function visibleRect(el) {
     if (!el || !el.isConnected) return null;
@@ -731,6 +733,7 @@
   function done() {
     busy = false;
     document.documentElement.classList.remove('morphing');
+    if (mapReady) mapSync();
     relayout();
     refreshStale();
     warmSoon();
@@ -841,7 +844,7 @@
     if (pos !== goal) rafId = requestAnimationFrame(tick);
     else { lastT = 0; rest(); }
   }
-  const kick = () => { if (!rafId) rafId = requestAnimationFrame(tick); };
+  const kick = () => { if (mapShown) mapAway(); if (!rafId) rafId = requestAnimationFrame(tick); };
   function release() {   // the hand let go: spring to the level it was heading for
     holding = false;
     if (stage) { const d = pos - stage.last; goal = Math.max(0, Math.min(4, Math.abs(d) > 0.3 ? stage.last + Math.sign(d) : stage.last)); }
@@ -2400,6 +2403,7 @@
     applyType(); mirrorType();
     settle(anchor);
     capEpoch++; relayout(); geom = null; placeThumb(); warmSoon();
+    if (mapShown) mapRender(); else mapKey = '';   // (the map's nodes are measured: the new size lays it out again)
   }
   function closeTypeMenu() { typeMenu.hidden = true; typeBtn.setAttribute('aria-expanded', 'false'); }
   typeBtn.addEventListener('click', () => {
@@ -3022,7 +3026,7 @@ math { font-size: 1.05em; }
     scroller.addEventListener('scroll', () => requestAnimationFrame(pageCount), { passive: true });
     scroller.addEventListener('click', onPageClick);
     document.documentElement.classList.add('compare');
-    mirrorType();
+    mirrorType(); mapSync();   // (no map beside the PDF)
     try { localStorage.setItem(CMP_KEY, '1'); } catch { /* private window */ }
     cmpLabel();
     reflowKeeping(keep);
@@ -3109,7 +3113,7 @@ math { font-size: 1.05em; }
     cmp.pane.remove();
     cmp = null;
     document.documentElement.classList.remove('compare');
-    mirrorType();
+    mirrorType(); mapSync();
     document.documentElement.style.removeProperty('--pdfw');
     try { localStorage.setItem(CMP_KEY, '0'); } catch { /* private window */ }
     cmpLabel();
@@ -3459,6 +3463,7 @@ math { font-size: 1.05em; }
   bar.setAttribute('aria-valuemin', '0');
   bar.setAttribute('aria-valuemax', '4');
   function updateBar() {
+    if (mapReady) { tview.hidden = level !== 0 || !!localLevel.size || document.documentElement.classList.contains('compare'); mapSync(); }
     savePosSoon();
     barButtons().forEach((b) => b.setAttribute('aria-pressed', String(+b.dataset.l === level)));
     bar.setAttribute('aria-valuenow', String(level));
@@ -3611,6 +3616,7 @@ math { font-size: 1.05em; }
     r.classList.toggle('focus', on);
     r.classList.remove('show-top', 'show-bottom', 'show-left');
     if (on) pill(esc(T[ui].focus_on)); else { clearTimeout(pillTimer); pillEl.hidden = true; }
+    if (on) { if (mapShown) mapAway(); } else if (mapReady) mapSync();   // (the text alone: no map over it)
     dispatchEvent(new Event('resize'));
   }
   addEventListener('mousemove', (e) => {
@@ -3631,6 +3637,185 @@ math { font-size: 1.05em; }
     const off = () => { if (!typeMenu.hidden || !langMenu.hidden) { edgeTimer = setTimeout(off, 1000); return; } r.classList.remove('show-top', 'show-bottom', 'show-left'); };
     edgeTimer = setTimeout(off, 4000);
   }, { passive: true });
+
+  // ── Topic as a mind map: the title on the left, its sections and theirs to the right, each paragraph's topic at a
+  //    branch's end. Chosen beside the zoom bar (kept in this browser), it is drawn over the page at rest at Topic and
+  //    only then: the page stays under it as it was, so a zoom plays from the cards as ever, the map gone as it starts.
+  //    A section folds and unfolds with a click; a topic opens its paragraph at Key, as its chip on a card does ──
+  const TV_KEY = 'textfold.topicview';
+  let topicView = store.get(TV_KEY) === 'map' ? 'map' : 'cards';
+  const tview = h('div', 'tview');
+  tview.setAttribute('role', 'radiogroup');
+  tview.hidden = true;
+  const zrow = h('div', 'zrow');
+  bar.before(zrow);
+  zrow.append(h('span', 'zside'), bar, tview);
+  const ICON = {
+    cards: '<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1.5" y="2" width="5.5" height="5" rx="1.3" fill="none" stroke="currentColor" stroke-width="1.4"/><rect x="9" y="2" width="5.5" height="5" rx="1.3" fill="none" stroke="currentColor" stroke-width="1.4"/><rect x="1.5" y="9" width="5.5" height="5" rx="1.3" fill="none" stroke="currentColor" stroke-width="1.4"/><rect x="9" y="9" width="5.5" height="5" rx="1.3" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>',
+    map: '<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="3" cy="8" r="2" fill="currentColor"/><path d="M5 8 C8 8 8 3 11 3 M5 8 H11 M5 8 C8 8 8 13 11 13" fill="none" stroke="currentColor" stroke-width="1.4"/><circle cx="13" cy="3" r="1.6" fill="currentColor"/><circle cx="13" cy="8" r="1.6" fill="currentColor"/><circle cx="13" cy="13" r="1.6" fill="currentColor"/></svg>',
+  };
+  function renderTview() {
+    const t = T[ui];
+    tview.setAttribute('aria-label', t.tv_label);
+    tview.innerHTML = ['cards', 'map'].map((k) => `<button type="button" role="radio" aria-checked="${topicView === k}" data-view="${k}">${ICON[k]}<span>${esc(t[`tv_${k}`])}</span></button>`).join('');
+  }
+  tview.addEventListener('click', (e) => {
+    const b = e.target.closest('button');
+    if (!b || b.dataset.view === topicView) return;
+    topicView = b.dataset.view;
+    store.set(TV_KEY, topicView);
+    renderTview();
+    mapSync();
+  });
+  const mapEl = h('div', 'mmap'), mapTools = h('div', 'mm-tools'), mapCanvas = h('div', 'mm-canvas');
+  mapEl.hidden = true;
+  mapEl.append(mapTools, mapCanvas);
+  document.body.append(mapEl);
+  let mapRoot = null, mapKey = '';
+  // the tree: a section under the last one above it of a higher level; a paragraph's topic under its section (the
+  // opening text's, under the title); the topics before the subsections, as the text has them
+  function mapTree() {
+    const m = D.meta, root = { kind: 'root', html: esc(m.name || (lang !== 'en' && m.titles && m.titles[lang]) || m.title), kids: [] };
+    const stack = [{ lv: 0, node: root }];
+    for (const c of D.chunks) {
+      const sc = secs.get(c.id);
+      if (!sc || sc.sec.classList.contains('ref')) continue;
+      const lv = c.level || 2;
+      let node = stack[stack.length - 1].node;
+      if (c.num || c.title) {
+        while (stack.length > 1 && stack[stack.length - 1].lv >= lv) stack.pop();
+        node = { kind: 'sec', c, html: sc.hd.innerHTML, kids: [], depth: stack.length };
+        stack[stack.length - 1].node.kids.push(node);
+        stack.push({ lv, node });
+      }
+      for (const uid of c.units) {
+        const pcs = unitEl.has(uid) ? pieces(uid, 0) : [];
+        if (!pcs.length) continue;
+        const span = h('span', 'mm-tx');
+        pcs.forEach((x, k) => {   // (a CJK document's word may be a bare string)
+          span.append(x.gap ? '…' : typeof x.tok === 'string' ? x.tok : tokEl(x.tok, ''));
+          if (k < pcs.length - 1 && (x.gap || (x.tok && x.tok.s))) span.append(' ');
+        });
+        node.kids.push({ kind: 'leaf', uid, html: span.innerHTML, role: U[uid].lad.role, kids: [] });
+      }
+    }
+    const paint = (n, b) => { n.b = b; n.kids.forEach((k, i) => paint(k, n.kind === 'root' ? i % 6 : b)); };
+    paint(root, 0);
+    return root;
+  }
+  const leavesIn = (n) => n.kids.reduce((s, k) => s + (k.kind === 'leaf' ? 1 : leavesIn(k)), 0);
+  // a section folded shows nothing under it (closed), or its sections without its topics (bare); either says how
+  // many topics it keeps out of sight
+  const shownKids = (n) => (n.closed ? [] : n.bare ? n.kids.filter((k) => k.kind !== 'leaf') : n.kids);
+  const hiddenIn = (n) => (n.closed ? leavesIn(n) : n.bare ? n.kids.filter((k) => k.kind === 'leaf').length : 0);
+  function mapRender() {
+    const t = T[ui];
+    mapKey = `${lang}|${ui}`;
+    const was = new Map();   // (what was folded stays folded)
+    (function keep(n) { if (n && n.c) was.set(n.c.id, [n.closed, n.bare]); (n ? n.kids : []).forEach(keep); })(mapRoot);
+    mapRoot = mapTree();
+    (function fold(n) { if (n.c && was.has(n.c.id)) [n.closed, n.bare] = was.get(n.c.id); n.kids.forEach(fold); })(mapRoot);
+    mapTools.innerHTML = `<button type="button" data-mm="all">${esc(t.mm_all)}</button><button type="button" data-mm="secs">${esc(t.mm_secs)}</button><span class="mm-hint">${esc(t.mm_hint)}</span>`;
+    mapLayout();
+  }
+  // each node right of its parent; a node's children one under another, the node level with the first of them (a long
+  // text reads down the map as down its outline, the title at the top)
+  function mapLayout() {
+    mapCanvas.replaceChildren();
+    const els = [], svgNS = 'http://www.w3.org/2000/svg', svg = document.createElementNS(svgNS, 'svg');
+    mapCanvas.append(svg);
+    (function make(n) {
+      const cls = n.kind === 'root' ? 'mm-root' : n.kind === 'sec' ? `mm-sec d${n.depth}` : `mm-leaf${notesOf.has(n.uid) ? ' has-notes' : ''}`;
+      const el = h('div', `mm-n ${cls}`);
+      el.style.setProperty('--b', `var(--br-${n.b})`);
+      if (n.kind === 'leaf') { el.style.setProperty('--d', `var(--r-${n.role})`); el.dataset.u = n.uid; el.innerHTML = `<i class="mm-dot"></i><span>${n.html}</span>`; }
+      else el.innerHTML = n.html + (hiddenIn(n) ? `<span class="mm-more">+${hiddenIn(n)}</span>` : '');
+      if (n.kind === 'sec') el.dataset.sec = n.c.id;
+      texify(el);
+      n.el = el;
+      mapCanvas.append(el);
+      els.push(n);
+      shownKids(n).forEach(make);
+    })(mapRoot);
+    for (const n of els) { n.w = n.el.offsetWidth; n.h = n.el.offsetHeight; }
+    const GAPX = 46, PAD = 24;
+    let right = 0;
+    (function place(n, x, y) {
+      n.x = x;
+      right = Math.max(right, x + n.w);
+      const kids = shownKids(n);
+      if (!kids.length) { n.y = y; return n.h; }
+      let cy = y;
+      kids.forEach((k, i) => { cy += place(k, x + n.w + GAPX, cy) + (i < kids.length - 1 ? (k.kind === 'leaf' && kids[i + 1].kind === 'leaf' ? 5 : 14) : 0); });
+      const a = kids[0];
+      n.y = Math.max(y, a.y + a.h / 2 - n.h / 2);
+      return Math.max(cy - y, n.y + n.h - y);
+    })(mapRoot, PAD, PAD + 10);
+    let bottom = 0, paths = '';
+    for (const n of els) {
+      n.el.style.transform = `translate(${n.x}px, ${n.y}px)`;
+      bottom = Math.max(bottom, n.y + n.h);
+      for (const k of shownKids(n)) {
+        const x1 = n.x + n.w, y1 = n.y + n.h / 2, x2 = k.x, y2 = k.y + k.h / 2, xm = (x1 + x2) / 2;
+        paths += `<path class="${k.kind === 'leaf' ? 'leaf' : ''}" style="--b: var(--br-${k.b})" d="M${x1} ${y1} C${xm} ${y1} ${xm} ${y2} ${x2} ${y2}"/>`;
+      }
+    }
+    svg.innerHTML = paths;
+    mapCanvas.style.width = `${right + PAD}px`;
+    mapCanvas.style.height = `${bottom + PAD}px`;
+  }
+  // where it lies: under the bar at the top, beside the sidebar (the app's)
+  function mapFrame() {
+    const tb = document.querySelector('.topbar'), bs = getComputedStyle(document.body);
+    mapEl.style.top = `${Math.max(0, tb ? tb.getBoundingClientRect().bottom : 0)}px`;
+    mapEl.style.left = `${parseFloat(bs.paddingLeft) || 0}px`;
+  }
+  function mapSync() {
+    const can = mapReady && topicView === 'map' && level === 0 && !localLevel.size
+      && !document.documentElement.classList.contains('compare') && !document.documentElement.classList.contains('focus');
+    if (!can) { if (mapShown) mapAway(); return; }
+    if (mapShown || busy || stage) return;   // (over the page already; or, once the motion is over: rest(), done())
+    mapFrame();
+    mapEl.hidden = false;   // (shown first: the nodes are measured as they are laid out)
+    mapShown = true;
+    if (mapKey !== `${lang}|${ui}` || !mapRoot) mapRender();
+  }
+  function mapAway() { mapEl.hidden = true; mapShown = false; }
+  mapTools.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-mm]');
+    if (!b) return;
+    const secsOnly = b.dataset.mm === 'secs';
+    (function walk(n) { if (n.kind === 'sec') { n.closed = false; n.bare = secsOnly; } n.kids.forEach(walk); })(mapRoot);
+    mapLayout();
+  });
+  mapCanvas.addEventListener('click', (e) => {
+    const leaf = e.target.closest('.mm-leaf'), sec = e.target.closest('.mm-sec');
+    if (leaf) {   // its paragraph at Key, where the topic was on the screen
+      const el = unitEl.get(leaf.dataset.u);
+      if (!el) return;
+      const y = leaf.getBoundingClientRect().top;
+      mapAway();
+      scrollBy(0, el.getBoundingClientRect().top - y);
+      setLevel(2, { el, y, frac: 0 });
+      return;
+    }
+    if (!sec) return;
+    const find = (n) => (n.c && n.c.id === sec.dataset.sec ? n : n.kids.reduce((f, k) => f || find(k), null));
+    const n = find(mapRoot);
+    if (!n || !n.kids.length) return;
+    const y0 = sec.getBoundingClientRect().top;
+    if (n.closed || n.bare) (function open(x) { x.closed = x.bare = false; x.kids.forEach(open); })(n);   // (open with what is under it)
+    else n.closed = true;
+    mapLayout();
+    const again = mapCanvas.querySelector(`[data-sec="${CSS.escape(n.c.id)}"]`);   // (the section stays where it was clicked)
+    if (again) mapEl.scrollTop += again.getBoundingClientRect().top - y0;
+  });
+  // ⌘/Ctrl + wheel and a pinch zoom from the page under it: the map goes before the zoom looks for what it is over
+  addEventListener('wheel', (e) => { if (mapShown && (e.ctrlKey || e.metaKey)) mapAway(); }, { capture: true, passive: true });
+  addEventListener('gesturestart', () => { if (mapShown) mapAway(); }, { capture: true });
+  addEventListener('resize', () => { if (mapShown) mapFrame(); });
+  renderTview();
+  mapReady = true;
 
   // ── input ────────────────────────────────────────────────────────────
   // Ctrl + wheel and a trackpad pinch zoom around the pointer; over the slider, the plain wheel zooms
@@ -3710,6 +3895,15 @@ math { font-size: 1.05em; }
   // ── start ────────────────────────────────────────────────────────────
   build();
   for (const [c, hd, st] of headEls) secs.set(c.id, { c, sec: hd.parentNode, hd, st });
+  {   // the Topic map's rows (reader.css): a section with sections under it heads theirs, and one after a deeper one starts its own
+    const lv = (c) => c.level || 2, top = Math.min(...D.chunks.map(lv));
+    D.chunks.forEach((c, i) => {
+      const sc = secs.get(c.id), next = D.chunks[i + 1], prev = D.chunks[i - 1];
+      if (!sc) return;
+      if (next && lv(next) > lv(c) && (c.num || c.title)) sc.sec.classList.add('parent', ...(lv(c) === top ? ['top'] : []));
+      if (prev && lv(prev) > lv(c)) sc.sec.classList.add('newrow');
+    });
+  }
   IDS = [...order.keys()];
   {   // a heading's place in reading order: the first unit after it
     let pend = [];

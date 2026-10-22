@@ -156,6 +156,13 @@ window.DR_I18N = (() => {
     zh: tys(["阅读外观", "字号", "缩小", "放大", "默认大小", "栏宽", "窄", "标准", "宽", "字体", "衬线", "无衬线", "恢复默认"]),
   };
   for (const [code, words] of Object.entries(TY)) Object.assign(S[code], words);
+  // Topic as cards or as a mind map (beside the zoom bar), and the map's own buttons
+  const tvs = (w) => ({ tv_label: w[0], tv_cards: w[1], tv_map: w[2], mm_all: w[3], mm_secs: w[4], mm_hint: w[5] });
+  const TV = {
+    en: tvs(["How Topic shows", "Cards", "Map", "Open all", "Sections only", "Click a topic to read its paragraph · click a section to fold it"]),
+    zh: tvs(["主题层的显示方式", "卡片", "导图", "全部展开", "只看章节", "点主题词打开那一段 · 点章节收起或展开"]),
+  };
+  for (const [code, words] of Object.entries(TV)) Object.assign(S[code], words);
   // the reader's brightness and style, line spacing and focus (Aa), and where a text was left
   const rds = (w) => ({ ty_mode: w[0], ty_style: w[1], ty_auto: w[2], ty_light: w[3], ty_dark: w[4], ty_default: w[5], ty_paper: w[6], ty_lead: w[7], ty_tight: w[8], ty_loose: w[9], ty_focus: w[10], focus_on: w[11], pos_back: w[12], pos_top: w[13] });
   const RDS = {
