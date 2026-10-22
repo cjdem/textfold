@@ -100,7 +100,7 @@ python -m textfold serve
 | Zotero 文献库里的条目 | 有 arXiv 版本就读 arXiv，否则读它的 PDF 或其他附件，再没有就按 DOI 读。[直接读你的 Zotero ↑](#直接读你的-zotero) |
 | Markdown 或纯文本文件 | 原样的文件 |
 
-所有 PDF 和图片都会上传到 MinerU Cloud API。密钥在 **设置 › 高级 › MinerU API** 中填写，保存在 `~/.textfold/settings.json`，不会回传到页面。本机不再安装 PDF 引擎，也没有离线 PDF 回退。常见的 Word、PowerPoint、Excel、EPUB、CSV 和 HTML 仍在本机读取。
+所有 PDF 和图片都会上传到 MinerU Cloud API。密钥在 **设置 › 高级 › MinerU API** 中填写，保存在 `~/.textfold/settings.json`，不会回传到页面。同一区域里的 API 地址可以改成兼容 v4 的服务；默认是官方地址，文件和密钥会发到你填写的地址。本机不再安装 PDF 引擎，也没有离线 PDF 回退。常见的 Word、PowerPoint、Excel、EPUB、CSV 和 HTML 仍在本机读取。
 
 新的 RTF、OpenDocument（.odt、.ods、.odp）和旧版 Word、PowerPoint、Excel 文件（.doc、.ppt、.xls）不再接受导入：请先另存为 DOCX、PPTX、XLSX 或 PDF。已经在文库里的文档照常打开，已生成的层也保留。
 

@@ -102,7 +102,7 @@ Open `http://localhost:3017`. The first time, [connect a model](#connect-a-model
 | An item of your Zotero library | its arXiv paper, else its PDF or other file, else its DOI. [Works on your Zotero ↑](#works-on-your-zotero) |
 | A Markdown or text file | the file as written |
 
-Every PDF and picture is uploaded to MinerU's Cloud API. Add a key under **Settings › Advanced › MinerU API**. The key is kept in `~/.textfold/settings.json` and is never sent back to the page. Nothing is installed locally and there is no offline PDF fallback. Common Word, PowerPoint, Excel, EPUB, CSV and HTML files stay on your computer.
+Every PDF and picture is uploaded to MinerU's Cloud API. Add a key under **Settings › Advanced › MinerU API**. The key is kept in `~/.textfold/settings.json` and is never sent back to the page. The API address in the same section can be changed for a v4-compatible service; the official address is the default, and files and the key go to the address you set. Nothing is installed locally and there is no offline PDF fallback. Common Word, PowerPoint, Excel, EPUB, CSV and HTML files stay on your computer.
 
 New RTF, OpenDocument (.odt, .ods, .odp) and old Word, PowerPoint or Excel files (.doc, .ppt, .xls) are no longer accepted: save them as DOCX, PPTX, XLSX or PDF first. Documents already in the library keep opening, and their generated levels stay.
 

@@ -114,13 +114,13 @@ class Saved(unittest.TestCase):
         finally:
             models.SETTINGS = old
 
-    def test_concurrent_settings_updates_keep_both_fields(self):
+    def test_concurrent_settings_updates_keep_every_field(self):
         old = models.SETTINGS
         with __import__("tempfile").TemporaryDirectory() as tmp:
             try:
                 models.SETTINGS = Path(tmp) / "settings.json"
                 models.save_settings({"providers": [], "use_thoughtdag_env": False, "pdf_tier": "fast", "zotero": {}})
-                gate = threading.Barrier(3)
+                gate = threading.Barrier(4)
                 errors = []
 
                 def update(change):
@@ -131,7 +131,8 @@ class Saved(unittest.TestCase):
                         errors.append(e)
 
                 workers = [threading.Thread(target=update, args=(lambda s: s.update(pdf_tier="accurate"),)),
-                           threading.Thread(target=update, args=(lambda s: s.update(zotero={"library": "groups/42"}),))]
+                           threading.Thread(target=update, args=(lambda s: s.update(zotero={"library": "groups/42"}),)),
+                           threading.Thread(target=update, args=(lambda s: s.update(mineru_api_url="https://proxy.example/api/v4"),))]
                 for worker in workers:
                     worker.start()
                 gate.wait(timeout=2)
@@ -142,6 +143,7 @@ class Saved(unittest.TestCase):
                 saved = models.load_settings()
                 self.assertEqual(saved["pdf_tier"], "accurate")
                 self.assertEqual(saved["zotero"]["library"], "groups/42")
+                self.assertEqual(saved["mineru_api_url"], "https://proxy.example/api/v4")
                 self.assertFalse(list(models.SETTINGS.parent.glob("settings-*.tmp")))
             finally:
                 models.SETTINGS = old

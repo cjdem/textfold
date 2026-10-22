@@ -659,7 +659,7 @@
     : msg === 'not-markdown' || msg === 'empty' || msg === 'not-supported' ? t().md_only : msg === 'legacy-format' ? t().legacy_format
     : msg === 'no-fulltext' ? t().no_fulltext
     : msg === 'no-readme' ? t().no_readme : msg === 'github-limit' ? t().github_limit : msg === 'needs-mineru-key' ? t().mineru_needed
-    : msg === 'bad-mineru-key' ? t().mineru_bad_key : msg === 'busy' ? t().busy : msg === 'not-pdf' ? t().not_pdf : msg === 'too-large' ? t().pdf_large
+    : msg === 'bad-mineru-key' ? t().mineru_bad_key : msg === 'bad-mineru-url' ? t().mineru_bad_url : msg === 'busy' ? t().busy : msg === 'not-pdf' ? t().not_pdf : msg === 'too-large' ? t().pdf_large
     : msg === 'bad-file' ? t().file_bad : msg === 'no-file' ? t().no_file : msg === 'not-running' ? t().z_off : msg === 'api-off' ? t().z_api_off
     : msg === 'web-notext' ? t().web_notext : msg === 'web-pdf' ? t().web_pdf : msg === 'web-blocked' ? t().web_blocked : msg);
 
@@ -1366,12 +1366,17 @@
       const box = q('.st-mineru');
       if (!box) return;
       const t = T(), m = data.mineru || {};
+      const bad = m.baseOk === false;
       box.innerHTML = `<h3>${esc(t.st_mineru)}</h3><div class="st-list">
-        <div class="st-item"><i class="st-dot${m.api ? '' : ' bad'}"></i><div class="st-main"><b>MinerU Cloud API</b><span class="st-meta">${esc(m.api ? t.mineru_connected : t.mineru_not_connected)}</span></div></div>
+        <div class="st-item"><i class="st-dot${m.api && !bad ? '' : ' bad'}"></i><div class="st-main"><b>MinerU Cloud API</b><span class="st-meta">${esc(bad ? t.mineru_url_invalid : m.api ? t.mineru_connected : t.mineru_not_connected)}</span></div></div>
         <div class="st-item st-key"><label class="st-main" for="st-mineru-key"><b>${esc(t.mineru_key)}</b><span class="st-meta">${esc(t.mineru_key_note)}</span></label>
           <input id="st-mineru-key" class="st-mineru-key" type="password" autocomplete="off" spellcheck="false" placeholder="${esc(m.api ? t.mineru_key_kept : t.mineru_key_ph)}">
           <button type="button" class="st-btn st-mineru-save">${esc(t.save)}</button>
           ${m.api ? `<button type="button" class="st-btn danger st-mineru-clear">${esc(t.mineru_clear)}</button>` : ''}</div>
+        <div class="st-item st-key"><label class="st-main" for="st-mineru-url"><b>${esc(t.mineru_url)}</b><span class="st-meta">${esc(t.mineru_url_note)}</span></label>
+          <input id="st-mineru-url" class="st-mineru-url" type="text" inputmode="url" autocomplete="off" spellcheck="false" value="${esc(m.base || '')}" placeholder="${esc(m.official || '')}">
+          <button type="button" class="st-btn st-mineru-url-save">${esc(t.save)}</button>
+          ${m.base && m.official && m.base !== m.official ? `<button type="button" class="st-btn st-mineru-url-reset">${esc(t.mineru_official)}</button>` : ''}</div>
         <div class="st-item"><div class="st-main"><b>${esc(t.mineru_limits_h)}</b><span class="st-meta">${esc(t.mineru_limits)}</span></div></div>
         <div class="st-item"><div class="st-main"><b>${esc(t.mineru_privacy_h)}</b><span class="st-meta">${esc(t.mineru_privacy)}</span></div></div>
         <div class="st-item"><label class="st-main" for="st-tier"><b>${esc(t.tier)}</b></label><select class="st-tiersel" id="st-tier">${['fast', 'accurate'].map((k) =>
@@ -1399,6 +1404,26 @@
       input.oninput = () => input.setCustomValidity('');
       const clear = box.querySelector('.st-mineru-clear');
       if (clear) clear.onclick = () => { if (confirm(t.mineru_clear_q)) put(''); };
+      const urlSave = box.querySelector('.st-mineru-url-save'), urlInput = box.querySelector('.st-mineru-url');
+      const putUrl = async (value) => {
+        urlSave.disabled = true;
+        const reset = box.querySelector('.st-mineru-url-reset');
+        if (reset) reset.disabled = true;
+        try {
+          const next = await api('/api/settings', { mineru_api_url: value });
+          data.mineru = next.mineru; data.pdfTier = next.pdfTier;
+          renderMineru();
+        } catch (x) {
+          urlSave.disabled = false;
+          if (reset) reset.disabled = false;
+          urlInput.setCustomValidity(errText(x.message));
+          urlInput.reportValidity();
+        }
+      };
+      urlSave.onclick = () => { urlInput.setCustomValidity(''); putUrl(urlInput.value.trim()); };
+      urlInput.oninput = () => urlInput.setCustomValidity('');
+      const urlReset = box.querySelector('.st-mineru-url-reset');
+      if (urlReset) urlReset.onclick = () => putUrl('');   // (empty means the official base; the typed value is not needed)
       box.querySelector('.st-tiersel').onchange = async (ev) => {
         const next = await api('/api/settings', { pdf_tier: ev.target.value });
         data.mineru = next.mineru; data.pdfTier = next.pdfTier;

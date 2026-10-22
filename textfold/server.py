@@ -14,7 +14,8 @@
                               are answered with (none: the same) and its reasoning level (none: the default)
   POST /api/providers/probe   {base, api_key | key, preset}: a provider's /models
   POST /api/providers/save    {key?, preset, name, base, api_key?, models}  ·  POST /api/providers/remove {key}
-  POST /api/settings          {use_thoughtdag_env, pdf_tier, mineru_api_key}: one change; the models after it
+  POST /api/settings          {use_thoughtdag_env, pdf_tier, mineru_api_key, mineru_api_url}: one change; the models
+                              after it (mineru_api_url: a v4-compatible base; empty restores the official one)
   POST /api/settings/test     {model?} or {task: "ask"}: one tiny call
   GET  /api/notes/<id>        the reader's notes on a paper (docs/notes-format.md)
   POST /api/files             a file dropped on the landing, its bytes (X-Name, X-Lang): a PDF through MinerU's API,
@@ -752,6 +753,12 @@ def make_handler(jobs):
                     key = key.strip() if isinstance(key, str) else ""
                     if key and not engine.key_ok(key):
                         return self.json({"error": "bad-mineru-key"}, 400)
+                    if "mineru_api_url" in body and not isinstance(body.get("mineru_api_url"), str):
+                        return self.json({"error": "bad-mineru-url"}, 400)   # (a non-text address is not a reset)
+                    url = body.get("mineru_api_url")
+                    url = url.strip() if isinstance(url, str) else ""
+                    if url and not engine.base_ok(url):
+                        return self.json({"error": "bad-mineru-url"}, 400)
                     def update_general(current):
                         if "use_thoughtdag_env" in body:
                             current["use_thoughtdag_env"] = bool(body["use_thoughtdag_env"])
@@ -759,6 +766,8 @@ def make_handler(jobs):
                             current["pdf_tier"] = body["pdf_tier"]
                         if "mineru_api_key" in body:
                             current["mineru_api_key"] = key
+                        if "mineru_api_url" in body:   # (empty: the official base; base_ok normalized it otherwise)
+                            current["mineru_api_url"] = engine.base_ok(url) or models.MINERU_API
                     models.update_settings(update_general)
                     return self.json(models_payload())
                 if u.path == "/api/settings/test":

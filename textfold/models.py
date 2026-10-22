@@ -26,11 +26,14 @@ DEFAULT_THINKING = {"ladder": "off", "translate": "off", "ask": "low", "card": "
 # the Anthropic API spoken natively (official SDK), offered as one more preset in the settings
 ANTHROPIC_PRESET = {"id": "anthropic", "name": "Anthropic", "base": "https://api.anthropic.com", "protocol": "anthropic",
                     "fixed": ["claude-opus-5-5", "claude-sonnet-5-5", "claude-haiku-4-5"], "keyUrl": "https://console.anthropic.com/settings/keys"}
+# MinerU's v4 API, the official base. A v4-compatible address may replace it in the settings; engine.py validates and
+# normalizes it (models is where the one literal lives, so the reader, the status and the tests agree).
+MINERU_API = "https://mineru.net/api/v4"
 
 
 def _load_settings_locked():
     s = {"model": None, "ask_model": None, "ask_effort": None, "efforts": {}, "providers": [], "use_thoughtdag_env": False,
-         "pdf_tier": "fast", "mineru_api_key": "", "zotero": {}}
+         "pdf_tier": "fast", "mineru_api_key": "", "mineru_api_url": MINERU_API, "zotero": {}}
     old_home = next((h for h in OLD_HOMES if (h / "settings.json").exists()), None)
     if not SETTINGS.exists() and old_home:   # from before the name TextFold: copied, kept
         SETTINGS.parent.mkdir(parents=True, exist_ok=True)

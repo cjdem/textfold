@@ -65,7 +65,7 @@ that the app updates itself. The Windows app is built by `.github/workflows/desk
 `MYGO_UPDATER_PRIVATE_KEY` secret, and stops before it leaves a draft release without it.
 
 Models (⚙ Settings): the current connection, the default model and its test, plus the OpenRouter one-click entry.
-API providers, the questions' model and reasoning, and the MinerU API key are under
+API providers, the questions' model and reasoning, and the MinerU API key and address are under
 **Advanced**. TextFold makes model calls through API providers only; it does not scan for or run Claude Code, Codex or Pi
 CLI runtimes.
 
@@ -259,13 +259,17 @@ is read with English levels over its own text. Making the levels in the document
 A PDF dropped on the landing goes directly to MinerU Cloud API (`take_pdf` in `server.py`). No browser code reads its
 text, no arXiv id or DOI changes the route, and no online paper or local text parser takes precedence. Without
 `mineru_api_key`, the server answers `needs-mineru-key` with HTTP 409 and removes the refused upload. With a key, the
-file is uploaded to `mineru.net/api/v4`, read there, and its zip (`*_content_list_v2.json`, `images/`) written into the
+file is uploaded to the MinerU API base, read there, and its zip (`*_content_list_v2.json`, `images/`) written into the
 same `structured_content.json` the reader consumes (boxes from 0-1000 to 0-1; tiers mapped to `pipeline`/`vlm`; a PDF
-with no text read once more with OCR). Fast is MinerU's pipeline tier; accurate is its vision model. The landing's
-batch card and the MinerU settings state its limits: at most 600 pages per file, and a priority quota of 2,000 pages a
-day. PDFium
+with no text read once more with OCR). The base is `https://mineru.net/api/v4` unless `mineru_api_url` names another
+v4-compatible address: http or https, a host, no query, fragment or sign-in, and the trailing `/` stripped. A saved
+address that cannot be used fails the conversion with `bad-mineru-url` rather than quietly sending the file to the
+official service, and one conversion keeps the base it started with. Only v4-compatible endpoints are supported; the
+self-hosted `mineru-kit` API is v1 and is not reached by this setting. Fast is MinerU's pipeline tier; accurate is its
+vision model. The landing's batch card and the MinerU settings state its limits: at most 600 pages per file, and a
+priority quota of 2,000 pages a day. PDFium
 (`pypdfium2`) remains only to cut figures from the original page using MinerU's boxes. A PDF imported before this
-change opens from its stored result. The document leaves this computer for conversion.
+change opens from its stored result. The document leaves this computer for conversion at the address in the setting.
 `pdfdoc.py` turns `structured_content.json` into the document: running heads and page numbers out, the title from the
 page or the file, heading depth from numbering, a figure's panels grouped under the caption that names it, figures from
 after the references put before them, short front matter dropped.

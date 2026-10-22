@@ -24,8 +24,9 @@ cannot act on your computer, and so that it cannot steer the model that folds it
   zero-size text) is removed before a model sees the page, and the model is told that an instruction inside a
   document is part of what the document says, never to be followed.
 - Keys and settings are kept in `~/.textfold/settings.json`, readable by you alone, never in the project folder.
-- PDFs and pictures are sent to MinerU's Cloud API for conversion. The file leaves your computer for that
-  conversion, and the page says so before it is sent. The API key is kept in `~/.textfold/settings.json`.
+- PDFs and pictures are sent to the MinerU API address in Settings (MinerU's official address by default) for
+  conversion. The file leaves your computer for that conversion, and the page says so before it is sent. The API key
+  is kept in `~/.textfold/settings.json`.
 
 A known gap: arXiv's HTML is shown as LaTeXML wrote it, without the allowlist. Rules made for LaTeXML (its drawings
 and sizes must survive them) are in progress.

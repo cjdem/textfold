@@ -99,6 +99,8 @@ def mineru_cmd(args):
     st = engine.status()
     print("MinerU API key: " + ("set" if st["api"] else "not set")
           + " (mineru_api_key in ~/.textfold/settings.json)")
+    print("MinerU API address: " + st["base"]
+          + ("" if st["baseOk"] else "  (not valid; fix mineru_api_url in ~/.textfold/settings.json)"))
     return 0
 
 

@@ -1,4 +1,4 @@
-"""MinerU's cloud API (mineru.net/api/v4).
+"""MinerU's v4 API (the official base, or a v4-compatible one set in the reader).
 
 TextFold sends the kinds MinerU reads to its servers and turns the returned zip into the same
 structured_content.json the rest of the reader already consumes. There is no local MinerU install and no local PDF
@@ -32,9 +32,8 @@ FILES = {"docx": "Word", "doc": "Word", "rtf": "RTF", "pptx": "PowerPoint", "ppt
 # before the rule still opens; there is no local re-conversion engine any more.
 LEGACY = {"doc", "ppt", "xls", "rtf", "odt", "ods", "odp"}
 
-# MinerU's Cloud API: the only MinerU path. Its zip (full.md, *_content_list_v2.json, images/) becomes the same
-# structured_content.json below.
-API = "https://mineru.net/api/v4"
+# MinerU's API: the only MinerU path. Its zip (full.md, *_content_list_v2.json, images/) becomes the same
+# structured_content.json below. The base is the setting `mineru_api_url` (official by default; see models.MINERU_API).
 API_TIERS = {"fast": "pipeline", "accurate": "vlm"}
 # what the API reads (its docs' list): PDFs, Office files, HTML, and these pictures — TIFF is not one of them. RTF,
 # OpenDocument and old Office files are no new imports; stored results remain readable.
@@ -71,6 +70,50 @@ def key_ok(key):
     return bool(key) and all(ch.isprintable() and not ch.isspace() for ch in key)
 
 
+def base_ok(url):
+    """A v4-compatible base as it is stored and called (no trailing /), or "" when it is not one: http(s), a host, no
+    query, fragment or sign-in, and no whitespace. The path is the reader's business (a proxy may add one)."""
+    if not isinstance(url, str):
+        return ""
+    url = url.strip()
+    if not url or any(not ch.isprintable() or ch.isspace() for ch in url):
+        return ""
+    if "?" in url or "#" in url:   # (a raw delimiter, even an empty query, is not a base)
+        return ""
+    try:
+        u = urllib.parse.urlsplit(url)
+        _ = u.port   # (a non-numeric port raises here, before any request is made)
+    except ValueError:
+        return ""
+    if u.scheme not in ("http", "https") or not u.hostname or u.query or u.fragment or u.username or u.password \
+            or "@" in u.netloc:
+        return ""
+    return urllib.parse.urlunsplit((u.scheme, u.netloc, u.path.rstrip("/"), "", ""))
+
+
+def _configured_base():
+    """The setting as stored (text stripped), or None when the file holds null: an absent key is already the default
+    (a string). Absent, empty and null mean the official base. Any other non-text value is returned as it is, so
+    api_base() refuses it rather than calling it empty."""
+    from . import models
+    raw = models.load_settings().get("mineru_api_url")
+    return raw.strip() if isinstance(raw, str) else raw
+
+
+def api_base():
+    """The base a conversion calls: the setting normalized, or the official one when none is set. A saved value that is
+    not usable raises before a socket is opened, rather than silently sending the file to the official service."""
+    from . import models
+    raw = _configured_base()
+    if raw is None or raw == "":
+        return models.MINERU_API
+    if isinstance(raw, str):
+        clean = base_ok(raw)
+        if clean:
+            return clean
+    raise RuntimeError("bad-mineru-url")
+
+
 def available():
     """Whether the MinerU cloud API can convert a file now (a key is set)."""
     return bool(api_key())
@@ -82,8 +125,26 @@ def readable(ext):
     return bool(api_key() and ext in API_FILES)
 
 
+def _utf8_safe(text):
+    """The text as UTF-8 can carry it: a hand-edited lone surrogate is replaced, so the page's JSON still encodes and
+    the settings page that fixes the value can open."""
+    return text.encode("utf-8", "replace").decode("utf-8")
+
+
 def status():
-    return {"api": bool(api_key()), "service": "MinerU API", "version": "v4", "tiers": list(TIERS)}
+    """What the settings page shows. Never raises: a hand-edited, invalid address must not make the page that fixes it
+    unopenable, so it is reported with baseOk false instead of through api_base()."""
+    from . import models
+    raw = _configured_base()
+    clean = base_ok(raw)
+    if clean:
+        base, ok = clean, True
+    elif raw is None or raw == "":
+        base, ok = models.MINERU_API, True
+    else:
+        base, ok = _utf8_safe(raw if isinstance(raw, str) else str(raw)), False
+    return {"api": bool(api_key()), "service": "MinerU API", "version": "v4",
+            "base": base, "official": models.MINERU_API, "baseOk": ok, "tiers": list(TIERS)}
 
 
 def convert(pdf, out, tier="fast", progress=lambda *a: None, log=lambda *a: None, stop=None):
@@ -95,7 +156,8 @@ def convert(pdf, out, tier="fast", progress=lambda *a: None, log=lambda *a: None
         raise RuntimeError("needs-mineru-key")
     if ext not in API_FILES:
         raise RuntimeError("not-supported")
-    return _convert_api(pdf, out, tier, progress, log, stop)
+    base = api_base()   # (one base for the whole conversion: a settings save mid-job cannot redirect its polls)
+    return _convert_api(pdf, out, tier, progress, log, stop, base)
 
 
 PDF = "input.pdf"
@@ -111,19 +173,21 @@ def _unzip(z, out):
     z.unlink()
 
 
-# ── MinerU's cloud API (mineru.net/api/v4) ──────────────────────────────────────────────────────────────────────
+# ── MinerU's API (the configured v4 base) ───────────────────────────────────────────────────────────────────────
 # The file is uploaded, read on MinerU's servers and its zip brought back; the zip's own formats (full.md,
 # *_content_list_v2.json, images/) are written into the same structured content consumed by pdfdoc, so everything after
 # the conversion sees no difference. The API's boxes are 0-1000 of the page's width and height.
 
-def _api(path, body=None):
-    """A call to the API (a batch's creation, its state): its JSON. A key that is not one printable word is refused
-    here, before urllib could put it in an error message (which the job log would keep)."""
+def _api(path, body=None, base=None):
+    """A call to the API (a batch's creation, its state): its JSON. `base` is the conversion's base; a call made on its
+    own reads the setting. A key that is not one printable word is refused here, before urllib could put it in an error
+    message (which the job log would keep)."""
     key = api_key()
     if not key_ok(key):
         raise RuntimeError("the MinerU API key in settings.json is not valid")
+    base = base or api_base()
     data = None if body is None else json.dumps(body).encode()
-    req = urllib.request.Request(API + path, data=data, method="POST" if data is not None else "GET",
+    req = urllib.request.Request(base + path, data=data, method="POST" if data is not None else "GET",
                                  headers={"Authorization": "Bearer " + key, "Content-Type": "application/json",
                                           "Accept": "*/*"})
     with urllib.request.urlopen(req, timeout=60) as r:
@@ -134,7 +198,8 @@ def _put(url, file):
     """The file to its signed upload URL. http.client, not urllib: urllib adds a Content-Type, and the signature
     (computed over the headers) then does not match."""
     u = urllib.parse.urlsplit(url)
-    conn = http.client.HTTPSConnection(u.hostname, timeout=300)
+    cls = http.client.HTTPSConnection if u.scheme == "https" else http.client.HTTPConnection
+    conn = cls(u.hostname, u.port, timeout=300)   # (the signed URL's scheme and port, not the API's)
     try:
         conn.request("PUT", u.path + ("?" + u.query if u.query else ""), body=Path(file).read_bytes())
         r = conn.getresponse()
@@ -159,7 +224,7 @@ def _get(url, dest):
         Path(dest).write_bytes(f.read())
 
 
-def _api_wait(batch_id, name, log, stop):
+def _api_wait(batch_id, name, log, stop, base):
     """The batch's row for this file, once read there (with its zip's URL). Waits with the job, a stop stops it."""
     seen, deadline = None, time.monotonic() + 30 * 60
     while True:
@@ -167,7 +232,7 @@ def _api_wait(batch_id, name, log, stop):
             raise RuntimeError("the MinerU API did not finish the file in time")
         if (stop.wait(3) if stop is not None else time.sleep(3)):
             raise Stopped()
-        got = _api(f"/extract-results/batch/{batch_id}")
+        got = _api(f"/extract-results/batch/{batch_id}", base=base)
         if got.get("code") not in (0, None):   # an error comes as JSON with HTTP 200 (an expired token, a quota)
             raise RuntimeError(f"the MinerU API: {got.get('msg') or got.get('code')}")
         rows = (got.get("data") or {}).get("extract_result") or []
@@ -184,19 +249,20 @@ def _api_wait(batch_id, name, log, stop):
             raise RuntimeError(row.get("err_msg") or "the MinerU API could not read the file")
 
 
-def _api_read(pdf, out, tier, is_ocr, log, stop):
+def _api_read(pdf, out, tier, is_ocr, log, stop, base):
     """One pass through the API: uploaded, read there, its zip unpacked into out/, made into structured content (and
     the input file copied beside it, as the engine here leaves it)."""
     ext = kind_of(str(pdf)) or "pdf"
     model = API_TIERS.get(tier_for(pdf, tier), "vlm")
-    r = _api("/file-urls/batch", {"files": [{"name": Path(pdf).name, "is_ocr": bool(is_ocr)}], "model_version": model})
+    r = _api("/file-urls/batch", {"files": [{"name": Path(pdf).name, "is_ocr": bool(is_ocr)}], "model_version": model},
+             base=base)
     data = r.get("data") or {}
     batch_id, urls = data.get("batch_id"), data.get("file_urls") or []
     if r.get("code") != 0 or not batch_id or not urls:
         raise RuntimeError(f"the MinerU API refused the file: {r.get('msg') or r.get('code')}")
     log(f"the MinerU API reads it ({model}{', OCR' if is_ocr else ''})")
     _put(urls[0], pdf)
-    row = _api_wait(batch_id, Path(pdf).name, log, stop)
+    row = _api_wait(batch_id, Path(pdf).name, log, stop, base)
     z = Path(out) / "result.zip"
     _get(row["full_zip_url"], z)
     _unzip(z, out)
@@ -206,22 +272,22 @@ def _api_read(pdf, out, tier, is_ocr, log, stop):
     return sc
 
 
-def _convert_api(pdf, out, tier, progress, log, stop):
-    """A file through MinerU's cloud API into out/, the output the engine here writes. A file with no text (a scan)
+def _convert_api(pdf, out, tier, progress, log, stop, base):
+    """A file through MinerU's API into out/, the output the engine here writes. A file with no text (a scan)
     is read again once with OCR: the API does not look at the page without being asked to."""
     ext = kind_of(str(pdf)) or "pdf"
     out = Path(out)
     shutil.rmtree(out, ignore_errors=True)
     out.mkdir(parents=True)
     progress("convert", 0, 0)
-    sc = _api_read(pdf, out, tier, ext in PICTURES, log, stop)
+    sc = _api_read(pdf, out, tier, ext in PICTURES, log, stop, base)
     text = any(b.get("content") for p in sc["pages"] for b in p["blocks"]
                if b["type"] in ("text", "paragraph_title", "doc_title", "list", "page_footnote"))
     if not text and ext == "pdf":   # (a picture is read with OCR from the start)
         log("no text came back: the MinerU API reads it again with OCR")
         shutil.rmtree(out, ignore_errors=True)
         out.mkdir(parents=True)
-        sc = _api_read(pdf, out, tier, True, log, stop)
+        sc = _api_read(pdf, out, tier, True, log, stop, base)
     # ASCII-escaped, as MinerU's own zip is: pdfdoc reads this file as UTF-8 (read_output)
     (out / "structured_content.json").write_text(json.dumps(sc), encoding="utf-8")
     return out

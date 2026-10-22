@@ -2,6 +2,10 @@
 
 - Status: implemented and built for Windows 2026-10-21; signed-release
   migration remains open.
+- Later change (2026-10-22): the base is the `mineru_api_url` setting, official
+  `https://mineru.net/api/v4` by default and v4-compatible only; item 2 below
+  describes the state before that setting. See
+  `docs/changes/2026-10-22-mineru-base-url.md`.
 - Goal: remove every local MinerU engine install and execution path, use MinerU's
   Cloud API for the conversions that need MinerU, and make MyGo the Windows
   desktop shell around the existing Python server.
