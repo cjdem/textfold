@@ -184,22 +184,40 @@ def build(doc, lang, cfg, cache_dir, jobs=4, log=print, progress=None, force=Fal
             rec, cached = res
             cost += 0 if cached else (rec.get("cost") or 0)
             out = rec["out"]
-            by_id = {x.get("id"): x for x in out.get("units", [])}
-            for n, uid in enumerate(us):
-                o = by_id.get(f"U{n}")
-                z = assemble(doc["units"][uid], o, doc["atoms"], lang, warnings.append) if o else None
-                if z:
-                    doc["units"][uid].setdefault("tr", {})[lang] = z
-                else:
-                    warnings.append(f"{uid}: no translation")
-            if k == 0:   # the section's title and lines, and the paper's title, from its first part
-                sec = out.get("section") or {}
-                # an untitled section (a document's opening text) stays untitled: the model would name it
-                title = (unmark(clean(sec.get("title")), doc["atoms"]) or c["title"]) if c["title"] else ""
-                c.setdefault("tr", {})[lang] = {"title": title,
-                                                 "lad": section_ladder(sec, langs.budget(lang)["topic"], doc, c)}
-                if out.get("paper_title"):
-                    meta["titles"][lang] = clean(out["paper_title"])
+            units = llm.units_of(out)
+            ids = {x.get("id") for x in units}
+            if not isinstance(out, dict) or (us and not any(f"U{n}" in ids for n in range(len(us)))):
+                # (a reply with no unit this part can name: a partial layer must not be saved as this version's)
+                errors.append(RuntimeError(f"{lang}: a reply TextFold could not read ({type(out).__name__} with no unit it names)"))
+                log(f"  ! {lang} {c['id']}{f' part {k + 1}' if k else ''}: {errors[-1]}")
+                llm.forget(rec)
+                continue
+            try:
+                by_id = {x.get("id"): x for x in units}
+                for n, uid in enumerate(us):
+                    o = by_id.get(f"U{n}")
+                    z = assemble(doc["units"][uid], o, doc["atoms"], lang, warnings.append) if o else None
+                    if z:
+                        doc["units"][uid].setdefault("tr", {})[lang] = z
+                    else:
+                        warnings.append(f"{uid}: no translation")
+                if k == 0:   # the section's title and lines, and the paper's title, from its first part
+                    sec = llm.as_obj(out.get("section"))
+                    # an untitled section (a document's opening text) stays untitled: the model would name it
+                    title = (unmark(clean(sec.get("title")), doc["atoms"]) or c["title"]) if c["title"] else ""
+                    c.setdefault("tr", {})[lang] = {"title": title,
+                                                     "lad": section_ladder(sec, langs.budget(lang)["topic"], doc, c)}
+                    if out.get("paper_title"):
+                        meta["titles"][lang] = clean(out["paper_title"])
+            except Exception as e:   # a shape not foreseen: this part's units fall back, as for a failed call
+                errors.append(RuntimeError(f"{lang}: a reply TextFold could not read ({type(e).__name__}: {e})"))
+                log(f"  ! {lang} {c['id']}{f' part {k + 1}' if k else ''}: {errors[-1]}")
+                llm.forget(rec)
+                for uid in us:
+                    (doc["units"][uid].get("tr") or {}).pop(lang, None)
+                if k == 0 and c.get("tr"):
+                    c["tr"].pop(lang, None)
+                continue
             log(f"  {'·' if cached else '✓'} {lang} {c['id']:<14} {len(us):>2} units{f' (part {k + 1})' if k else ''}")
     if tasks and len(errors) == len(tasks):
         raise RuntimeError(str(errors[0]))

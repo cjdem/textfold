@@ -13,6 +13,7 @@ Written words that also occur in the key sentences carry `m`, the index of
 that source token, so the morph can slide the word instead of swapping it.
 One model call per chunk (a heading and the units under it).
 """
+import json
 import re
 from concurrent.futures import ThreadPoolExecutor
 
@@ -237,7 +238,17 @@ def topic_tokens(text, brief, tn, u, atoms, ev, budget=None, toks=None, sents=No
 
 
 def section_ladder(o, topic_budget=3, doc=None, chunk=None):
-    take_text = clean((o or {}).get("takeaway"))
+    if isinstance(o, str):   # a model that wrote the section's takeaway alone, not as {takeaway, topic}
+        obj = llm.as_obj(o)
+        if not obj:   # (a string a second time: the JSON string of a string)
+            try:
+                inner = json.loads(o)
+            except ValueError:
+                inner = o
+            obj = llm.as_obj(inner) or {"takeaway": inner if isinstance(inner, str) else o}
+        o = obj
+    o = o if isinstance(o, dict) else {}
+    take_text = clean(o.get("takeaway"))
     if not take_text:
         return None
     if doc and chunk:  # $...$ in a section line becomes one of the section's own formulas
@@ -275,17 +286,24 @@ def build(doc, cfg, cache_dir, jobs=4, log=print, progress=None, force=False, st
                 continue
             rec, cached = res
             cost += 0 if cached else (rec.get("cost") or 0)
-            out = rec["out"]
-            by_id = {x.get("id"): x for x in out.get("units", [])}
-            for n, uid in enumerate(c["units"]):
-                o = by_id.get(f"U{n}")
-                u = doc["units"][uid]
-                u["lad"] = assemble(u, o, doc["atoms"], model) if o else local(u, doc["atoms"])
-                if not o:
-                    warnings.append(f"{uid}: missing from reply")
-                elif words(u["lad"]["brief"][:u["lad"]["tn"]]) > BUDGET["takeaway"] + 4:
-                    warnings.append(f"{uid}: long takeaway ({words(u['lad']['brief'][:u['lad']['tn']])} words)")
-            c["lad"] = section_ladder(out.get("section"), 3, doc, c)
+            out = rec["out"] if isinstance(rec["out"], dict) else {}
+            try:
+                by_id = {x.get("id"): x for x in llm.units_of(out)}
+                for n, uid in enumerate(c["units"]):
+                    o = by_id.get(f"U{n}")
+                    u = doc["units"][uid]
+                    u["lad"] = assemble(u, o, doc["atoms"], model) if o else local(u, doc["atoms"])
+                    if not o:
+                        warnings.append(f"{uid}: missing from reply")
+                    elif words(u["lad"]["brief"][:u["lad"]["tn"]]) > BUDGET["takeaway"] + 4:
+                        warnings.append(f"{uid}: long takeaway ({words(u['lad']['brief'][:u['lad']['tn']])} words)")
+                c["lad"] = section_ladder(out.get("section"), 3, doc, c)
+            except Exception as e:   # a reply of a shape not foreseen: this chunk's units fall back, as for a failed call
+                log(f"  ! {c['id']}: {model}: a reply TextFold could not read ({type(e).__name__}: {e})")
+                llm.forget(rec)
+                for uid in c["units"]:
+                    doc["units"][uid].pop("lad", None)
+                continue
             log(f"  {'·' if cached else '✓'} {c['id']:<14} {len(c['units']):>2} units")
     if chunks and len(errors) == len(chunks):  # nothing came back: a backend problem, not a paper problem
         raise RuntimeError(str(errors[0]))

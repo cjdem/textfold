@@ -35,6 +35,18 @@ def _post(url, body, headers, timeout):
     return json.loads(raw)
 
 
+REASONING_PARTS = {"reasoning", "reasoning_content", "thinking"}
+
+
+def _join_parts(parts):
+    """A content list's text: its parts joined, except the ones that hold the model's reasoning rather than its reply.
+    A non-object part is text as it came."""
+    def keep(p):
+        return isinstance(p, dict) and not (isinstance(p.get("type"), str) and p["type"] in REASONING_PARTS)
+    return "".join(str(p.get("text") or "") if keep(p) else ("" if isinstance(p, dict) else str(p))
+                   for p in parts if p is not None)
+
+
 def _events(raw):
     """A streamed reply (data: {chunk} lines, data: [DONE] last) as one chat completion: the pieces of its first
     choice joined, its usage if a chunk carries one. A chunk that is only an error is given back as it came."""
@@ -62,11 +74,24 @@ def _events(raw):
             part = c.get("delta") or c.get("message") or {}
             piece = part.get("content") if isinstance(part, dict) else None
             if isinstance(piece, list):
-                piece = "".join(str(p.get("text") or "") if isinstance(p, dict) else str(p)
-                                for p in piece if p is not None)
+                piece = _join_parts(piece)
             if isinstance(piece, str):
                 text.append(piece)
     return {"choices": [{"message": {"content": "".join(text)}}], **({"usage": usage} if usage else {})}
+
+
+def _content(d):
+    """The reply's text: message.content, a string on most endpoints, a list of parts ({type: text, text}) on some.
+    None when the body is not a chat completion at all (an error sent with HTTP 200)."""
+    choices = d.get("choices") if isinstance(d, dict) else None
+    first = choices[0] if isinstance(choices, list) and choices else None
+    if not isinstance(first, dict):
+        return None
+    msg = first.get("message")
+    c = msg.get("content") if isinstance(msg, dict) else msg
+    if isinstance(c, list):
+        c = _join_parts(c)
+    return c if isinstance(c, str) else ""
 
 
 def _said(e, n=300):
@@ -147,17 +172,14 @@ def call(prompt, schema, spec, system, timeout):
             raise RuntimeError(f"{spec.get('provider') or base}: HTTP {e.code} {_said(e)}")
         except urllib.error.URLError as e:
             raise RuntimeError(f"{spec.get('provider') or base}: {e.reason}")
-        choices = d.get("choices") if isinstance(d, dict) else None
-        first = choices[0] if isinstance(choices, list) and choices else None
-        if not isinstance(first, dict):   # not a completion: an error sent with HTTP 200 (a stream's error chunk, say)
+        text = _content(d)
+        if text is None:   # not a completion: what the provider said instead, after the other request shapes
             last = RuntimeError(f"{spec.get('provider') or base}: not a chat completion: "
                                 f"{str((d.get('error') or d.get('detail') or d) if isinstance(d, dict) else d)[:300]}")
             if i + 1 < len(shapes):
                 i += 1
                 continue
             raise last
-        msg = first.get("message")
-        text = (msg.get("content") if isinstance(msg, dict) else msg if isinstance(msg, str) else "") or ""
         text = re.sub(r"^```(?:json)?\s*|\s*```$", "", text.strip())
         m = re.search(r"\{.*\}", text, re.S)
         if not m and i + 1 < len(shapes) and r:   # an answer left in the reasoning, none in the reply: ask the plain way

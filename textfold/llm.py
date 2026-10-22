@@ -46,6 +46,36 @@ def label(model):
     return spec_of(model)["id"]
 
 
+def as_obj(v):
+    """A part of a model's reply that should be an object: as one, also when the model wrote it as a JSON string; else {}."""
+    if isinstance(v, str):
+        try:
+            v = json.loads(v)
+        except ValueError:
+            return {}
+    return v if isinstance(v, dict) else {}
+
+
+def units_of(out):
+    """A reply's units as asked (a list of objects), also when a model gave them another way: an object keyed by id, a
+    JSON string, or a list of JSON strings. Anything else is dropped: its unit falls back to a local ladder."""
+    us = out.get("units") if isinstance(out, dict) else None
+    if isinstance(us, str):
+        try:
+            us = json.loads(us)
+        except ValueError:
+            return []
+    if isinstance(us, dict):
+        got = []
+        for k, v in us.items():
+            o = as_obj(v)
+            if o:
+                o["id"] = k   # (the key names the unit, whatever the value says of itself)
+                got.append(o)
+        return got
+    return [o for o in map(as_obj, us if isinstance(us, list) else []) if o]
+
+
 def _read_cache(f):
     """A cached reply: what is written now is ASCII-escaped. A reply cached before this was `ensure_ascii=False` — in
     the system's encoding (GBK on a Chinese Windows) or UTF-8 (another machine's), and no marker tells which; reading
@@ -69,7 +99,7 @@ def call(prompt, schema, model, cache_dir: Path, force=False, timeout=900, syste
     f = cache_dir / f"{key}.json"
     if f.exists() and not force:
         try:
-            return _read_cache(f), True
+            return {**_read_cache(f), "file": str(f)}, True
         except (OSError, ValueError):
             pass   # (a write that failed left it empty or partial: the call is made again, and the file rewritten)
     note = None
@@ -88,7 +118,16 @@ def call(prompt, schema, model, cache_dir: Path, force=False, timeout=900, syste
     # ASCII-escaped (no ensure_ascii=False): a reply with Chinese or ⟦a1⟧ markers is written whatever the system's
     # encoding is (GBK cannot hold ⟦, and the write failed outright before this), and every reader reads it back
     f.write_text(json.dumps(rec, indent=1), encoding="utf-8")
-    return rec, False
+    return {**rec, "file": str(f)}, False
+
+
+def forget(rec):
+    """A kept reply its caller could not read, dropped: the next generation asks the model again, without a force."""
+    if rec.get("file"):
+        try:
+            Path(rec["file"]).unlink(missing_ok=True)
+        except OSError:
+            pass   # (another process holds it open: it stays, and the next run reads it once more)
 
 
 def _once(prompt, schema, spec, timeout, system):

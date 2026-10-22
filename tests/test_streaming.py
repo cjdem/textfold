@@ -20,8 +20,8 @@ REPLY = {"takeaway": "流式的回复也能读", "topic": "流式"}
 
 
 def content(d):
-    """The reply's text from the joined completion (llm_openai._content arrives with the reply-shapes change)."""
-    return ((d.get("choices") or [{}])[0].get("message") or {}).get("content")
+    """The reply's text from the joined completion, as the client itself reads it."""
+    return llm_openai._content(d)
 
 
 def sse(text, usage=None):

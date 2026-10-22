@@ -71,8 +71,11 @@ def generate(ref, lang, cfg, force=False, jobs=4, progress=lambda *a: None, log=
         tr = store.read(pid, f"tr-{lang}")
         if force or tr is None or tr.get("base") != en["version"]:
             check()
-            translate.build(doc, lang, task(cfg, "translate"), cache, jobs=jobs, log=log, progress=lambda a, b: progress("translate", a, b), force=force, stop=stop)
-            store.save_tr(doc, lang, en["version"], model)
+            _, failed = translate.build(doc, lang, task(cfg, "translate"), cache, jobs=jobs, log=log, progress=lambda a, b: progress("translate", a, b), force=force, stop=stop)
+            if failed:   # (a partial layer saved as current would never be completed: it waits for the next run)
+                log(f"the {langs.name(lang)} version is incomplete ({failed} part(s) failed)")
+            else:
+                store.save_tr(doc, lang, en["version"], model)
     # An English document is read in Simplified Chinese by default: the version is made at the end of this generation,
     # whichever language was asked for (the app passes also_zh; the command line does not).
     if also_zh and cfg is not None and lang != "zh":
