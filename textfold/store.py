@@ -3,7 +3,8 @@
   papers/<id>/source.html, meta.json     the arXiv HTML, fetched once (or a document from this computer, local.py)
   papers/<id>/layers/en.json             the English ladder and the argument links stored by older versions
   papers/<id>/layers/tr-<lang>.json      one translation, stamped with the English version it was built on
-  papers/.trash/<id>-<time>/             a paper the reader deleted (moved there whole, notes included; not listed)
+  papers/.trash/<id>-<time>/             a paper the reader deleted (moved there whole, notes included; not listed), with
+                                         library.json: its place in the library, for the reader's Undo (untrash)
 
 A model samples differently on every run, so the same paper does not come out the same twice.
 The layers are what makes a paper read the same every time it is opened: a reader is assembled
@@ -287,11 +288,56 @@ def papers():
     return sorted(out, key=lambda p: -p["updated"])
 
 
-def trash(pid):
+def trash(pid, kept=None):
     """Delete a paper from the list: its folder (source, layers, model replies, notes) moves to papers/.trash, from
-    where it can be moved back by hand. Nothing is erased."""
+    where it can be moved back (untrash, or by hand). Nothing is erased. kept: its place in the library, kept with it:
+    written to a temporary file before the move, and put inside the trashed folder under the same lock, so a restore
+    cannot see the folder before its place is there. When it cannot be put there the folder still goes: a place lost is
+    better than a delete undone."""
     to = DATA / "papers" / ".trash" / f"{pid}-{time.strftime('%Y%m%d-%H%M%S')}"
+    tmp = None
     with LOCK:   # a card save and the move of the folder it writes into cannot cross
         to.parent.mkdir(parents=True, exist_ok=True)
-        pdir(pid).rename(to)
+        if kept:
+            tmp = DATA / "papers" / f".{pid}-place.tmp"
+            tmp.write_text(json.dumps(kept), encoding="utf-8")   # (ASCII-escaped: the reader's file, plain)
+        try:
+            pdir(pid).rename(to)
+        except OSError:
+            if tmp:
+                tmp.unlink(missing_ok=True)
+            raise
+        if tmp:
+            try:
+                tmp.replace(to / "library.json")
+            except OSError:
+                tmp.unlink(missing_ok=True)
     return to
+
+
+def untrash(pid, use=None):
+    """A paper deleted last back in the list, as it was (its latest time in papers/.trash), and its place in the
+    library as trash kept it ({} when none); None when there is none there, or a paper of that id is listed again.
+    use(kept), when given, takes the place while the lock is held (library.remember): a delete of the same document
+    cannot slip between the folder coming back and its place. The place file leaves the paper's folder after use, or
+    stays if use raises, to be read again."""
+    if not valid_id(pid) or pdir(pid).exists():
+        return None
+    at = re.compile(re.escape(pid) + r"-\d{8}-\d{6}")
+    with LOCK:   # (a restore and a delete of the same folder cannot cross; the place is read before the move)
+        if pdir(pid).exists():
+            return None
+        gone = sorted(d for d in (DATA / "papers" / ".trash").glob(f"{pid}-*") if at.fullmatch(d.name) and (d / "meta.json").exists())
+        if not gone:
+            return None
+        kept_f = gone[-1] / "library.json"
+        try:
+            kept = json.loads(read_text(kept_f)) if kept_f.exists() else {}
+        except (OSError, ValueError):
+            kept = {}
+        kept = kept if isinstance(kept, dict) else {}
+        gone[-1].rename(pdir(pid))
+        if use:
+            use(kept)
+        (pdir(pid) / "library.json").unlink(missing_ok=True)
+    return kept

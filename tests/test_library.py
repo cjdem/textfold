@@ -81,9 +81,40 @@ class Library(unittest.TestCase):
         self.assertGreater(library.stamp([{"id": "2512.24601"}])[0]["opened"], 1_790_000_000)
         a = library.change({"op": "new", "name": "A"})["folders"][0]
         library.change({"op": "move", "papers": ["2512.24601"], "folder": a["id"]})
-        library.forget("2512.24601")
+        kept = library.forget("2512.24601")
+        self.assertEqual((kept["of"], kept["added"]), (a["id"], 1_790_000_000))
+        self.assertGreater(kept["opened"], 1_790_000_000)
         d = library.load()
         self.assertEqual((d["of"], d["added"], d["opened"]), ({}, {}, {}))
+        self.assertEqual(library.forget("2512.24601"), {})   # (gone already: nothing to remember)
+
+    def test_a_deleted_document_can_be_remembered(self):
+        library.stamp([self.paper("2512.24601", 1_790_000_000)])
+        library.opened("2512.24601")
+        a = library.change({"op": "new", "name": "A"})["folders"][0]
+        library.change({"op": "move", "papers": ["2512.24601"], "folder": a["id"]})
+        kept = library.forget("2512.24601")
+        library.remember("2512.24601", kept)
+        d = library.load()
+        self.assertEqual((d["of"]["2512.24601"], d["added"]["2512.24601"]), (a["id"], 1_790_000_000))
+        self.assertEqual(d["opened"]["2512.24601"], kept["opened"])
+        # a folder deleted while the document was in the trash: the dates still come back, unfiled
+        library.forget("2512.24601")
+        library.change({"op": "delete", "id": a["id"]})
+        library.remember("2512.24601", kept)
+        d = library.load()
+        self.assertEqual((d["of"], d["added"]["2512.24601"]), ({}, 1_790_000_000))
+        # what a damaged or foreign file could carry is dropped; an unknown id is not written
+        library.remember("2512.24601", {"of": "f-gone", "added": "yesterday", "opened": True, "names": "x"})
+        self.assertEqual((library.load()["of"], library.load()["added"]["2512.24601"]), ({}, 1_790_000_000))
+        library.remember("../etc", {"added": 1})
+        self.assertNotIn("../etc", library.load()["added"])
+
+    def test_a_hostile_place_is_dropped(self):
+        library.remember("2512.24601", {"of": ["f-1"], "added": 10 ** 400, "opened": float("nan")})
+        d = library.load()
+        self.assertEqual((d["of"], d["added"], d["opened"]), ({}, {}, {}))
+        self.assertFalse(library.path().exists())   # (nothing written at all)
 
     def test_a_damaged_file_reads_as_none(self):
         library.path().write_text("{not json", encoding="utf-8")

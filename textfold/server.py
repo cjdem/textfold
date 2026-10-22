@@ -31,7 +31,11 @@
   POST /api/ask/stop          {req}: that question stopped: its answer, when it comes, is not stored
   GET  /api/card/<id>         the document's reading card (cards.py), with what is stale or no longer reachable
   POST /api/card/<id>         {op}: create | save | evidence | adopt | adopt_item | discard | review | generate | export
-  POST /api/papers/delete     {paper}: move a paper to papers/.trash (not while it is being generated)
+  POST /api/papers/delete     {paper}: move a paper to papers/.trash (not while it is being generated); the list. Or
+                              {papers: [ids]}: each that can go; {papers: the list, deleted: [ids], busy: [ids],
+                              failed: [ids]} (a folder that could not move is put back in the library, not lost)
+  POST /api/papers/restore    {papers: [ids]}: those deleted last back from papers/.trash, in their folders (the
+                              reader's Undo); {papers: the list, folders, restored: [ids]}
   GET  /api/folders           the reader's folders and which document is in which (library.py)
   POST /api/folders           {op: new | rename | delete | move, ...}: one change; the folders after it
   POST /api/openrouter/start   {back}: the OpenRouter consent URL (OAuth PKCE); GET /oauth/openrouter is its return
@@ -376,6 +380,11 @@ def listed():
     return library.stamp(store.papers())
 
 
+def busy_deleting(jobs):
+    """The documents a delete has to leave where they are: those being generated (a card draft is not the document)."""
+    return {j["pid"] for j in jobs.list() if j["status"] in ("queued", "running") and j.get("kind") != "card"}
+
+
 def landing_page(jobs):
     s = models.load_settings()
     cat, _ = models.catalog(s)   # once: building it probes the computer's own model servers, and four builds made the page take seconds
@@ -662,16 +671,38 @@ def make_handler(jobs):
                     callback = f"http://{self.headers.get('Host')}/oauth/openrouter"   # (the guard above: a local name)
                     return self.json({"url": openrouter.openrouter_start(callback, str(body.get("back") or "/"), bool(body.get("desktop")))})
                 if u.path == "/api/papers/delete":
-                    pid = str(body.get("paper", ""))
-                    if not store.valid_id(pid) or not (store.pdir(pid) / "meta.json").exists():
+                    many = isinstance(body.get("papers"), list)
+                    pids = [str(p) for p in body["papers"]] if many else [str(body.get("paper", ""))]
+                    there = [p for p in dict.fromkeys(pids) if store.valid_id(p) and (store.pdir(p) / "meta.json").exists()]
+                    live = busy_deleting(jobs)
+                    if not many and not there:
                         return self.json({"error": "no such paper"}, 404)
-                    if any(j["pid"] == pid and j["status"] in ("queued", "running") and j.get("kind") != "card"
-                           for j in jobs.list()):   # (a card draft is not the document being generated)
+                    if not many and there[0] in live:
                         return self.json({"error": "busy"}, 409)
-                    store.trash(pid)
-                    library.forget(pid)
-                    PAGES.pop(pid, None)
-                    return self.json(listed())
+                    deleted, failed = [], []
+                    for pid in [p for p in there if p not in live]:   # (its place in the library goes with it, for an Undo)
+                        kept = library.forget(pid)
+                        try:
+                            store.trash(pid, kept)
+                        except OSError:
+                            library.remember(pid, kept)   # (the folder could not move: the library stays as it was)
+                            if not many:
+                                raise
+                            failed.append(pid)
+                            continue
+                        PAGES.pop(pid, None)
+                        deleted.append(pid)
+                    if not many:
+                        return self.json(listed())
+                    return self.json({"papers": listed(), "deleted": deleted, "busy": [p for p in there if p in live], "failed": failed})
+                if u.path == "/api/papers/restore":
+                    pids = body.get("papers") if isinstance(body.get("papers"), list) else []
+                    restored = []
+                    for pid in dict.fromkeys(str(p) for p in pids):
+                        kept = store.untrash(pid, lambda k, pid=pid: library.remember(pid, k))   # (the place while the lock is held)
+                        if kept is not None:
+                            restored.append(pid)
+                    return self.json({"papers": listed(), "folders": library.folders(), "restored": restored})
                 if u.path == "/api/folders":
                     try:
                         return self.json(library.change(body))
