@@ -416,8 +416,24 @@ def _mathml_tex(m):
 
 
 def _fragment(markup):
-    """Some HTML as an element holding it (a whole page's body, or a fragment in a div)."""
-    root = lhtml.fromstring(f"<div>{markup}</div>") if isinstance(markup, str) else lhtml.fromstring(markup)
+    """Some HTML as an element holding it (a whole page's body, or a fragment in a div). A whole document given as
+    text is parsed as one: its head's title is not the document's text, and wrapping it in a div would hoist it.
+
+    A leading XML declaration, processing instruction or comment is dropped first: the text is already decoded, and
+    lxml's HTML parser refuses a Unicode string that carries an encoding declaration."""
+    if isinstance(markup, str):
+        clean = markup.lstrip()
+        while True:
+            m = re.match(r"(?:<!--[\s\S]*?-->|<\?[\s\S]*?\?>)\s*", clean)
+            if not m:
+                break
+            clean = clean[m.end():]
+        if re.match(r"(?:<!doctype|<html\b|<head\b|<body\b|<svg\b)", clean, re.I):
+            root = lhtml.fromstring(clean)
+        else:
+            root = lhtml.fromstring(f"<div>{clean}</div>")   # (a fragment may have several top-level nodes)
+    else:
+        root = lhtml.fromstring(markup)
     body = root.find(".//body")
     return body if body is not None else root
 
@@ -706,6 +722,24 @@ def _decode(data):
     return data.decode("latin-1")
 
 
+def _chapter(data):
+    """An EPUB content document's text: its byte-order mark first (UTF-8, UTF-16), else the encoding its XML
+    declaration or meta charset names, else the fallback order above. The EPUB spec makes an undeclared chapter UTF-8;
+    a chapter that names another encoding (a Latin-1 or Big5 book) is read in it, as the HTML parser used to."""
+    if data.startswith(b"\xef\xbb\xbf"):
+        return data.decode("utf-8-sig")
+    if data.startswith((b"\xff\xfe", b"\xfe\xff")):
+        return data.decode("utf-16")
+    m = (re.search(rb'<\?xml[^>]*\bencoding\s*=\s*["\']([A-Za-z0-9._-]+)', data[:2048])
+         or re.search(rb'<meta[^>]+charset\s*=\s*["\']?([A-Za-z0-9._-]+)', data[:8192], re.I))
+    if m:
+        try:
+            return data.decode(m.group(1).decode("ascii"))
+        except (LookupError, UnicodeDecodeError):
+            pass   # (a declaration that does not hold: the fallback decides)
+    return _decode(data)
+
+
 def _csv(path, doc, ext):
     text = _decode(Path(path).read_bytes())
     if ext == "tsv":
@@ -800,7 +834,7 @@ def _epub(path, doc):
                 return doc.picture(z.read(target), Path(target).suffix.lstrip(".").replace("jpg", "jpeg"))
             return src if re.match(r"https?://", src) else None
 
-        Flow(doc, resolve).walk(_fragment(z.read(part)))
+        Flow(doc, resolve).walk(_fragment(_chapter(z.read(part))))
         doc.page()
 
 
