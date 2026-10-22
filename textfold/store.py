@@ -177,13 +177,14 @@ def save_tr(doc, lang, base, model):
 def apply_en(doc, en):
     """The stored English ladder on the parse as it is now. Evidence is a sentence number; a parser change can leave
     one past the end of a shorter part, so it is dropped, and the first sentence stands in when none is left."""
+    cjk = ladder.cjk_doc(doc)
     for uid, u in doc["units"].items():
         lad = en["units"].get(uid)
         if isinstance(lad, dict) and lad:
             ev = [s for s in lad.get("ev") or [] if isinstance(s, int) and 0 <= s < len(u["sents"])]
             u["lad"] = lad if ev == lad.get("ev") else {**lad, "ev": ev or [0]}
         else:
-            u["lad"] = ladder.local(u, doc["atoms"])
+            u["lad"] = ladder.local(u, doc["atoms"], cjk)
     for c in doc["chunks"]:
         c["lad"] = en["chunks"].get(c["id"])
     have = {(e["f"], e["t"]) for e in en["edges"]}
@@ -234,13 +235,16 @@ def assemble(pid, only=None):
     en = read(pid, "en")
     meta = doc["meta"]
     meta["langs"], meta["stale"], meta["versions"] = [], [], {}
+    cjk = ladder.cjk_doc(doc)
+    if cjk:   # the reader's CJK rules (an English paper's page carries nothing new)
+        meta["cjk"] = True
     if en:
         apply_en(doc, en)
         meta["langs"].append("en")
         meta["versions"]["en"] = en["version"]
     else:
         for u in doc["units"].values():
-            u["lad"] = ladder.local(u, doc["atoms"])
+            u["lad"] = ladder.local(u, doc["atoms"], cjk)
     for lang in languages(pid):
         if only is not None and lang not in only:
             continue

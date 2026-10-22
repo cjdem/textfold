@@ -83,15 +83,54 @@ class ChineseLevels(unittest.TestCase):
             self.assertNotIn("glue", u["lad"])
             self.assertNotIn("l3", u["lad"])
 
-    def test_stored_glue_and_l3_survive_a_round_trip(self):
+    def test_stored_glue_survives_a_round_trip(self):
         doc, pid = self.assemble(CHINESE)
         uid = next(iter(doc["units"]))
         doc["units"][uid]["lad"]["glue"] = "前半句"
-        doc["units"][uid]["lad"]["l3"] = False
         store.save_en(doc, "test")
         restored = store.assemble(pid)
         self.assertEqual(restored["units"][uid]["lad"]["glue"], "前半句")
-        self.assertIs(restored["units"][uid]["lad"]["l3"], False)
+
+    def test_a_cjk_document_is_marked_for_the_reader(self):
+        doc, _ = self.assemble(CHINESE)
+        self.assertIs(doc["meta"].get("cjk"), True)
+        doc, _ = self.assemble(ENGLISH)
+        self.assertNotIn("cjk", doc["meta"])
+
+    def test_a_chinese_unit_in_an_english_document_takes_the_english_path(self):
+        u = unit("这是背景。实验显示吸附量下降。")
+        lad = ladder.local(u, {}, False)
+        self.assertEqual([tk.get("m") for tk in lad["brief"]], [0, 1, 2, 3, 4])   # the first sentence, not a claim
+        note = unit("①魏敬淼.金融法学[M].北京：中国政法大学出版社，2013：45.", "u1")
+        o = {"takeaway": "注", "reason": "", "topic": "注", "evidence": [0]}
+        self.assertNotEqual(ladder.assemble(note, o, {}, "m", False)["brief"], [])
+
+    def test_an_english_paragraph_in_a_chinese_paper_is_not_dressed(self):
+        """Its words are spaced: carrying the tail in would run two English sentences together ("conditionThe")."""
+        head, first, second = (unit("这是背景。实验显示吸附量下降。", "u0"), unit("The first condition", "u1"),
+                               unit("The second condition follows. It holds.", "u2"))
+        doc = doc_of(head, first, second)
+        for u in (head, first, second):
+            u["lad"] = ladder.local(u, doc["atoms"])
+        ladder.dress(doc["chunks"][0], doc)
+        self.assertNotIn("glue", second["lad"])
+        self.assertNotIn("glue", first["lad"])
+
+    def test_an_english_paper_with_a_chinese_line_keeps_the_english_level(self):
+        """The document decides, through store.assemble: a Chinese unit in an English paper is read as English."""
+        english = ("# English test\n\nThe first sentence of the paper. The second one follows it. "
+                   "The third closes the paragraph. Another sentence here. And one more for the count.\n\n")
+        doc, _ = self.assemble(english + "这是背景。实验显示吸附量下降。\n")
+        self.assertNotIn("cjk", doc["meta"])
+        u = next(u for u in doc["units"].values() if "这是背景" in "".join(t.get("t") or "" for t in u["toks"]))
+        self.assertEqual([tk.get("m") for tk in u["lad"]["brief"]], [0, 1, 2, 3, 4])   # the first sentence, as English
+
+    def test_a_paper_that_opens_in_english_is_read_as_english(self):
+        """The known limit of the gate: it samples the first 4000 characters (budgets_for), so a Chinese body behind a
+        long English abstract is read as English throughout."""
+        text = "# Paper\n\n" + "An English abstract sentence about the method. " * 120 + "\n\n这是背景。第二句。\n"
+        doc, _ = self.assemble(text)
+        self.assertNotIn("cjk", doc["meta"])
 
     def test_a_contents_line_is_not_glued_to_the_next_paragraph(self):
         toc, para = unit("第一章 绪论 ………… 1", "u0"), unit("从前都是部门规章，而该条例的法律位阶为行政", "u1")

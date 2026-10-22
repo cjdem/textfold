@@ -143,6 +143,13 @@ def budgets_for(doc):
     return CJK_BUDGET if _cjk_share(text) > 0.2 else BUDGET
 
 
+def cjk_doc(doc):
+    """A document written in Chinese or Japanese. Only such a document takes the CJK rules (budgets in characters,
+    apparatus, the section's background, the half sentence a page break left): a paper in English folds as it did
+    before them, the same prompt and the same levels."""
+    return budgets_for(doc) is CJK_BUDGET
+
+
 def outline(doc, here):
     rows = []
     for c in doc["chunks"]:
@@ -173,7 +180,7 @@ def tables_of(doc, chunk, limit=1500, most=3):
 def prompt_for(doc, chunk):
     U, A = doc["units"], doc["atoms"]
     b = budgets_for(doc)
-    cjk = b is CJK_BUDGET
+    cjk = cjk_doc(doc)
     one = "ONE sentence" if cjk else "ONE English sentence"
     more = "ONE more sentence" if cjk else "ONE more English sentence"
     count = "characters" if cjk else "words"
@@ -576,7 +583,7 @@ def fold_background(chunk, doc):
     U, section = doc["units"], chunk.get("lad")
     lads = [(uid, U[uid].get("lad") or {}) for uid in chunk["units"]]
     text = "".join(tk.get("t") or "" for _, l in lads for tk in l["brief"][:l.get("tn") or 0])
-    if _cjk_share(text) <= 0.2:
+    if not cjk_doc(doc) or _cjk_share(text) <= 0.2:
         return      # an English paper folds exactly as it did before: these thresholds were set on Chinese theses
     first = next((i for i, (_, l) in enumerate(lads) if l.get("brief") and l.get("tn")), None)
     if first is None:     # nothing in this section folds: leave it alone
@@ -598,7 +605,6 @@ def fold_background(chunk, doc):
 
 
 NOTE = re.compile(r"^\s*[①-⑳]")        # a footnote the PDF left as a block of its own, marker and all
-LISTY = re.compile(r"^\s*(?:其?[一二三四五六七八九十]+是|（[一二三四五六七八九十]+）|[（(]?\d+[.、）)]|第[一二三四五六七八九十百零]+[条章节])")
 WHOLE = set("。！？.!?：:；;”’」』）)…")    # a sentence that ends here needs nothing from the one before
 GLUE = 40                               # characters of a cut-off tail the next unit carries in at Brief
 
@@ -606,16 +612,6 @@ GLUE = 40                               # characters of a cut-off tail the next 
 def _is_note(u, atoms):
     """A block that is not prose: a footnote marker the PDF left on its own, or a figure's caption."""
     return u.get("role") == "caption" or bool(NOTE.match(plain(u["toks"], atoms)))
-
-
-def _listy(u, atoms):
-    """A unit that opens with an item number ("四是…", "(3)…", "第十二条…"): the rest of a list whose first half
-    is in the unit before. Shown alone it is a fragment, however whole its own sentence is."""
-    sents = u.get("sents") or []
-    if not sents:
-        return False
-    a, b = sents[0]
-    return bool(LISTY.match(plain(u["toks"][a:b], atoms).strip()))
 
 
 def _tail(u, atoms):
@@ -662,56 +658,35 @@ def _widen(u, lad, atoms, most=6):
 
 
 def dress(chunk, doc):
-    """Two things a section needs before it can be read as prose.
+    """The sentence a page break cut in half. A paragraph split across a page break arrives as two units: the first
+    ends mid-word ("…的法律位阶为行政", "…熟悉外汇业务的工作人"), the second opens with the rest ("法规，加强对…",
+    "员，并且在…"). Brief shows one sentence per unit, so the reader meets the second half alone and the sentence has
+    no subject. The tail of the first is carried into the second as `glue`, and the sentence arrives whole. A footnote
+    or contents line between the two halves is stepped over, not quoted.
 
-    * A paragraph split across a page break arrives as two units: the first ends mid-word ("…的法律位阶为行政",
-      "…熟悉外汇业务的工作人"), the second opens with the rest ("法规，加强对…", "员，并且在…"). Brief shows one
-      sentence per unit, so the reader meets the second half alone and the sentence has no subject. The tail of
-      the first is carried into the second as `glue`, and the sentence arrives whole. A footnote between the two
-      halves is stepped over, not quoted.
-    * A unit whose takeaway stepped down is the background its section already summarises. At Brief it would
-      still show, one sentence at a time, and a page of "this document in this year" is a reading list again. So
-      it stays out of Brief — unless it is everything the section has, which would leave a heading over nothing.
-    """
+    A CJK document's only: an English paper's units end where its sentences do, and Brief shows them as they were. An
+    English paragraph inside a Chinese paper is left alone too: its words are spaced, so a join would run two
+    sentences together."""
+    if not cjk_doc(doc):
+        return
     U, A = doc["units"], doc["atoms"]
-    text = "".join(plain(U[uid]["toks"], A) for uid in chunk["units"])
-    if _cjk_share(text) <= 0.2:
-        return      # an English section ends where its sentences do: the page-break rules were written for Chinese
     lads = [(uid, U[uid].get("lad") or {}) for uid in chunk["units"]]
     for i, (uid, l) in enumerate(lads):
         if not l.get("brief") or _is_note(U[uid], A):
             continue
+        if _cjk_share(plain(U[uid]["toks"], A)) <= 0.2:
+            continue                      # an English paragraph in a Chinese paper: its sentence ends where the page did
         j = i - 1
         while j >= 0 and (_is_note(U[lads[j][0]], A) or is_apparatus(U[lads[j][0]], A)):
             j -= 1                        # a footnote or contents line sits between the halves; the paragraph is still cut
         if j < 0:
             continue
+        if _cjk_share(plain(U[lads[j][0]]["toks"], A)) <= 0.2:
+            continue                      # ...and neither does the English paragraph before it join onto this one
         tail = _tail(U[lads[j][0]], A)
         if tail:
             l["glue"] = tail
             _widen(U[uid], l, A)
-    live = [(uid, l) for uid, l in lads if l.get("brief")]
-    if any(l.get("tn") for _, l in live):   # the section still says something at Brief
-        for _, l in live:
-            if not l.get("tn"):
-                l["l3"] = False
-    # last sieve at Brief: a sentence that does not stand on its own, or says again what the section's line just
-    # said, does not need to stand beside that line. The line under the heading carries the section either way.
-    vis = []
-    for uid, l in live:
-        if l.get("l3") is not False and _listy(U[uid], A):
-            l["l3"] = False
-        if l.get("l3") is not False:
-            vis.append((uid, l))
-    if vis and all(repeats_section(l, chunk.get("lad"), prefix=True) for _, l in vis):
-        for _, l in vis:
-            l["l3"] = False
-        vis = []
-    if len(vis) == 1 and repeats_section(vis[0][1], chunk.get("lad"), 0.6, prefix=True):
-        vis[0][1]["l3"] = False     # one paragraph under a line that already says the same: the line is enough
-        vis = []
-    if not vis and live and not (chunk.get("lad") or {}).get("take"):
-        live[0][1].pop("l3", None)          # nothing to carry the section: a heading over nothing says less
 
 
 def topic_tokens(text, brief, tn, u, atoms, ev, budget=None, toks=None, sents=None):
@@ -758,7 +733,7 @@ def build(doc, cfg, cache_dir, jobs=4, log=print, progress=None, force=False, st
     cost, warnings, errors = 0.0, [], []
     model = llm.label(cfg)
     b = budgets_for(doc)
-    cjk = b is CJK_BUDGET
+    cjk = cjk_doc(doc)
 
     def run(c):
         if stop is not None and stop.is_set():   # stopped: the chunks not yet sent are skipped
@@ -788,7 +763,7 @@ def build(doc, cfg, cache_dir, jobs=4, log=print, progress=None, force=False, st
                 for n, uid in enumerate(c["units"]):
                     o = by_id.get(f"U{n}")
                     u = doc["units"][uid]
-                    u["lad"] = assemble(u, o, doc["atoms"], model) if o else local(u, doc["atoms"])
+                    u["lad"] = assemble(u, o, doc["atoms"], model, cjk) if o else local(u, doc["atoms"], cjk)
                     if not o:
                         warnings.append(f"{uid}: missing from reply")
                     elif words(u["lad"]["brief"][:u["lad"]["tn"]]) > b["takeaway"] + (4 if not cjk else 15):
@@ -810,7 +785,7 @@ def build(doc, cfg, cache_dir, jobs=4, log=print, progress=None, force=False, st
     if chunks and len(errors) == len(chunks):  # nothing came back: a backend problem, not a paper problem
         raise RuntimeError(str(errors[0]))
     for u in doc["units"].values():
-        u.setdefault("lad", local(u, doc["atoms"]))
+        u.setdefault("lad", local(u, doc["atoms"], cjk))
     for w in warnings:
         log(f"  ~ {w}")
     return cost

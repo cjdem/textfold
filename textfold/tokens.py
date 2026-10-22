@@ -106,6 +106,8 @@ def _split_sentences_cjk(toks):
         head = nxt.get("t") or ""
         # CJK sentences have neither spaces nor capital letters. They may also use ASCII stops.
         cjk = any(toks[j].get("t") in CJK_STOPS for j in range(i, end)) or is_cjk(prev) or is_cjk(head)
+        if cjk and t == "." and i == start + 1 and prev.isdigit():
+            cjk = False   # "1.研究背景": a number and its stop open a heading or a list item, they end no sentence
         if cjk or (toks[end - 1].get("s") and ("a" in nxt or re.match(r"[A-Z0-9(\[“\"‘]", head))):
             bounds.append((start, end))
             start = end

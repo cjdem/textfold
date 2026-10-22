@@ -117,11 +117,11 @@ keys `1`–`5` jump to a level, `-`/`=` step, `L` cycles languages, clicking a p
 the reader is still, the screen is laid out at each level ahead of time (in a hidden copy, one level per idle moment),
 and a zoom plays those keyframes; the page takes over again at rest.
 
-A Chinese section's folded levels leave out what is not argument: an apparatus line (a contents line, a footnote)
-exists only at Full, and a background unit whose takeaway stepped down is left out of Brief, Takeaway and Topic
-(`l3`, an empty takeaway) while Key and Full keep it. A sentence a page break cut in half is joined at its first word.
-`ladder.dress` writes those decisions into the layer (`glue`, `l3`), and an English section ends where its sentences
-do, so it shows as before.
+A Chinese document's folded levels leave out what is not argument: an apparatus line (a contents line, a footnote)
+exists only at Full, and a background unit whose takeaway stepped down is read at Brief and Key but not at Takeaway or
+Topic. A sentence a page break cut in half is joined at its first word. `ladder.dress` writes the join into the layer
+(`glue`); the page is marked `meta.cjk` and only such a page takes these rules, so an English section ends where its
+sentences do and shows as before.
 
 Notes: select text anywhere (a paragraph at any level, a section's summary or its title) to highlight it, write a note,
 or ask the model about it (the answer, in the reading language, cites the paragraphs it rests on; a cite opens that
@@ -410,11 +410,13 @@ still change its part count, because the sentence count it is cut by has changed
 is dropped when the layer is applied, and the first sentence stands in. A unit with no CJK character and no `。！？`
 takes the older splitter, so its sentence numbers and parts do not move; in a unit with CJK, a closing quote, bracket
 or brace glued to a stop (a run such as `.")` stays with its sentence) and an ASCII stop beside a CJK character also
-end a sentence.
+end a sentence; a number and its stop at the head of a CJK sentence (`1.研究背景`) end no sentence, so a layer made
+before that guard can have an ordinal that still fits a shorter sentence list and now points at another sentence.
 
-A generated layer may also carry `glue` (the half of a sentence a page break left in the unit before it) and
-`l3: false` (a background unit the section's own line already summarises, kept out of Brief). An older layer has
-neither and is read as it was; a unit with no written levels at all (an apparatus line) has `ev: []` and stays at Full.
+A generated layer may also carry `glue` (the half of a sentence a page break left in the unit before it). An older
+layer has no `glue` and is read as it was; a layer from before the document gate may carry `l3: false`, which nothing
+reads now (a stepped-down unit has an empty takeaway instead). A unit with no written levels at all (an apparatus
+line) has `ev: []` and stays at Full.
 
 Every text file TextFold itself reads or writes names UTF-8, whatever the computer's locale: model replies in
 `llm.py`, layers in `store.write`, notes in `notes.py`, settings in `models.py`, a paper's `source.html` and
