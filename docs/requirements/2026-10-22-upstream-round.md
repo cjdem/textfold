@@ -66,7 +66,7 @@
 | R12 | 完成 | feature | self-hosted V1 adapter（条件项） | fork-specific（不做） | R11；仅确有自部署时 | 大 |
 | R13 | 完成 | feature | 中文 Brief 句子切分 | `770fb08` | R4/R5 之后 | 中 |
 | R14 | 完成 | feature | 中文五级折叠 | `4897e24` | R13 | 大 |
-| R15 | 待做 | optimize | CJK 规则只作用于中日文 | `6e2cada` | R14 | 中 |
+| R15 | 进行中 | optimize | CJK 规则只作用于中日文 | `6e2cada` | R14 | 中 |
 | R16 | 待做 | feature | Aa 菜单 + 缩放沙箱 font/width | `f76eb4d` + `c38804e` | R14/R15 之后 | 中 |
 | R17 | 待做 | feature | 主题、行距、阅读位置、专注模式 | `e5bd668` + `a670e57` + `920a270` | R16 | 中 |
 | R18 | 待做 | feature | 标题层级、Topic 分组/思维导图、margins | `fb9f95c` | R16/R17；可拆三次 | 大 |
