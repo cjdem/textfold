@@ -55,7 +55,7 @@
 | R1 | 完成 | optimize | 本地服务器 Host 校验（DNS rebinding） | `4fee928` | 无 | 小 |
 | R2 | 完成 | optimize | 所有文本读写显式 UTF-8 | `c1b3fd3` | 无 | 中 |
 | R3 | 完成 | optimize | 旧 TextFold 的 GBK 库按代码页读入，下一次保存写 UTF-8 | `4f15560` | R2 | 中 |
-| R4 | 待做 | optimize | 只支持流式的 API 服务 | `8e7569b` | 无 | 中 |
+| R4 | 进行中 | optimize | 只支持流式的 API 服务 | `8e7569b` | 无 | 中 |
 | R5 | 待做 | optimize | 模型回复的多种 JSON 形状 | `09e9d37` | 无 | 中 |
 | R6 | 待做 | optimize | `TEXTFOLD_NO_MODELS` 下不调用模型 | `1761a95` | 无 | 小 |
 | R7 | 待做 | optimize | EPUB 章节先解码再解析 | `13d7794` | 无 | 小 |
