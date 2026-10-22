@@ -13,9 +13,8 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from textfold import pipeline, server, store
+from textfold import local, pipeline, server, store
 
-PAGE = '<article class="ltx_document"><p class="ltx_p">English words here.</p></article>'
 DEFAULT = object()
 
 
@@ -40,11 +39,7 @@ class Generation(unittest.TestCase):
     def setUp(self):
         self.old = store.DATA
         store.DATA = Path(tempfile.mkdtemp())
-        self.pid = "md-en"
-        d = store.pdir(self.pid)
-        d.mkdir(parents=True)
-        (d / "source.html").write_text(PAGE, encoding="utf-8")
-        (d / "meta.json").write_text(json.dumps({"id": self.pid}), encoding="utf-8")
+        self.pid = local.import_text("# Notes\n\nEnglish words here.\n\nMore English words here.\n")
         self.cfg = {"kind": "api", "protocol": "openai", "model": "test/model", "id": "test/model"}
 
     def tearDown(self):
@@ -55,7 +50,9 @@ class Generation(unittest.TestCase):
 
         def fake_translate(doc, lg, spec, cache, **kw):
             calls.append(lg)
-            return 0.0, 0
+            for u in doc["units"].values():   # (what a translation pass leaves in the document)
+                u.setdefault("tr", {})[lg] = {"toks": [], "sents": [], "lad": {"brief": [], "tn": 0, "topic": []}}
+            return 0.0
 
         with mock.patch.object(pipeline, "task", side_effect=lambda c, n: c), \
              mock.patch.object(pipeline.ladder, "build"), \
@@ -95,14 +92,20 @@ class Generation(unittest.TestCase):
         self.assertEqual(self.run_generate()[0], ["zh"])       # (the read does not fail the job)
         self.assertIsInstance(store.read(self.pid, "tr-zh"), dict)   # and the save replaced it
 
-    def test_a_partial_chinese_pass_is_not_saved_as_current(self):
+    def test_a_partial_chinese_pass_is_saved_with_its_gaps(self):
         def partial(doc, lg, spec, cache, **kw):
-            return 0.0, 2   # (two parts failed: translate.build's report)
+            u = next(iter(doc["units"].values()))   # (one paragraph translated; the other left out)
+            u.setdefault("tr", {})[lg] = {"toks": [], "sents": [], "lad": {"brief": [], "tn": 0, "topic": []}}
+            return 0.0
 
         calls, logs = self.run_generate(translate=partial)
-        self.assertIn("incomplete", " ".join(logs))
-        self.assertIsNone(store.read(self.pid, "tr-zh"))
-        self.assertEqual(self.run_generate()[0], ["zh"])       # (so the next generation tries again)
+        self.assertIn("without a translation", " ".join(logs))
+        tr = store.read(self.pid, "tr-zh")
+        self.assertIsNotNone(tr)   # (what it has is read now; the paragraphs it has none for are asked on open)
+        self.assertEqual(len(tr["units"]), 1)
+        with mock.patch.object(pipeline.translate, "fill") as fill:
+            self.assertEqual(self.run_generate()[0], [])   # (on the current base: filled when opened, not built again)
+        fill.assert_called_once()
 
 
 class Wiring(unittest.TestCase):

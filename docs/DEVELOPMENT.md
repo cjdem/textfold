@@ -102,7 +102,10 @@ Only because it is stored. The model samples differently on every run, so two ge
 wording, chosen key sentences and topics (Full is the author's text and never changes). Each paper keeps
 versioned layers in `papers/<id>/layers/` (`en.json`, `tr-<lang>.json`); the reader is assembled from them with no
 model call, so it reads the same every time it is opened. Regenerate writes a new version; a translation built on an
-older English version is marked outdated. Model replies are also cached by prompt in `papers/<id>/llm-cache/`.
+older English version is marked outdated. A translation that came back without a paragraph (a call that failed, one
+the model left out) is asked for once more at once; a stored one that still has gaps has them asked for when it is
+next generated, or as the app opens that language, the rest kept (`translate.gaps`, `meta.gaps`). Model replies are
+also cached by prompt in `papers/<id>/llm-cache/`.
 
 In the page: pinch or Ctrl-scroll zooms around the pointer, scrolling over the level bar or dragging it zooms too,
 keys `1`–`5` jump to a level, `-`/`=` step, `L` cycles languages, clicking a paragraph below Full opens just that one,

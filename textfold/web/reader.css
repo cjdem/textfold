@@ -438,6 +438,8 @@ li.u > .side { left: calc(100% + 34px); }
 .lm-regen { border-top: 1px solid var(--line-2); border-radius: 0 0 8px 8px; margin-top: 4px; padding-top: 9px; }
 .lm-regen span { color: var(--ink-2); }
 .lm-regen em { color: var(--muted); }
+.lm-fill { border-top: 0; border-bottom: 1px solid var(--line-2); border-radius: 8px 8px 0 0; margin: 0 0 4px; padding: 7px 10px 9px; }   /* first in the menu */
+.lm-fill span { color: var(--hl-ink); font-weight: 600; }
 html[lang^="ja"] .u[data-l="4"], html[lang^="ja"] .u[data-l="3"], html[lang^="ko"] .u[data-l="4"], html[lang^="ko"] .u[data-l="3"],
 html[lang="zh-TW"] .u[data-l="4"], html[lang="zh-TW"] .u[data-l="3"] { line-height: 1.85; font-size: 17.5px; }
 

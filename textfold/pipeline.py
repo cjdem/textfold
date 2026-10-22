@@ -2,7 +2,8 @@
 
 Every step reports through `progress(stage, done, total)`; the server turns that into a progress bar. A set `stop`
 (a threading.Event) ends it with llm.Stopped at the next step: what the model has already written stays in the cache,
-so the same generation started again goes on from there.
+so the same generation started again goes on from there (a gap retry or fill asks the model itself, so its prompt is
+asked anew).
 """
 import urllib.error
 
@@ -71,11 +72,19 @@ def generate(ref, lang, cfg, force=False, jobs=4, progress=lambda *a: None, log=
         tr = store.read(pid, f"tr-{lang}")
         if force or tr is None or tr.get("base") != en["version"]:
             check()
-            _, failed = translate.build(doc, lang, task(cfg, "translate"), cache, jobs=jobs, log=log, progress=lambda a, b: progress("translate", a, b), force=force, stop=stop)
-            if failed:   # (a partial layer saved as current would never be completed: it waits for the next run)
-                log(f"the {langs.name(lang)} version is incomplete ({failed} part(s) failed)")
-            else:
-                store.save_tr(doc, lang, en["version"], model)
+            translate.build(doc, lang, task(cfg, "translate"), cache, jobs=jobs, log=log, progress=lambda a, b: progress("translate", a, b), force=force, stop=stop)
+            n = len(translate.gaps(doc, lang))
+            if n:   # (a part that still failed: the layer is kept, and the app asks for its paragraphs as it opens)
+                log(f"the {langs.name(lang)} version has {n} paragraphs without a translation")
+            store.save_tr(doc, lang, en["version"], model)
+        elif cfg is not None:
+            store.apply_tr(doc, lang, tr)
+            if translate.gaps(doc, lang):   # paragraphs it was stored without (a call that failed): asked for now
+                check()
+                translate.fill(doc, lang, task(cfg, "translate"), cache, jobs=jobs, log=log,
+                               progress=lambda a, b: progress("translate", a, b), stop=stop)
+                was = tr.get("model") or model
+                store.save_tr(doc, lang, en["version"], was if was == model else f"{was} + {model}")
     # An English document is read in Simplified Chinese by default: the version is made at the end of this generation,
     # whichever language was asked for (the app passes also_zh; the command line does not).
     if also_zh and cfg is not None and lang != "zh":
@@ -86,15 +95,28 @@ def generate(ref, lang, cfg, force=False, jobs=4, progress=lambda *a: None, log=
         if _wants_zh(en, tr):
             check()
             try:
-                _, failed = translate.build(doc, "zh", task(cfg, "translate"), cache, jobs=jobs, log=log,
-                                           progress=lambda a, b: progress("zh", a, b), stop=stop)
-                if failed:   # (a partial layer saved as current would never be completed: it waits for the next run)
-                    log(f"the Simplified Chinese version is incomplete ({failed} part(s) failed)")
-                else:
-                    store.save_tr(doc, "zh", en["version"], model)
+                translate.build(doc, "zh", task(cfg, "translate"), cache, jobs=jobs, log=log,
+                                progress=lambda a, b: progress("zh", a, b), stop=stop)
+                n = len(translate.gaps(doc, "zh"))
+                if n:   # (a part that still failed: the layer is kept, and the app asks for its paragraphs as it opens)
+                    log(f"the Simplified Chinese version has {n} paragraphs without a translation")
+                store.save_tr(doc, "zh", en["version"], model)
             except llm.Stopped:
                 raise
             except Exception as e:   # (the language asked for is made: the default one does not fail the whole job)
                 log(f"the Simplified Chinese version could not be made ({str(e)[:200]})")
+        elif tr is not None:   # the default version stands on this base but has gaps: filled now, the rest kept
+            check()
+            try:
+                store.apply_tr(doc, "zh", tr)
+                if translate.gaps(doc, "zh"):
+                    translate.fill(doc, "zh", task(cfg, "translate"), cache, jobs=jobs, log=log,
+                                   progress=lambda a, b: progress("zh", a, b), stop=stop)
+                    was = tr.get("model") or model
+                    store.save_tr(doc, "zh", en["version"], was if was == model else f"{was} + {model}")
+            except llm.Stopped:
+                raise
+            except Exception as e:
+                log(f"the Simplified Chinese version could not be completed ({str(e)[:200]})")
     progress("done", 1, 1)
     return pid

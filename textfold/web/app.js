@@ -680,10 +680,25 @@
         catch (x) { update.fail(x); acc.disabled = false; }
       };
     }
+    // A translation stored with paragraphs it has none for (PAPER.gaps: a call that failed, a paragraph the model left
+    // out; or made before TextFold asked for them again): they are asked for as it is opened, with the model in use, the
+    // rest kept. Once a visit for as many as there are, so one that will not translate is not asked for at every
+    // opening; the language menu asks again (asked).
+    function fillGaps(lang, asked) {
+      const n = (PAPER.gaps || {})[lang], key = `tf-gaps:${PAPER.id}:${lang}`;
+      if (!n || jobFor(PAPER.id) || !modelName) return;
+      let tried = null;
+      try { tried = sessionStorage.getItem(key); } catch { /* private window */ }
+      if (!asked && tried === String(n)) return;
+      try { sessionStorage.setItem(key, String(n)); } catch { /* private window */ }
+      const update = toastFor(lang, t().gaps_filling.replace('{n}', n));
+      submit(PAPER.id, lang, false, update).catch(update.fail);
+    }
     window.DRApp = {
       onLang(lang, ui) {   // (ui: the reader's language, which a switch of the paper's moves)
         if (ui && ui !== uiLang && I18N.NATIVE[ui]) uiLang = ui;
         renderSidebar();
+        fillGaps(lang);
       },
       generate(lang, force) {
         const T = t(), name = I18N.NATIVE[lang];
@@ -691,8 +706,12 @@
         const update = toastFor(lang);
         submit(PAPER.id, lang, force, update).catch(update.fail);
       },
+      fill(lang) {
+        if (!modelName) { say(t().no_model); return; }
+        fillGaps(lang, true);
+      },
     };
-    api('/api/models').then((d) => { modelName = d.selectedName || ''; askName = d.askName || ''; renderSidebar(); }).catch(() => {});
+    const modelsIn = api('/api/models').then((d) => { modelName = d.selectedName || ''; askName = d.askName || ''; renderSidebar(); }).catch(() => {});
     api('/api/papers').then((p) => { papers = p; renderSidebar(); }).catch(() => {});
     api('/api/folders').then((f) => { folders = f; renderSidebar(); }).catch(() => {});
     api('/api/jobs').then((j) => {
@@ -704,7 +723,7 @@
         const update = toastFor(mine.lang, t().read_first);
         watchers.set(mine.id, (x) => { update(x); if (!live(x)) watchers.delete(x.id); });
         update(mine);
-      }
+      } else modelsIn.then(() => fillGaps((window.__reader && window.__reader.lang) || new URLSearchParams(location.search).get('lang') || 'en'));
       if (j.some(live)) startPolling();
     }).catch(() => {});
   }

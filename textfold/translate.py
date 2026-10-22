@@ -7,7 +7,9 @@ ones. Formulas, citations and cross-references travel through the translation as
 ⟦a12⟧ and come back as the very same atoms, so they stay clickable and slide when the
 reader switches language. One call per section; a long section is translated in parts (PART_CHARS of English each),
 because a reply that long comes back with its last paragraphs missing (seen without reasoning), and the parts run in
-parallel. The section's own lines come with the first part.
+parallel. The section's own lines come with the first part. What comes back without a translation (a call that
+failed, a paragraph the model left out) is asked for once more, the paragraphs alone; a translation stored with gaps
+still (gaps) has them asked for the next time its language is generated (fill), the rest kept.
 """
 import re
 from concurrent.futures import ThreadPoolExecutor
@@ -135,7 +137,9 @@ def assemble(u, o, atoms, lang, warn):
     if missing:
         warn(f"{u['id']}: {len(missing)} formula/citation markers lost in translation")
     ev = [s for s in u["lad"]["ev"] if s < len(sents)] or [0]
-    take_text, reason_text = clean(o.get("takeaway")), clean(o.get("reason"))
+    # (a line the model translated without a takeaway, a list of keywords: its first sentence stands in, as a paragraph
+    # without a model's levels has its own)
+    take_text, reason_text = clean(o.get("takeaway")) or next((z for z in zs if z), ""), clean(o.get("reason"))
     if not take_text or not toks:
         return None
     stop = langs.stop(lang)
@@ -151,30 +155,42 @@ def assemble(u, o, atoms, lang, warn):
     return {"toks": toks, "sents": sents, "lad": {"brief": brief, "tn": tn, "topic": topic}}
 
 
-def build(doc, lang, cfg, cache_dir, jobs=4, log=print, progress=None, force=False, stop=None):
-    chunks = [c for c in doc["chunks"] if c["units"]]
-    cost, warnings, errors = 0.0, [], []
-    L = langs.name(lang)
-    meta = doc["meta"]
-    meta.setdefault("titles", {})
+def worded(u):
+    """A unit with words of its own to translate: not a formula or a citation alone, nor a letter left over from a
+    figure ("D")."""
+    return len(re.findall(r"\w", "".join(tk.get("t", "") for tk in u["toks"] if "a" not in tk))) > 1
 
-    tasks = [(c, k, us) for c in chunks for k, us in enumerate(parts(doc, c))]   # (a short section is one part: its prompt is as before)
+
+def gaps(doc, lang):
+    """The paragraphs of the sections that have no translation in lang: a part whose call failed (a timeout, a rate
+    limit, a reply that was not JSON), a paragraph the model left out of its reply."""
+    U = doc["units"]
+    return [uid for c in doc["chunks"] for uid in c["units"] if lang not in U[uid].get("tr", {}) and worded(U[uid])]
+
+
+def _ask(doc, lang, tasks, cfg, cache_dir, jobs, log, tick, force, stop, again=False):
+    """The parts asked, in parallel; each reply's translations put in its units, and the section's own lines (and the
+    paper's title) taken from its first part. Asked again (again: the gaps), a section takes its lines from the first
+    part that brings them while it has none, and a reply that still leaves a paragraph out is forgotten, so the next
+    time asks anew rather than reading it back. (cost, errors, warnings)"""
+    cost, warnings, errors = 0.0, [], []
+    meta = doc["meta"]
 
     def run(task):
         c, k, us = task
         if stop is not None and stop.is_set():   # stopped: the parts not yet sent are skipped
             return task, None, llm.Stopped()
         try:
-            return task, llm.call(prompt_for(doc, {**c, "units": us}, lang), SCHEMA, cfg, cache_dir, force, system=llm.system_for(doc["meta"])), None
+            # (asked again: the model itself, not a kept reply — the reply that left these paragraphs out may be kept
+            # under this very prompt)
+            return task, llm.call(prompt_for(doc, {**c, "units": us}, lang), SCHEMA, cfg, cache_dir, force or again,
+                                  system=llm.system_for(meta)), None
         except Exception as e:
             return task, None, e
 
-    if progress:
-        progress(0, len(tasks))
     with ThreadPoolExecutor(jobs) as ex:
-        for n_done, ((c, k, us), res, err) in enumerate(ex.map(run, tasks), 1):
-            if progress:
-                progress(n_done, len(tasks))
+        for (c, k, us), res, err in ex.map(run, tasks):
+            tick()
             if stop is not None and stop.is_set():
                 raise llm.Stopped()
             if err:
@@ -187,27 +203,31 @@ def build(doc, lang, cfg, cache_dir, jobs=4, log=print, progress=None, force=Fal
             units = llm.units_of(out)
             ids = {x.get("id") for x in units}
             if not isinstance(out, dict) or (us and not any(f"U{n}" in ids for n in range(len(us)))):
-                # (a reply with no unit this part can name: a partial layer must not be saved as this version's)
+                # (a reply with no unit this part can name: its paragraphs are asked for again, not read back)
                 errors.append(RuntimeError(f"{lang}: a reply TextFold could not read ({type(out).__name__} with no unit it names)"))
                 log(f"  ! {lang} {c['id']}{f' part {k + 1}' if k else ''}: {errors[-1]}")
                 llm.forget(rec)
                 continue
             try:
                 by_id = {x.get("id"): x for x in units}
+                left = 0
                 for n, uid in enumerate(us):
                     o = by_id.get(f"U{n}")
                     z = assemble(doc["units"][uid], o, doc["atoms"], lang, warnings.append) if o else None
                     if z:
                         doc["units"][uid].setdefault("tr", {})[lang] = z
                     else:
+                        left += 1
                         warnings.append(f"{uid}: no translation")
-                if k == 0:   # the section's title and lines, and the paper's title, from its first part
-                    sec = llm.as_obj(out.get("section"))
+                if again and left:
+                    llm.forget(rec)   # (asked again next time, not read back)
+                if k == 0 and (not again or not (c.get("tr", {}).get(lang) or {}).get("lad")):
+                    sec = llm.as_obj(out.get("section"))   # the section's title and lines, and the paper's title
                     # an untitled section (a document's opening text) stays untitled: the model would name it
                     title = (unmark(clean(sec.get("title")), doc["atoms"]) or c["title"]) if c["title"] else ""
                     c.setdefault("tr", {})[lang] = {"title": title,
                                                      "lad": section_ladder(sec, langs.budget(lang)["topic"], doc, c)}
-                    if out.get("paper_title"):
+                    if out.get("paper_title") and not (again and meta["titles"].get(lang)):
                         meta["titles"][lang] = clean(out["paper_title"])
             except Exception as e:   # a shape not foreseen: this part's units fall back, as for a failed call
                 errors.append(RuntimeError(f"{lang}: a reply TextFold could not read ({type(e).__name__}: {e})"))
@@ -215,32 +235,104 @@ def build(doc, lang, cfg, cache_dir, jobs=4, log=print, progress=None, force=Fal
                 llm.forget(rec)
                 for uid in us:
                     (doc["units"][uid].get("tr") or {}).pop(lang, None)
-                if k == 0 and c.get("tr"):
-                    c["tr"].pop(lang, None)
+                if k == 0 and not again and c.get("tr"):
+                    c["tr"].pop(lang, None)   # (a retry's failure does not take the first pass's section lines)
                 continue
-            log(f"  {'·' if cached else '✓'} {lang} {c['id']:<14} {len(us):>2} units{f' (part {k + 1})' if k else ''}")
-    if tasks and len(errors) == len(tasks):
+            log(f"  {'·' if cached else '✓'} {lang} {c['id']:<14} {len(us):>2} units{f' (part {k + 1})' if k else ''}{' again' if again else ''}")
+    return cost, errors, warnings
+
+
+def _again(doc, lang):
+    """The gaps as parts to ask: by section, a section's missing paragraphs in as few runs as fit PART_CHARS."""
+    missing = set(gaps(doc, lang))
+    tasks = []
+    for c in doc["chunks"]:
+        us = [uid for uid in c["units"] if uid in missing]
+        if us:
+            tasks += [(c, k, run) for k, run in enumerate(parts(doc, {**c, "units": us}))]
+    return tasks
+
+
+def _counter(progress, total):
+    state = {"done": 0, "total": total}
+
+    def tick():
+        state["done"] += 1
+        if progress:
+            progress(state["done"], state["total"])
+
+    def more(n):
+        state["total"] += n
+        if progress:
+            progress(state["done"], state["total"])
+    if progress:
+        progress(0, total)
+    return tick, more
+
+
+def build(doc, lang, cfg, cache_dir, jobs=4, log=print, progress=None, force=False, stop=None):
+    """The paper in lang, section by section; then what came back without a translation is asked for once more (the
+    paragraphs alone), so one failed call or a paragraph left out does not leave English in the translation."""
+    meta = doc["meta"]
+    meta.setdefault("titles", {})
+    tasks = [(c, k, us) for c in doc["chunks"] if c["units"] for k, us in enumerate(parts(doc, c))]   # (a short section is one part: its prompt is as before)
+    tick, more = _counter(progress, len(tasks))
+    cost, errors, warnings = _ask(doc, lang, tasks, cfg, cache_dir, jobs, log, tick, force, stop)
+    retry = _again(doc, lang)
+    if retry:
+        log(f"  ~ {lang}: {len(gaps(doc, lang))} paragraphs without a translation, asked again")
+        more(len(retry))
+        c2, e2, w2 = _ask(doc, lang, retry, cfg, cache_dir, jobs, log, tick, force, stop, again=True)
+        cost += c2
+        warnings += w2
+        errors += e2
+    if tasks and len(errors) == len(tasks) + len(retry):   # every call failed, the retry too: nothing to save
         raise RuntimeError(str(errors[0]))
+    cost += _titles(doc, lang, cfg, cache_dir, force, log)
+    for w in warnings:
+        log(f"  ~ {lang} {w}")
+    return cost
+
+
+def fill(doc, lang, cfg, cache_dir, jobs=4, log=print, progress=None, stop=None):
+    """A stored translation's gaps (gaps()), asked for now: the paragraphs alone, the rest kept as it is. Layers made
+    before this change kept what one failed call left out. RuntimeError when every call failed again."""
+    doc["meta"].setdefault("titles", {})
+    retry = _again(doc, lang)
+    tick, _ = _counter(progress, len(retry))
+    cost, errors, warnings = _ask(doc, lang, retry, cfg, cache_dir, jobs, log, tick, False, stop, again=True)
+    if retry and len(errors) == len(retry):
+        raise RuntimeError(str(errors[0]))
+    cost += _titles(doc, lang, cfg, cache_dir, False, log)
+    for w in warnings:
+        log(f"  ~ {lang} {w}")
+    return cost
+
+
+def _titles(doc, lang, cfg, cache_dir, force, log):
+    """Headings with no text of their own ("2 Experiments"), and the paper title when it came back untranslated, in
+    one call. Its cost."""
+    meta, L = doc["meta"], langs.name(lang)
     bare = [c for c in doc["chunks"] if lang not in c.get("tr", {}) and c["title"]]
     if meta["titles"].get(lang) == meta["title"]:
         meta["titles"].pop(lang)  # the section call sometimes hands the English title back
     titles = [c["title"] for c in bare] + ([] if meta["titles"].get(lang) else [meta["title"]])
-    if titles:  # headings with no text of their own ("2 Experiments"), and the paper title when it came back untranslated
-        schema = {"type": "object", "properties": {"titles": {"type": "array", "items": {"type": "string"}}}, "required": ["titles"]}
-        prompt = (f"Paper: {meta['title']}\n\nTranslate these titles of the paper (section titles, possibly the paper title itself) "
-                  f"into {L}, keeping established acronyms unchanged and any $...$ math unchanged. "
-                  "Return JSON {\"titles\": [...]} in the same order.\n\n" + "\n".join(titles))
-        prompt = kinds.adapt(prompt, meta)
-        try:
-            rec, cached = llm.call(prompt, schema, cfg, cache_dir, force, system=llm.system_for(meta))
-            cost += 0 if cached else (rec.get("cost") or 0)
-            got = rec["out"].get("titles", [])
-            for c, t in zip(bare, got):
-                c.setdefault("tr", {})[lang] = {"title": clean(t) or c["title"], "lad": None}
-            if not meta["titles"].get(lang) and len(got) == len(titles) and clean(got[-1]) != meta["title"]:
-                meta["titles"][lang] = clean(got[-1])
-        except Exception as e:
-            log(f"  ! {lang} titles: {e}")
-    for w in warnings:
-        log(f"  ~ {lang} {w}")
-    return cost, len(errors)   # (the parts that failed: a caller that saves the layer must know it is partial)
+    if not titles:
+        return 0.0
+    schema = {"type": "object", "properties": {"titles": {"type": "array", "items": {"type": "string"}}}, "required": ["titles"]}
+    prompt = (f"Paper: {meta['title']}\n\nTranslate these titles of the paper (section titles, possibly the paper title itself) "
+              f"into {L}, keeping established acronyms unchanged and any $...$ math unchanged. "
+              "Return JSON {\"titles\": [...]} in the same order.\n\n" + "\n".join(titles))
+    prompt = kinds.adapt(prompt, meta)
+    try:
+        rec, cached = llm.call(prompt, schema, cfg, cache_dir, force, system=llm.system_for(meta))
+        got = llm.as_obj(rec["out"]).get("titles", [])
+        got = got if isinstance(got, list) else []
+        for c, t in zip(bare, got):
+            c.setdefault("tr", {})[lang] = {"title": clean(t) or c["title"], "lad": None}
+        if not meta["titles"].get(lang) and len(got) == len(titles) and clean(got[-1]) != meta["title"]:
+            meta["titles"][lang] = clean(got[-1])
+    except Exception as e:   # (a titles reply out of shape: the headings keep their English, as before)
+        log(f"  ! {lang} titles: {e}")
+        return 0.0
+    return 0 if cached else (rec.get("cost") or 0)

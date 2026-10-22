@@ -118,12 +118,13 @@ class FallbackTest(unittest.TestCase):
         for u in self.doc["units"].values():
             self.assertNotIn("zh", u.get("tr", {}))
 
-    def test_a_failed_part_is_not_saved_as_the_current_translation(self):
-        with mock.patch.object(translate, "build", return_value=(0.0, 1)) as build, \
+    def test_a_translation_whose_every_call_failed_is_not_saved(self):
+        with mock.patch.object(translate, "build", side_effect=RuntimeError("no reply")) as build, \
                 mock.patch.object(store, "save_tr") as save:
-            pipeline.generate(self.pid, "zh", self.cfg, log=lambda *a: None)
+            with self.assertRaises(RuntimeError):
+                pipeline.generate(self.pid, "zh", self.cfg, log=lambda *a: None)
         build.assert_called_once()   # (the translation was asked for, and then not saved)
-        save.assert_not_called()   # (a partial layer saved as current would never be completed)
+        save.assert_not_called()   # (nothing was translated: a layer of no translation is no layer)
 
     def test_a_part_that_fails_late_removes_what_it_already_translated(self):
         pid = local.import_text("# Two\n\nFirst paragraph here.\n\nSecond paragraph here.\n")

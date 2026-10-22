@@ -33,6 +33,10 @@
   let ui = (() => { let v = null; try { v = localStorage.getItem(UI_KEY); } catch { /* private window */ } return v && T[v] ? v : I18N.guess(); })();
   const AVAIL = (D.meta.langs && D.meta.langs.length) ? D.meta.langs : ['en'];
   const STALE = new Set(D.meta.stale || []);
+  // the paragraphs a language's translation has none for (store.assemble: a call that failed), by language; the app
+  // asks for them as the language is opened, and its menu can ask again
+  const GAPS = D.meta.gaps || {};
+  const gapTag = (code, t) => (GAPS[code] && !STALE.has(code) ? `<em class="stale">${esc(t.gaps_tag.replace('{n}', GAPS[code]))}</em>` : '');
   const trOf = (x) => (lang !== 'en' && x && x.tr && x.tr[lang]) || null;   // a unit's or chunk's translation, if any
 
   const perf = (name, t0) => { if (window.__drPerf) window.__drPerf.push([name, Math.round((performance.now() - t0) * 10) / 10]); };
@@ -397,7 +401,7 @@
     const sum = docEl.querySelector('.bib summary'); if (sum) sum.textContent = c.refs;
     document.getElementById('hint').textContent = t.hint;
     document.querySelector('.tagline').textContent = t.tagline;
-    langBtn.innerHTML = `${esc(I18N.NATIVE[lang])}${STALE.has(lang) ? ` <em class="stale">${esc(t.stale)}</em>` : ''} <span class="caret">▾</span>`;
+    langBtn.innerHTML = `${esc(I18N.NATIVE[lang])}${STALE.has(lang) ? ` <em class="stale">${esc(t.stale)}</em>` : gapTag(lang, t) ? ` ${gapTag(lang, t)}` : ''} <span class="caret">▾</span>`;
     langBtn.title = t.language;
     legendBtn.textContent = t.legend;
     legendBtn.title = t.legend_title;
@@ -3308,12 +3312,18 @@ math { font-size: 1.05em; }
   function renderLangMenu() {
     const t = T[ui];
     langMenu.replaceChildren();
+    if (D.app && gapTag(lang, t)) {   // first: the paragraphs left untranslated, asked for again (the rest stays as it is)
+      const f = h('button', 'lm-item lm-regen lm-fill'); f.type = 'button';
+      f.innerHTML = `<span>↻ ${esc(t.gaps_fill.replace('{n}', GAPS[lang]))}</span><em>${esc(I18N.NATIVE[lang])}</em>`;
+      f.addEventListener('click', () => { closeLangMenu(); window.DRApp.fill(lang); });
+      langMenu.append(f);
+    }
     for (const code of I18N.CODES) {
       const have = AVAIL.includes(code);
       if (!have && !D.app) continue;
       const b = h('button', `lm-item${code === lang ? ' on' : ''}${have ? '' : ' gen'}`);
       b.type = 'button';
-      b.innerHTML = `<span>${esc(I18N.NATIVE[code])}</span>${!have ? `<em>+ ${esc(t.gen_lang)}</em>` : STALE.has(code) ? `<em class="stale">${esc(t.stale)}</em>` : ''}`;
+      b.innerHTML = `<span>${esc(I18N.NATIVE[code])}</span>${!have ? `<em>+ ${esc(t.gen_lang)}</em>` : STALE.has(code) ? `<em class="stale">${esc(t.stale)}</em>` : gapTag(code, t)}`;
       b.addEventListener('click', () => { closeLangMenu(); if (have) setLang(code); else window.DRApp.generate(code, false); });
       langMenu.append(b);
     }
