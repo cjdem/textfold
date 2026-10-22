@@ -68,7 +68,7 @@
 | R14 | 完成 | feature | 中文五级折叠 | `4897e24` | R13 | 大 |
 | R15 | 完成 | optimize | CJK 规则只作用于中日文 | `6e2cada` | R14 | 中 |
 | R16 | 完成 | feature | Aa 菜单 + 缩放沙箱 font/width | `f76eb4d` + `c38804e` | R14/R15 之后 | 中 |
-| R17 | 进行中 | feature | 主题、行距、阅读位置、专注模式 | `e5bd668` + `a670e57` + `920a270` | R16 | 中 |
+| R17 | 完成 | feature | 主题、行距、阅读位置、专注模式 | `e5bd668` + `a670e57` + `920a270` | R16 | 中 |
 | R18 | 待做 | feature | 标题层级、Topic 分组/思维导图、margins | `fb9f95c` | R16/R17；可拆三次 | 大 |
 | R19 | 待做 | feature | 侧栏固定 | `b977bba` | R16/R18 | 中 |
 | R20 | 待做 | feature | 整篇文本按当前层级/语言存 Markdown | `7d94f25` | R16 后 | 中 |
@@ -167,6 +167,8 @@
 | 2026-10-23 | R15 | optimize | `7fcadc6` | 362，OK | 一轮，无阻断发现；英文逐字节不变（本机英文论文 92 unit/16 chunk 与 5 个英文/混合 fixture 的 mocked build 全同，层内无 `tn:0`/`l3`）。非阻断：中文论文里的英文段被 glue 拼成 `conditionThe`（已修——`dress` 只在两半都是 CJK 时拼接，加测试）、前 4000 字符采样会把英文摘要后的中文正文读成英文（上游继承，测试钉住并记入 Pitfalls）、`1.研究背景` 守卫只在句首生效（注释与文档如实描述）、gate 边界与 store 的 `cjk` 参数缺测试（后者经 `store.assemble` 已补）、记录高估了 `pieces` 只算一次（已改正）、旧层句子重编号（DEVELOPMENT 已警告） | 文档级 `cjk_doc`/`meta.cjk`；`l3`/`LISTY`/`_listy` 移除，降级单元在 Brief 与 Key 可读、Takeaway/Topic 隐藏；reader 的 CJK 规则全部按 `CJK_DOC` 生效（标记剥离、apparatus 隐藏、ref 小节、Brief 的 stake、Topic 滚动、空 stake）；`1.研究背景` 不再断句；浏览器核对中文页 Brief/Topic 与英文页 Brief 均符合预期；未测 zoom 平滑度；记录见 `docs/changes/2026-10-22-cjk-document-gate.md` |
 
 | 2026-10-23 | R16 | feature | `534d1a7` | 366，OK | 一轮：1 条阻断——`mirrorType` 只镜像了 font/width，而字号是 `<html>` 上的内联 `--fs`，沙箱样式表里的 `:host { --fs: 1 }` 会盖过继承值，非默认字号下相邻关键帧按 100% 布局、缩放末尾错位（verifier 在 headless Chrome 复现：108% 时页面 740px/19.98px、沙箱 700px/18.5px）；已修——把 `--fs` 内联到沙箱宿主并加测试。另修：沙箱缺 `app` 类使 MyGo 应用里 `--colmax` 与页面不同（现镜像 `app`/`compare`）、点击笔记/导出/图例时 Aa 菜单不关（改为捕获阶段监听）、保留高亮/段落预览/引用/笔记列表高亮仍用衬线（改用 `--text`）、记录声称 DEVELOPMENT 写了打印重置而实际没写、`invariants.md` 仍把“衬线=作者”写成单一规则（均已补） | 阅读器 Aa 菜单：字号 86%–135%（整栏随之缩放）、栏宽窄/标准/宽（`--colmax` 给边注留位）、作者文字衬线/无衬线；存于 `localStorage`（每浏览器、每篇通用）；缩放沙箱 `mirrorType` 同步 font/width/`--fs` 与 `app`/`compare`；打印恢复默认字号。浏览器核对中文界面、108%→740px、窄栏 648px、无衬线生效、重置与持久化、关闭方式；预览面板不跑 rAF，缩放动画与末尾对齐按机制核对、未目视；未测 zoom 平滑度；记录见 `docs/changes/2026-10-22-reader-type-menu.md` |
+
+| 2026-10-23 | R17 | feature | `d86253d` | 370，OK | 一轮：1 条阻断——`card.css`（本 fork 专属的阅读卡抽屉）的深色规则只跟系统，浅色主题下深色系统会出现浅底浅字（对比度约 1.6–1.8:1）；已修（每条规则同时按 `html[data-theme="dark"]` 生效并加契约测试）。非阻断：两个标签页写位置映射可能互相覆盖（localStorage 无 CAS，记入 Pitfalls）、新 CSS 测试原先无法失败（已改为断言 `var(--lh, 1)`、不再有 `:not([data-theme="light"])`、paper 的系统深色规则、卡片规则）、字体就绪后的第二次回位会打断已滚动的读者（现在位置移动后不再回位）、`color-scheme` 只跟显式选择（已补系统深色）、落地页忽略旧 `theme` 键（app.js 已同步映射）、Aa 对话框无障碍名仍是“字号、栏宽和字体”（已改“阅读外观”）、DEVELOPMENT 对 `--lh` 覆盖范围说过头且守卫里的 `#s=` 无页面使用（已改） | 明暗（跟随系统/浅/深）+ 风格（默认/纸张）可组合、行距紧凑/标准/宽松（`--lh`）、阅读位置（`localStorage` `textfold.pos`，回位提示与进度线）、专注模式（F/Esc，边缘唤回）；app 落地页同步主题；未目视回位/进度线/触摸唤回（预览面板无 rAF），未测 zoom 平滑度；记录见 `docs/changes/2026-10-22-reader-theme-focus.md` |
 
 ## 停止条件
 
