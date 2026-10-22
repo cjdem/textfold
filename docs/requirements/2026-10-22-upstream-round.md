@@ -55,7 +55,7 @@
 | R1 | 完成 | optimize | 本地服务器 Host 校验（DNS rebinding） | `4fee928` | 无 | 小 |
 | R2 | 完成 | optimize | 所有文本读写显式 UTF-8 | `c1b3fd3` | 无 | 中 |
 | R3 | 完成 | optimize | 旧 TextFold 的 GBK 库按代码页读入，下一次保存写 UTF-8 | `4f15560` | R2 | 中 |
-| R4 | 进行中 | optimize | 只支持流式的 API 服务 | `8e7569b` | 无 | 中 |
+| R4 | 完成 | optimize | 只支持流式的 API 服务 | `8e7569b` | 无 | 中 |
 | R5 | 待做 | optimize | 模型回复的多种 JSON 形状 | `09e9d37` | 无 | 中 |
 | R6 | 待做 | optimize | `TEXTFOLD_NO_MODELS` 下不调用模型 | `1761a95` | 无 | 小 |
 | R7 | 待做 | optimize | EPUB 章节先解码再解析 | `13d7794` | 无 | 小 |
@@ -153,6 +153,7 @@
 | 2026-10-22 | R1 | optimize | `0507bda` | 211，OK | 无阻断发现；测试观察面、死代码与 docstring 已补 | Host 校验在 `do_GET`/`do_POST` 路由前，其他名字 421；`localhost.`、`127.0.0.2` 等按设计拒绝；不涉及阅读器 |
 | 2026-10-22 | R2 | optimize | `4f8eff6` | 214，OK | 无阻断发现；1 个数据安全问题、1 个钩子编码问题、若干措辞/测试已修 | 所有文本 I/O 显式 UTF-8；命令行导入支持 GBK/BOM/CRLF；GBK 的 library/zotero 不再被静默清空；旧文件迁移留给 R3 |
 | 2026-10-22 | R3 | optimize | `02bc0e2` | 222，OK | 两轮：第一轮推翻“读时写回”（比较与替换非原子，会丢并发保存），第二轮修完记录/测试/文档的 7 处问题；无阻断发现 | 与计划不同：读只解码不写（GBK 文件保持原样，下一次保存写 UTF-8），两边都无法解码的文件报错而非用替换字符后保存；`store.codepage()` 在 3.9/3.10 用 GetACP，不再受 UTF-8 模式影响；`zotero.apply` 改临时文件+替换；未触及阅读器，zoom 平滑度未测 |
+| 2026-10-22 | R4 | optimize | `0aacd72` | 239，OK | 三轮：第一轮发现重试路径读截断错误体、200 错误体让“流式+无 JSON 模式”形状不可达（都已修）；第二、三轮修记录措辞与测试强度；无阻断发现 | SSE 回复合并成一个 completion；只有被拒后才加 `stream`，所有旧形状的首请求逐字节不变；`_content` 留给 R5，仅内联“200 不是 completion 就前进”；流式请求通常没有 usage，成本记不到；未触及阅读器，zoom 平滑度未测 |
 
 ## 停止条件
 
