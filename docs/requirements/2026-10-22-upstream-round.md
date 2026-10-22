@@ -52,7 +52,7 @@
 | ID | 状态 | 模式 | 任务 | 上游 / 来源 | 依赖 | 规模 |
 |---|---|---|---|---|---|---|
 | R0 | 完成 | optimize | 移除 ChatGPT 本地桥；保留 OpenRouter 和普通 API providers | fork-specific | 无 | 中 |
-| R1 | 进行中 | optimize | 本地服务器 Host 校验（DNS rebinding） | `4fee928` | 无 | 小 |
+| R1 | 完成 | optimize | 本地服务器 Host 校验（DNS rebinding） | `4fee928` | 无 | 小 |
 | R2 | 待做 | optimize | 所有文本读写显式 UTF-8 | `c1b3fd3` | 无 | 中 |
 | R3 | 待做 | optimize | 旧 TextFold 的 GBK 库读一次并转 UTF-8 | `4f15560` | R2 | 中 |
 | R4 | 待做 | optimize | 只支持流式的 API 服务 | `8e7569b` | 无 | 中 |
@@ -150,6 +150,7 @@
 | 日期 | 任务 | 模式 | 本地 commit | 测试 | verifier | 备注 |
 |---|---|---|---|---|---|---|
 | 2026-10-22 | R0 | optimize | `b4140d8` | 206，OK | 无阻断发现；1 处 UI 缺陷、3 处测试缺口已修 | 移除 ChatGPT 本地桥，OpenRouter 移到 `textfold/openrouter.py`；失去产品内订阅入口；zoom 平滑度未测 |
+| 2026-10-22 | R1 | optimize | `0507bda` | 211，OK | 无阻断发现；测试观察面、死代码与 docstring 已补 | Host 校验在 `do_GET`/`do_POST` 路由前，其他名字 421；`localhost.`、`127.0.0.2` 等按设计拒绝；不涉及阅读器 |
 
 ## 停止条件
 
