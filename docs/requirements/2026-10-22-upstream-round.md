@@ -59,7 +59,7 @@
 | R5 | 完成 | optimize | 模型回复的多种 JSON 形状 | `09e9d37` | 无 | 中 |
 | R6 | 完成 | optimize | `TEXTFOLD_NO_MODELS` 下不调用模型 | `1761a95` | 无 | 小 |
 | R7 | 完成 | optimize | EPUB 章节先解码再解析 | `13d7794` | 无 | 小 |
-| R8 | 进行中 | optimize | 翻译漏段重试（只取 `d457cfa` 的翻译部分） | `d457cfa` | 无 | 中 |
+| R8 | 完成 | optimize | 翻译漏段重试（只取 `d457cfa` 的翻译部分） | `d457cfa` | 无 | 中 |
 | R9 | 待做 | optimize | 应用 payload 带 Anthropic SDK | `f260244` | 无 | 小 |
 | R10 | 待做 | feature | 多文件导入：逐文件队列，不用 MinerU batch | `523e5f4` | R1–R9 | 中 |
 | R11 | 待做 | feature | 可配置 MinerU v4 base URL，默认官方 | fork-specific | R10 后或并行 | 小 |
@@ -157,6 +157,7 @@
 | 2026-10-22 | R5 | optimize | `d46d2cb` | 257，OK | 三轮：第一轮发现非对象翻译回复会静默保存不完整层、单 chunk 文档不回退；第二轮发现 pipeline 对请求语言忽略 `failed`、守卫测试空转；第三轮修测试强度；无阻断发现 | 回复按 list / JSON 字符串 / id-keyed / 字符串 section / parts 读；读不出的 chunk 本地回退并丢弃缓存；请求语言的失败部分不保存为当前；失败任务最后 12 行日志 print 到 stdout（MyGo 的 server.log）；未触及阅读器，zoom 平滑度未测 |
 | 2026-10-22 | R6 | optimize | `81d9661` | 259，OK | 无功能发现；记录里从上游继承的例子（命令行旧默认、agent runtime）在本 fork 不存在，已改成实际可达的“直接持有 spec”；“保留的回复仍会读”限定到 spec 形式；无阻断发现 | `llm.call` 在缓存读取之后、调用模型之前检查 `TEXTFOLD_NO_MODELS`，任何 spec 都不再发请求；`force` 拒绝；测试里两个 mock 模型的用例临时清掉该变量；未触及阅读器，zoom 平滑度未测 |
 | 2026-10-22 | R7 | optimize | `6606177` | 269，OK | 三轮：第一轮否决一行移植（head title 进正文、声明编码/UTF-16 读错）；第二轮发现标准 `encoding=` 声明让 lxml 拒绝整章、长注释绕过文档判断；第三轮只余措辞；无阻断发现 | 章节按 BOM、XML 声明或 meta charset 解码再解析；`_fragment` 先剥声明/注释/处理指令再判断整篇文档，head title 不进正文；SVG 章节保留文字；空章节跳过（以前整本 bad-file）；已转换的旧 EPUB 重新转换会丢层；未触及阅读器，zoom 平滑度未测 |
+| 2026-10-22 | R8 | optimize | `c6e6b4b` | 282，OK | 一轮长审查 + 一次窄复查：阻断项是单节文档“所有首轮调用失败”时在重试前就抛出（已改为先重试、两轮都失败才抛，并加测试）；高优先项是重试可能读回同一提示下缓存的漏段回复（已改为重试 `force=True` 真问模型）；其余（force 会用带缺口的层覆盖完整层、fill 全失败会让 job 失败而 also_zh 只记日志、`Jobs._same` 不看 force、单字母段落不算缺口）记入记录；窄复查确认修复正确、无新阻断 | 只取 `d457cfa` 的翻译部分：构建时漏段/失败调用立刻补问，存储层记录 `meta.gaps` 并在下次生成或打开该语言时只补缺口；阅读器显示“N 段未译”，应用打开时自动补译（每标签页每计数一次）；R5 的“失败 part 不保存”改为“带缺口保存后补齐”；`assemble` 的 takeaway 回退；未测 zoom 平滑度；记录见 `docs/changes/2026-10-22-translation-gaps.md` |
 
 ## 停止条件
 
