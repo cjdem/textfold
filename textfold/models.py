@@ -2,7 +2,7 @@
 
 Provider models come from environment settings, providers added in the reader, or a running local service. Magpie is
 first so a shared model id resolves to its local OpenAI-compatible endpoint; the reader's saved choice wins, else its
-first model is the default, then the existing ChatGPT and OpenRouter defaults.
+first model is the default, then the existing OpenAI and OpenRouter defaults.
 """
 import json
 import os
@@ -12,7 +12,7 @@ import threading
 import time
 from pathlib import Path
 
-from . import bridges, providers
+from . import providers
 from .store import HOME, OLD_HOMES
 
 _SETTINGS_LOCK = threading.RLock()
@@ -119,14 +119,10 @@ def provider_list(s, wait=False):
                    "source": "local", "preset": "magpie", "models": magpie_models} if magpie_models else None)
     key = json.dumps([s.get("providers"), s.get("use_thoughtdag_env", True),
                       providers.environment(s.get("use_thoughtdag_env", True)), magpie_base, magpie_models,
-                      providers.ollama_models(), bridges.bridge_status()], sort_keys=True, default=str)
+                      providers.ollama_models()], sort_keys=True, default=str)
     if _PROVIDERS["key"] == key and time.time() - _PROVIDERS["at"] < 10:
         return _PROVIDERS["rows"]
     env = providers.env_providers(s.get("use_thoughtdag_env", True), providers.ollama_models())
-    # The ChatGPT bridge joins automatically unless it has already been configured by hand.
-    bridge = bridges.bridge_provider(providers.NOT_TEXT)
-    if bridge and not any(p["base"].rstrip("/") == bridges.BRIDGE for p in ui):
-        env.append(bridge)
     rows = ([magpie] if magpie else []) + [p for p in env if p["key"] != "magpie"] + [
         p for p in ui if p["key"] != "magpie"]
     _PROVIDERS.update(key=key, at=time.time(), rows=rows)

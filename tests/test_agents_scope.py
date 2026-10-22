@@ -6,7 +6,7 @@ import urllib.request
 from http.server import ThreadingHTTPServer
 from unittest import mock
 
-from textfold import bridges, engine, models, providers, server
+from textfold import engine, models, providers, server
 
 
 class ProviderOnly(unittest.TestCase):
@@ -20,12 +20,12 @@ class ProviderOnly(unittest.TestCase):
     def test_server_payload_has_no_agent_scan_state(self):
         with mock.patch.object(models, "load_settings", return_value={}), \
              mock.patch.object(models, "catalog", return_value=([], [])), \
-             mock.patch.object(bridges, "bridge_status", return_value={"running": False}), \
              mock.patch.object(engine, "status", return_value={}):
             payload = server.models_payload()
         self.assertNotIn("agents", payload)
         self.assertNotIn("scanning", payload)
         self.assertNotIn("scannedAt", payload)
+        self.assertNotIn("bridge", payload)
 
     def test_agent_scan_route_returns_404(self):
         jobs = mock.Mock()
@@ -41,6 +41,13 @@ class ProviderOnly(unittest.TestCase):
             urllib.request.urlopen(req, timeout=2)
         self.assertEqual(cm.exception.code, 404)
         cm.exception.close()
+
+    def test_a_provider_whose_preset_is_gone_is_kept(self):
+        saved = [{"key": "chatgpt-bridge", "preset": "chatgpt-bridge", "name": "ChatGPT",
+                  "base": "http://127.0.0.1:10531/v1", "api_key": "none", "models": [{"id": "gpt-5.5"}]}]
+        rows = providers.ui_providers({"providers": saved, "use_thoughtdag_env": False})
+        self.assertEqual([(p["key"], p["source"], p["preset"]) for p in rows],
+                         [("chatgpt-bridge", "ui", "chatgpt-bridge")])
 
     def test_no_models_suppresses_local_provider_probes(self):
         with mock.patch.dict("os.environ", {"TEXTFOLD_NO_MODELS": "1"}), \

@@ -60,8 +60,8 @@ itself. The Windows app is built by `.github/workflows/desktop.yml` on a `v*` ta
 `.github/workflows-disabled/` (GitHub runs only `.github/workflows/`). A tag build needs the
 `MYGO_UPDATER_PRIVATE_KEY` secret, and stops before it leaves a draft release without it.
 
-Models (⚙ Settings): the current connection, the default model and its test, plus the ChatGPT bridge and the
-OpenRouter one-click entry. API providers, the questions' model and reasoning, and the MinerU API key are under
+Models (⚙ Settings): the current connection, the default model and its test, plus the OpenRouter one-click entry.
+API providers, the questions' model and reasoning, and the MinerU API key are under
 **Advanced**. TextFold makes model calls through API providers only; it does not scan for or run Claude Code, Codex or Pi
 CLI runtimes.
 
@@ -71,10 +71,6 @@ CLI runtimes.
   OpenAI-compatible `/chat/completions` with the `magpie` token. TextFold does not install Magpie. It is listed first and
   its first model becomes the default unless Settings selects another available model; a collision resolves to Magpie.
   Probes run in the background with a short-lived cache, so an unavailable gateway does not delay the page or server.
-- **ChatGPT plan, local bridge** (`textfold/bridges.py`): openai-oauth (npm) serves an OpenAI-compatible endpoint at
-  `127.0.0.1:10531`, authenticated with the user's Codex login or browser sign-in. TextFold uses the login through the
-  bridge and does not run the Codex CLI. It starts on request (`npx -y openai-oauth@2 --detach`; `npx openai-oauth stop`
-  stops it); Node.js is required.
 - **OpenRouter in one click**: OAuth with PKCE. The server makes the verifier, OpenRouter returns a code, and the code
   and verifier become a key kept in memory until the reader picks models and saves. Free models are listed first and a
   new connection picks five of them.
@@ -88,7 +84,7 @@ CLI runtimes.
   `enable_thinking` or `reasoning_effort`. Magpie reports supported reasoning levels with its dynamic model list.
   If an API refuses a spelling, TextFold tries supported alternatives and then retries without a reasoning field; a
   failure with a level set is retried at the model default and explained in `note`.
-- **The home page does not wait on local ports.** Magpie, Ollama and bridge probes refresh in the background; the last
+- **The home page does not wait on local ports.** Magpie and Ollama probes refresh in the background; the last
   result is returned at once. `provider_list` caches rows for ten seconds, keyed by settings, environment and probe
   results, and `save_settings` clears the cache. A stopped local gateway does not prevent other providers from appearing
   or working.
@@ -300,7 +296,7 @@ lists among the papers. The page may change the library chosen and
 nothing else: Zotero's address and data folder (`"zotero": {"base", "data_dir"}`) are set in the settings file only.
 `tests/test_zotero.py` runs it all against a fake Zotero.
 
-`TEXTFOLD_NO_MODELS=1` makes a server find no model at all (no bridge or API provider): for test servers and CI, so
+`TEXTFOLD_NO_MODELS=1` makes a server find no model at all (no API provider): for test servers and CI, so
 that nothing calls a model by accident. Without a model a document is still fetched and parsed, and reads as written.
 
 ## No other server
@@ -359,8 +355,7 @@ textfold/pipeline.py fetch → parse → English ladder (once) → translation, 
 textfold/server.py   local server: pages, /api/papers, /api/jobs (and /api/jobs/stop), /api/generate, /api/card, /api/settings
 textfold/providers.py API providers: environment registry, presets, dynamic Magpie and /models probing
 textfold/models.py   API model catalog; settings; resolving a model id
-textfold/bridges.py  ChatGPT bridge using Codex login; OpenRouter one-click authorization
-textfold/procenv.py Windows child environment and UTF-8 text settings for the ChatGPT bridge
+textfold/openrouter.py  OpenRouter one-click authorization (OAuth PKCE)
 textfold/llm.py     cached API model calls; llm_openai.py: OpenAI-compatible endpoints
 textfold/build.py    reader pages: app mode (served) and static mode (one file)
 textfold/library.py  the sidebar's library: folders, when each document came in and was last opened (library.json)
@@ -370,7 +365,7 @@ textfold/fold.py     the TextFold format (docs/format.md) and a document at one 
 textfold/web/   reader.js (render + FLIP morph), card.js/card.css (the reading card drawer), app.js (sidebar, landing,
                 settings, jobs), i18n.js, CSS, templates
 tests/          python -m unittest discover tests: the arXiv page's safety pass, the Zotero library (a fake Zotero),
-                API providers and the ChatGPT bridge on Windows
+                API providers, OpenRouter's authorisation, and a Windows child process without a console window
 desktop-mygo/  the app (its README): Go/MyGo window around the same Python server, native dialogs, lifecycle and signed updates
 tools/zoombench.py  zoom smoothness as the screen sees it (Windows' d3d11 GPU backend, 2x, Chrome's frame trace), on
                 out/compare/<id>/ pages; needs playwright and an exported page
@@ -381,9 +376,7 @@ them by number. A parser change that reads more of a page (description lists, Oc
 the new ones, so a paper generated before it needs its layers made again, or its atom numbers mapped from the old parse
 to the new one by content and order.
 
-The ChatGPT bridge's Windows child environment and text-pipe helper live in `procenv.py`. The child environment adds the
-usual Node.js locations to `PATH`; the UTF-8 text settings remain for any text a bridge child exchanges, so a Chinese
-Windows code page cannot corrupt it. JSON generated by API providers remains UTF-8 in and out: model replies in
+JSON generated by API providers remains UTF-8 in and out: model replies in
 `llm.py`, layers in `store.write`, notes in `notes.py`, and settings in `models.py` are written as ASCII-escaped UTF-8.
 Document metadata and library JSON are ASCII-escaped for the same reason: titles and folder names may contain
 characters absent from GBK. Stored web addresses use a UTF-8 byte-order mark so earlier text can still be read

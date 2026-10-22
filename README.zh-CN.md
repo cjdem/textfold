@@ -129,7 +129,6 @@ TextFold 通过 API 供应商发送模型请求，不会扫描或运行 Claude C
 | 你有 | 怎么做 |
 |---|---|
 | 正在运行的本地 Magpie | 不用设置。TextFold 会连接它的 OpenAI 兼容 API，并列出 Magpie 返回的模型。 |
-| ChatGPT 订阅 | 点 **使用我的 ChatGPT 订阅**。电脑上会启动一个需要 Node.js 的小型本地桥，并使用 Codex 登录；这里用的是登录凭据，不会运行 Codex 命令行程序。 |
 | 还没有模型 | 点 **OpenRouter 一键授权**。授权一次，免费模型马上可用。 |
 | 一个 API key | **设置 › 高级 › 添加供应商**：Anthropic、OpenAI、DeepSeek、通义千问、智谱 GLM、Kimi、MiniMax、Google、Ollama，或任何 OpenAI 兼容接口。 |
 
@@ -162,6 +161,7 @@ TextFold 只是一个工具，它的许可证只管代码。分享文件时，�
 > 这个 fork 在 10 月 21 日之前的条目是原项目的历史；本 fork 的改动在 [docs/changes/](docs/changes/)。
 > 原项目的 macOS 版不属于本 fork。
 
+- **2026 年 10 月 22 日：移除 ChatGPT 订阅入口。** TextFold 不再运行本地桥，也不再使用 ChatGPT 订阅；请改用 API key、OpenRouter 或 Magpie 网关。
 - **2026 年 10 月 18 日：每篇论文一张阅读卡。** 阅读页顶部的 **阅读卡** 把研究问题与贡献、方法与前提、数据与实验设置、结果与局限放在一起，条目都能改，也都回到原文；重新生成先存为候选，卡片可导出 Markdown。
 - **2026 年 10 月 21 日：PDF 只走 MinerU Cloud API。** 每个 PDF 都直接交给 MinerU，不再先读本地文字，也不先查找在线版本。约 3.4 GB 的本地引擎和离线 PDF 路径已经删除。请先在设置里填写密钥；PDF 和图片会离开电脑，交给 MinerU 转换。
 - **2026 年 10 月 17 日：MinerU 的服务器读你的文件。** 在 `~/.textfold/settings.json` 里写上 `mineru_api_key`，PDF、Word/PowerPoint/Excel 文件、HTML 和图片就交给 MinerU 的云 API 读：不用装 3.4 GB 的引擎，文件会离开你的电脑。

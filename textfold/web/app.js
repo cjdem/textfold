@@ -736,34 +736,18 @@
     renderConnect();
   }
   // No model yet: the ways in, on the landing itself. OpenRouter's one-click
-  // authorisation (free models); the ChatGPT plan through the local bridge, started from here; or the settings.
-  let bridgeStarting = false;
+  // authorisation (free models), or the settings.
   function renderConnect() {
     const box = document.getElementById('connect');
     if (!box) return;
     box.hidden = !!modelName;
     if (box.hidden) return;
-    const T = t(), br = BOOT.bridge || {};
+    const T = t();
     box.innerHTML = `<div class="cn-t">${esc(T.cn_title)}</div><p>${esc(T.cn_sub)}</p><div class="cn-ways">` +
       `<button type="button" class="primary cn-or">${esc(T.cn_or)}</button>` +
-      (br.node || br.running ? `<button type="button" class="cn-gpt"${bridgeStarting ? ' disabled' : ''}>${esc(bridgeStarting ? T.bridge_starting : T.cn_gpt)}</button>` : '') +
       `</div><button type="button" class="linkbtn cn-more">${esc(T.cn_more)}</button>`;
     box.querySelector('.cn-or').onclick = async (e) => { e.target.disabled = true; await connectOpenRouter('/'); e.target.disabled = false; };
     box.querySelector('.cn-more').onclick = () => openSettings({ add: true });
-    const g = box.querySelector('.cn-gpt');
-    if (g) g.onclick = async () => {
-      bridgeStarting = true; renderConnect();
-      try { await api('/api/bridge/start', {}); } catch (x) { bridgeStarting = false; renderConnect(); return; }
-      for (let k = 0; k < 150 && bridgeStarting; k++) {   // up to 5 minutes: a ChatGPT sign-in may be under way
-        await new Promise((r) => setTimeout(r, 2000));
-        if ((await api('/api/bridge')).running) break;
-      }
-      bridgeStarting = false;
-      const d = await api('/api/models');
-      modelName = d.selectedName || '';
-      askName = d.askName || '';
-      renderSidebar(); renderLanding();
-    };
   }
   if (landing) {
     const sel = document.getElementById('lang');
@@ -1034,7 +1018,6 @@
     let form = null;          // the provider being added or edited: {key?, preset, name, base, api_key, found, picked}
     let advancedOpen = !!(opts && (opts.add || opts.minted || opts.mineru));   // (provider forms and MinerU live in Advanced)
     const tests = {};         // the last connection test of each model: the levels' (gen), the questions' (ask)
-    let bridgeStarting = false;
     const dlg = h('dialog', 'settings prefs'); document.body.append(dlg);
     const T = () => t();
     const host = (u) => { try { return new URL(u).host; } catch { return u; } };
@@ -1055,16 +1038,13 @@
     };
 
     function connectionSection() {
-      const t = T(), cur = data.models.find((m) => m.id === data.selected), br = data.bridge || {};
+      const t = T(), cur = data.models.find((m) => m.id === data.selected);
       const shown = cur ? (data.selectedName || cur.name) : '', group = cur ? groupName(cur.group) : '';
       const name = !cur ? t.st_none : shown.toLowerCase().includes(group.toLowerCase()) ? shown : `${group} · ${shown}`;
       const or = form && form.minted ? '' : `<button type="button" class="st-btn st-or">${esc(t.st_or)}</button>`;   // (a key is waiting for its models)
       return `<div class="st-list">
         <div class="st-item"><i class="st-dot${cur ? '' : ' off'}"></i><div class="st-main"><b>${esc(t.st_current)}</b>
           <span class="st-meta">${esc(name)}</span></div>${or}</div>
-        <div class="st-item"><i class="st-dot${br.running ? '' : ' off'}"></i><div class="st-main"><b>${esc(t.bridge_name)}</b>
-          <span class="st-meta">${esc(br.running ? t.bridge_on.replace('{n}', (br.models || []).length) : bridgeStarting ? t.bridge_starting : t.bridge_off)}</span></div>
-          ${br.running || !br.node || bridgeStarting || (form && form.preset === 'chatgpt-bridge') ? '' : `<button type="button" class="st-btn st-bridgego">${esc(t.bridge_start)}</button>`}</div>
       </div>`;
     }
 
@@ -1092,7 +1072,7 @@
 
     function providerSection() {
       const t = T();
-      const src = (p) => p.source === 'thoughtdag' ? t.st_from_td : p.source === 'env' ? t.st_from_env : p.source === 'bridge' || p.source === 'local' ? t.st_auto : t.st_added;
+      const src = (p) => p.source === 'thoughtdag' ? t.st_from_td : p.source === 'env' ? t.st_from_env : p.source === 'local' ? t.st_auto : t.st_added;
       const rows = data.providers.map((p) => `<div class="st-item"><div class="st-main"><b>${esc(p.name)}<span class="st-src ${p.source}">${esc(src(p))}</span></b>
         <span class="st-meta">${esc(host(p.base))}</span></div><span class="st-aside">${esc(t.st_models.replace('{n}', p.models.length))}</span>
         ${p.source === 'ui' ? `<span class="st-acts"><button type="button" class="st-btn st-edit" data-key="${esc(p.key)}">${esc(t.st_edit)}</button><button type="button" class="st-btn danger st-del" data-key="${esc(p.key)}">${esc(t.st_remove)}</button></span>` : ''}</div>`).join('');
@@ -1102,7 +1082,7 @@
     function providerForm() {
       const t = T();
       const preset = data.presets.find((p) => p.id === form.preset) || {};
-      const opts = data.presets.map((p) => `<option value="${p.id}"${p.id === form.preset ? ' selected' : ''}>${esc(p.id === 'chatgpt-bridge' ? t.bridge_name : (p.name || 'Custom'))}${p.region ? ` (${p.region})` : ''}</option>`).join('');
+      const opts = data.presets.map((p) => `<option value="${p.id}"${p.id === form.preset ? ' selected' : ''}>${esc(p.name || 'Custom')}${p.region ? ` (${p.region})` : ''}</option>`).join('');
       // the models found: the picked ones first (a long list, such as OpenRouter's, would bury them), then as listed;
       // a search box narrows the list as you type, without losing what is ticked
       const found = form.found ? [...form.found].sort((a, b) => form.picked.includes(b.id) - form.picked.includes(a.id)) : null;
@@ -1113,15 +1093,8 @@
       // OpenRouter: a key made by one authorisation (OAuth PKCE) instead of pasting one
       const oauth = form.preset === 'openrouter' && !form.minted ? `<div class="st-oauth"><p>${esc(t.or_hint)}</p><button type="button" class="primary pf-oauth">${esc(t.or_button)}</button></div>` : '';
       const minted = form.minted ? `<p class="st-note ok">${esc(t.or_minted)}</p>` : '';
-      // the ChatGPT plan through the local bridge: whether it runs, and starting it
-      const b = form.bridge;
-      const bridge = !preset.bridge ? '' : !b ? `<p class="st-note">…</p>` : b.running
-        ? `<div class="st-bridge on"><i></i>${esc(t.bridge_on.replace('{n}', b.models.length))}</div><p class="st-note">${esc(t.bridge_hint)}</p>`
-        : `<div class="st-bridge"><i></i><span>${esc(form.bridgeStarting ? t.bridge_starting : t.bridge_off)}</span>${b.node && !form.bridgeStarting ? `<button type="button" class="pf-bridge">${esc(t.bridge_start)}</button>` : ''}</div>
-          <p class="st-note">${esc(t.bridge_hint)}</p>${b.node ? '' : `<p class="st-note warn">${esc(t.bridge_no_node)}</p>`}
-          <div class="st-cmd"><code>npx openai-oauth</code><button type="button" class="linkbtn pf-copy">${esc(t.copy)}</button></div>`;
       return `<div class="st-form">
-        <label>${esc(t.st_preset)}<select class="pf-preset">${opts}</select></label>${oauth}${minted}${bridge}
+        <label>${esc(t.st_preset)}<select class="pf-preset">${opts}</select></label>${oauth}${minted}
         ${form.preset === 'custom' ? `<label>${esc(t.st_name)}<input class="pf-name" value="${esc(form.name || '')}"></label>` : ''}
         <label>${esc(t.base_url)}<input class="pf-base" value="${esc(form.base || '')}" placeholder="https://…/v1"></label>
         ${preset.nokey || form.minted ? '' : `<label><span>${esc(t.api_key)}${preset.keyUrl ? ` · <a href="${preset.keyUrl}" target="_blank" rel="noopener">${esc(host(preset.keyUrl))}</a>` : ''}</span><input class="pf-key" type="password" placeholder="${esc(form.key ? t.st_key_kept : 'sk-…')}"></label>`}
@@ -1233,19 +1206,10 @@
       if (td) td.onchange = async () => update(await api('/api/settings', { use_thoughtdag_env: td.checked }));
       dlg.querySelectorAll('.st-del').forEach((b) => { b.onclick = async () => update(await api('/api/providers/remove', { key: b.dataset.key })); });
       dlg.querySelectorAll('.st-edit').forEach((b) => {
-        b.onclick = () => { advancedOpen = true; const p = data.providers.find((x) => x.key === b.dataset.key); form = { key: p.key, preset: p.preset || 'custom', name: p.name, base: p.base }; render(); };
+        b.onclick = () => { advancedOpen = true; const p = data.providers.find((x) => x.key === b.dataset.key);
+          const known = data.presets.some((x) => x.id === p.preset);   // (a preset removed since it was saved: edit it as custom)
+          form = { key: p.key, preset: known ? p.preset : 'custom', name: p.name, base: p.base }; render(); };
       });
-      const bg = q('.st-bridgego');
-      if (bg) bg.onclick = async () => {   // start the bridge; its models join the list once it answers
-        bridgeStarting = true; render();
-        try { await api('/api/bridge/start', {}); } catch { bridgeStarting = false; render(); return; }
-        for (let k = 0; k < 150 && dlg.isConnected && bridgeStarting; k++) {
-          await new Promise((r) => setTimeout(r, 2000));
-          if ((await api('/api/bridge')).running) break;
-        }
-        bridgeStarting = false;
-        if (dlg.isConnected) update(await api('/api/models'));
-      };
       const add = q('.st-add');
       if (add) add.onclick = () => { const p = data.presets.find((x) => x.id === 'magpie') || data.presets[0]; form = { preset: p.id, name: '', base: p.base }; render(); };
       if (!form) return;
@@ -1262,21 +1226,6 @@
       };
       const oa = q('.pf-oauth');
       if (oa) oa.onclick = async () => { oa.disabled = true; if (window.desktop) dlg.close(); await connectOpenRouter(location.pathname + location.search); };
-      const cp = q('.pf-copy');
-      if (cp) cp.onclick = () => navigator.clipboard.writeText('npx openai-oauth').then(() => { cp.textContent = '✓'; }, () => {});
-      const bs = q('.pf-bridge');
-      if (bs) bs.onclick = async () => {
-        form.bridgeStarting = true; render();
-        try { await api('/api/bridge/start', {}); } catch (x) { form.bridgeStarting = false; render(); q('.pf-err').textContent = x.message; return; }
-        for (let k = 0; k < 150 && dlg.isConnected && form && form.bridgeStarting; k++) {   // up to 5 minutes: a sign-in may be under way
-          await new Promise((r) => setTimeout(r, 2000));
-          const st = await api('/api/bridge');
-          if (st.running) { form.bridge = st; form.bridgeStarting = false; render(); fetchModels(); return; }
-        }
-        if (form) { form.bridgeStarting = false; render(); }
-      };
-      const pre = data.presets.find((x) => x.id === form.preset) || {};
-      if (pre.bridge && !form.bridge) api('/api/bridge').then((st) => { if (!form) return; form.bridge = st; render(); if (st.running && !form.found) fetchModels(); });
       q('.pf-cancel').onclick = () => { form = null; render(); };
       q('.pf-save').onclick = async () => {
         keep();

@@ -67,8 +67,6 @@ PRESETS = [
     {"id": "moonshot", "name": "Moonshot", "region": "zh", "base": "https://api.moonshot.cn/v1"},
     {"id": "magpie", "name": "Magpie", "base": "http://127.0.0.1:3425/v1", "nokey": True},
     {"id": "ollama", "name": "Ollama", "base": "http://localhost:11434/v1", "nokey": True},
-    {"id": "chatgpt-bridge", "name": "ChatGPT (local bridge)", "base": "http://127.0.0.1:10531/v1", "nokey": True, "bridge": True,
-     "recommend": ["gpt-5.5", "gpt-5.6-luna", "gpt-5.6-sol"]},
     {"id": "custom", "name": "", "base": ""},
 ]
 MAX_PROVIDERS, MAX_MODELS = 12, 60

@@ -1,6 +1,6 @@
 """The landing page builds the model catalog once — building it probes the computer's own model servers, and four
 builds made returning to the home page take a quarter of a minute — and the provider list is reused for ten seconds.
-The two local probes answer from their last result at once and refresh in the background: a probe to a closed port
+The local probes answer from their last result at once and refresh in the background: a probe to a closed port
 waits for its whole timeout on some computers (a closed port is dropped, not refused, there).
 
 Run from the repo root:
@@ -12,7 +12,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from textfold import bridges, library, models, providers, server, store
+from textfold import library, models, providers, server, store
 
 
 class Landing(unittest.TestCase):
@@ -28,7 +28,6 @@ class Landing(unittest.TestCase):
         jobs.list.return_value = []
         with mock.patch.object(models, "load_settings", return_value=settings), \
              mock.patch.object(models, "catalog", return_value=(cat, [])) as catalog, \
-             mock.patch.object(bridges, "bridge_status", return_value={"running": False}), \
              mock.patch.object(library, "stamp", return_value=[]), \
              mock.patch.object(library, "folders", return_value=[]):
             page = server.landing_page(jobs)
@@ -64,22 +63,20 @@ class Providers(unittest.TestCase):
         return mock.patch.object(providers, "env_providers", return_value=[]), \
             mock.patch.object(providers, "ui_providers", return_value=[]), \
             mock.patch.object(providers, "ollama_models", return_value=[]), \
-            mock.patch.object(providers, "magpie_models", return_value=("http://127.0.0.1:3425/v1", [])), \
-            mock.patch.object(bridges, "bridge_provider", return_value=None), \
-            mock.patch.object(bridges, "bridge_status", return_value={"running": False})
+            mock.patch.object(providers, "magpie_models", return_value=("http://127.0.0.1:3425/v1", []))
 
     def test_the_provider_list_is_reused_for_a_moment(self):
         s = {"providers": [], "use_thoughtdag_env": False}
-        a, b, c, d, e, f = self.probe()
-        with a as env, b, c, d, e, f:
+        a, b, c, d = self.probe()
+        with a as env, b, c, d:
             models.provider_list(s)
             models.provider_list(s)
         self.assertEqual(env.call_count, 1)
 
     def test_a_changed_live_answer_rebuilds_the_list(self):
         s = {"providers": [], "use_thoughtdag_env": False}
-        a, b, c, d, e, f = self.probe()
-        with a as env, b, c, d, e, f:
+        a, b, c, d = self.probe()
+        with a as env, b, c, d:
             models.provider_list(s)
             providers.ollama_models.return_value = ["llama3:8b"]   # (a background probe answered between the calls)
             models.provider_list(s)
@@ -88,8 +85,8 @@ class Providers(unittest.TestCase):
     def test_the_list_is_rebuilt_after_ten_seconds(self):
         s = {"providers": [], "use_thoughtdag_env": False}
         clock = [1000.0]
-        a, b, c, d, e, f = self.probe()
-        with a as env, b, c, d, e, f, mock.patch.object(models.time, "time", side_effect=lambda: clock[0]):
+        a, b, c, d = self.probe()
+        with a as env, b, c, d, mock.patch.object(models.time, "time", side_effect=lambda: clock[0]):
             models.provider_list(s)
             clock[0] += 11
             models.provider_list(s)
@@ -100,30 +97,14 @@ class Providers(unittest.TestCase):
         old = models.SETTINGS
         try:
             models.SETTINGS = Path(tempfile.mkdtemp()) / "settings.json"
-            a, b, c, d, e, f = self.probe()
-            with a as env, b, c, d, e, f:
+            a, b, c, d = self.probe()
+            with a as env, b, c, d:
                 models.provider_list(s)
                 models.save_settings(s)
                 models.provider_list(s)
             self.assertEqual(env.call_count, 2)
         finally:
             models.SETTINGS = old
-
-
-class Bridge(unittest.TestCase):
-    def test_an_older_probe_does_not_overwrite_a_fresh_answer(self):
-        old = dict(bridges._SEEN)
-        bridges._PROBING.acquire()
-        try:
-            bridges._SEEN.update(at=10.0, status={"running": True})
-            with mock.patch.object(bridges, "_probe", return_value={"running": False}):
-                bridges._refresh(5.0)   # (started before the fresh answer at 10.0)
-            self.assertTrue(bridges._SEEN["status"]["running"])
-        finally:
-            if bridges._PROBING.locked():
-                bridges._PROBING.release()
-            bridges._SEEN.clear()
-            bridges._SEEN.update(old)
 
 
 if __name__ == "__main__":

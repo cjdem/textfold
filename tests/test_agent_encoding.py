@@ -8,7 +8,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from textfold import llm, models, notes, procenv, store
+from textfold import llm, models, notes, store
 
 MARK = "x" * 134 + "▶ “quoted” — ünïcode"
 REPLY = {"units": [{"sentences": ["中文⟦a12 公式⟧句子"]}]}
@@ -19,7 +19,7 @@ SPEC = {"kind": "api", "protocol": "openai", "base": "http://127.0.0.1:3425/v1",
 class Pipes(unittest.TestCase):
     def test_a_prompt_outside_the_systems_encoding_reaches_the_child(self):
         r = subprocess.run([os.sys.executable, "-c", "import sys; sys.stdout.buffer.write(sys.stdin.buffer.read())"],
-                           input=MARK, capture_output=True, text=True, timeout=10, **procenv.TEXT)
+                           input=MARK, capture_output=True, text=True, timeout=10, encoding="utf-8", errors="replace")
         self.assertEqual(r.stdout, MARK)
 
 

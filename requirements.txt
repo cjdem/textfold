@@ -14,5 +14,5 @@ mammoth
 openpyxl
 # MinerU's block boxes turn into figures cut from the PDF's pages; up to 5.11, the last that runs on macOS 12
 pypdfium2>=4.30,<5.12
-# only for the Anthropic API (Claude Code, Codex, Pi and OpenAI-compatible providers need nothing more):
+# only for the Anthropic API (OpenAI-compatible providers need nothing more):
 # anthropic

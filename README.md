@@ -131,7 +131,6 @@ TextFold sends model requests through API providers. It does not scan for or run
 | You have | What to do |
 |---|---|
 | Magpie running locally | Nothing. TextFold connects to its OpenAI-compatible API and lists the models Magpie reports. |
-| A ChatGPT plan | Click **Use my ChatGPT plan**. A small Node.js bridge starts on your computer and signs in with your Codex login; this uses the login, not the Codex CLI runtime. |
 | Nothing yet | Click **OpenRouter in one click**. Authorize once, and free models are ready. |
 | An API key | **Settings › Advanced › Add provider**: Anthropic, OpenAI, DeepSeek, Qwen, Zhipu GLM, Kimi, MiniMax, Google, Ollama, or any OpenAI-compatible endpoint. |
 
@@ -165,6 +164,7 @@ TextFold is a tool, and its license covers its code. When you share a file, foll
 > fork's changes are in [docs/changes/](docs/changes/). The original project's macOS app is not
 > part of this fork.
 
+- **October 22, 2026: the ChatGPT plan entry is gone.** TextFold no longer runs a local bridge or uses a ChatGPT subscription. Connect an API key, OpenRouter, or the Magpie gateway instead.
 - **October 18, 2026: a reading card for every paper.** **Reading card**, at the top of a paper, keeps what it asks and contributes, how it works, what it measured and what it found, in four sections you can edit. Every point links back to the passage; a new draft waits as a candidate, and the card exports to Markdown.
 - **October 21, 2026: PDFs use MinerU's Cloud API only.** Every PDF now goes directly to MinerU, without first reading its text or looking for an online version. The local 3.4 GB engine and the offline PDF path are gone. Add a key in Settings; PDFs and pictures leave your computer for conversion.
 - **October 17, 2026: MinerU's servers read your files.** Put `mineru_api_key` in `~/.textfold/settings.json` and PDFs, Word/PowerPoint/Excel files, HTML and pictures are read by MinerU's cloud API: no 3.4 GB engine to install, and the file leaves your computer.

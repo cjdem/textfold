@@ -33,8 +33,6 @@
   POST /api/papers/delete     {paper}: move a paper to papers/.trash (not while it is being generated)
   GET  /api/folders           the reader's folders and which document is in which (library.py)
   POST /api/folders           {op: new | rename | delete | move, ...}: one change; the folders after it
-  GET  /api/bridge             the ChatGPT bridge (127.0.0.1:10531): running and its models, or what starting it needs
-  POST /api/bridge/start       start it detached (bridges.py)
   POST /api/openrouter/start   {back}: the OpenRouter consent URL (OAuth PKCE); GET /oauth/openrouter is its return
   GET  /api/zotero             Zotero Desktop (its local API): running, its libraries, the one chosen (zotero.py)
   GET  /api/zotero/collections ?lib=users/0 | groups/<id>: the library's collections, each with its parent
@@ -64,7 +62,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, quote, unquote, urlparse
 
-from . import bridges, build, cards, engine, fetch, langs, library, llm, local, models, notes, office, pdf, pdfdoc, pipeline, providers, store, zotero
+from . import build, cards, engine, fetch, langs, library, llm, local, models, notes, office, openrouter, pdf, pdfdoc, pipeline, providers, store, zotero
 
 STATIC = {"app.js": "text/javascript", "app.css": "text/css", "reader.js": "text/javascript",
           "card.js": "text/javascript", "card.css": "text/css", "reader.css": "text/css",
@@ -91,7 +89,7 @@ def models_payload():
     return {
         "models": cat, "selected": selected, "selectedName": name(selected),
         "askModel": ask, "askEffort": ask_effort, "askName": name(ask) if ask and ask != selected else "",
-        "efforts": s.get("efforts") or {}, "bridge": bridges.bridge_status(),
+        "efforts": s.get("efforts") or {},
         "providers": [{"key": p["key"], "name": p["name"], "source": p["source"], "base": p["base"], "protocol": p["protocol"],
                        "preset": p.get("preset"), "models": [m["id"] for m in p["models"]],
                        "hasKey": bool(p["api_key"]) and p["api_key"] not in ("none", "ollama")} for p in provs],
@@ -381,7 +379,7 @@ def landing_page(jobs):
     name = lambda mid: next((m["name"] for m in cat if m["id"] == mid), mid or "")
     boot = {"papers": listed(), "folders": library.folders(), "jobs": jobs.list(), "model": name(chosen) if chosen else "",
             "askName": name(ask) if ask and ask != chosen else "",
-            "bridge": bridges.bridge_status(), "langs": [[code, v[1]] for code, v in langs.LANGS.items()]}
+            "langs": [[code, v[1]] for code, v in langs.LANGS.items()]}
     t = (build.WEB / "app.html").read_text()
     return t.replace("{{HEAD}}", build.fonts_head(build.APP_ASSETS)).replace("{{BOOT}}", json.dumps(boot, ensure_ascii=False).replace("</", "<\\/"))
 
@@ -415,14 +413,12 @@ def make_handler(jobs):
             try:
                 if u.path == "/":
                     return self.send(200, landing_page(jobs), "text/html; charset=utf-8")
-                if u.path == "/api/bridge":
-                    return self.json(bridges.bridge_status(fresh=True))
                 if u.path == "/api/openrouter/minted":   # the app, waiting while the system browser authorises
-                    return self.json({"minted": bool(bridges.minted())})
+                    return self.json({"minted": bool(openrouter.minted())})
                 if u.path == "/oauth/openrouter":   # OpenRouter sends the reader back here with a code
                     code = (parse_qs(u.query).get("code") or [""])[0]
-                    desktop = bridges.for_desktop()
-                    key, err, back = bridges.openrouter_finish(code)
+                    desktop = openrouter.for_desktop()
+                    key, err, back = openrouter.openrouter_finish(code)
                     back = back if back.startswith("/") else "/"
                     to = f"{back}#or-minted" if key else f"{back}#or-failed={quote(err or '')}"
                     if desktop:   # this tab is the system browser's: the app, waiting for the key, takes it from here
@@ -643,14 +639,9 @@ def make_handler(jobs):
                         return self.json({"error": str(e)}, 400)
                     except Exception as e:
                         return self.json({"error": str(e)[:600]}, 500)
-                if u.path == "/api/bridge/start":
-                    try:
-                        return self.json(bridges.bridge_start())
-                    except RuntimeError as e:
-                        return self.json({"error": str(e)}, 400)
                 if u.path == "/api/openrouter/start":
                     callback = f"http://{self.headers.get('Host') or 'localhost:3017'}/oauth/openrouter"
-                    return self.json({"url": bridges.openrouter_start(callback, str(body.get("back") or "/"), bool(body.get("desktop")))})
+                    return self.json({"url": openrouter.openrouter_start(callback, str(body.get("back") or "/"), bool(body.get("desktop")))})
                 if u.path == "/api/papers/delete":
                     pid = str(body.get("paper", ""))
                     if not store.valid_id(pid) or not (store.pdir(pid) / "meta.json").exists():
@@ -699,7 +690,7 @@ def make_handler(jobs):
                     models.update_settings(select_model)
                     return self.json(models_payload())
                 if u.path == "/api/providers/probe":
-                    key = (bridges.minted() if body.get("minted") else None) or body.get("api_key") or \
+                    key = (openrouter.minted() if body.get("minted") else None) or body.get("api_key") or \
                         next((p.get("api_key") for p in s["providers"] if p["key"] == body.get("key")), "")
                     preset = next((p for p in providers.PRESETS + [models.ANTHROPIC_PRESET] if p["id"] == body.get("preset")), None)
                     if (preset or {}).get("id") == "magpie":
@@ -726,7 +717,7 @@ def make_handler(jobs):
                     def save_provider(current):
                         old = next((p for p in current["providers"] if p["key"] == key), {})
                         row = {"key": key, "preset": preset, "name": name, "base": (body.get("base") or "").strip().rstrip("/"),
-                               "api_key": (bridges.take_minted() if body.get("minted") else None) or body.get("api_key") or
+                               "api_key": (openrouter.take_minted() if body.get("minted") else None) or body.get("api_key") or
                                           old.get("api_key") or ("magpie" if preset == "magpie" else ""),
                                "models": [{"id": i} for i in (body.get("models") or [])][:providers.MAX_MODELS]}
                         if preset == "anthropic":
@@ -773,7 +764,7 @@ def make_handler(jobs):
 
 
 def _quiet_children():
-    """Windows: console children (MinerU, npx) start without opening a window of their own."""
+    """Windows: console children (the curl that downloads a MinerU result) start without opening a window."""
     init = subprocess.Popen.__init__
 
     def quiet(self, *a, **kw):

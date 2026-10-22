@@ -7,7 +7,7 @@ import unittest
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from unittest import mock
 
-from textfold import bridges, llm, models, providers
+from textfold import llm, models, providers
 
 
 class Gateway(BaseHTTPRequestHandler):
@@ -132,9 +132,7 @@ class Magpie(unittest.TestCase):
                  "source": "env", "models": [{"id": "local/first", "name": "Collision"}, {"id": "other/model", "name": "Other model"}]}
         with mock.patch.object(providers, "env_providers", return_value=[other]), \
              mock.patch.object(providers, "ui_providers", return_value=[]), \
-             mock.patch.object(providers, "ollama_models", return_value=[]), \
-             mock.patch.object(bridges, "bridge_provider", return_value=None), \
-             mock.patch.object(bridges, "bridge_status", return_value={"running": False}):
+             mock.patch.object(providers, "ollama_models", return_value=[]):
             settings = {"providers": [], "use_thoughtdag_env": False}
             rows = models.provider_list(settings)
             self.assertEqual(rows[0]["key"], "magpie")
@@ -154,9 +152,7 @@ class Magpie(unittest.TestCase):
                   "api_key": "", "models": [{"id": "second/model"}]}
         with mock.patch.object(providers, "env_providers", return_value=[]), \
              mock.patch.object(providers, "ui_providers", wraps=providers.ui_providers), \
-             mock.patch.object(providers, "ollama_models", return_value=[]), \
-             mock.patch.object(bridges, "bridge_provider", return_value=None), \
-             mock.patch.object(bridges, "bridge_status", return_value={"running": False}):
+             mock.patch.object(providers, "ollama_models", return_value=[]):
             rows = models.provider_list({"providers": [manual, second], "use_thoughtdag_env": False})
         self.assertEqual([p["key"] for p in rows].count("magpie"), 1)
         self.assertEqual((rows[0]["name"], rows[0]["base"], rows[0]["api_key"]),
@@ -174,9 +170,7 @@ class Magpie(unittest.TestCase):
         with mock.patch.object(providers, "magpie_models", side_effect=magpie_models) as probe, \
              mock.patch.object(providers, "env_providers", return_value=[other]), \
              mock.patch.object(providers, "ui_providers", return_value=[]), \
-             mock.patch.object(providers, "ollama_models", return_value=[]), \
-             mock.patch.object(bridges, "bridge_provider", return_value=None), \
-             mock.patch.object(bridges, "bridge_status", return_value={"running": False}):
+             mock.patch.object(providers, "ollama_models", return_value=[]):
             settings = {"providers": [], "use_thoughtdag_env": False}
             first = models.provider_list(settings)
             second = models.provider_list(settings)
@@ -195,9 +189,7 @@ class Magpie(unittest.TestCase):
                  "source": "env", "models": [{"id": "other/model", "name": "Other model"}]}
         with mock.patch.object(providers, "env_providers", return_value=[other]), \
              mock.patch.object(providers, "ui_providers", return_value=[]), \
-             mock.patch.object(providers, "ollama_models", return_value=[]), \
-             mock.patch.object(bridges, "bridge_provider", return_value=None), \
-             mock.patch.object(bridges, "bridge_status", return_value={"running": False}):
+             mock.patch.object(providers, "ollama_models", return_value=[]):
             settings = {"providers": [], "use_thoughtdag_env": False}
             rows = models.provider_list(settings)
             self.assertEqual(models.default_model(settings), "other/model")
