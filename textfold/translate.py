@@ -157,7 +157,9 @@ def assemble(u, o, atoms, lang, warn):
 
 def worded(u):
     """A unit with words of its own to translate: not a formula or a citation alone, nor a letter left over from a
-    figure ("D")."""
+    figure ("D"), and not an apparatus unit the ladder folds to nothing (a contents line, a footnote)."""
+    if "lad" in u and not u["lad"].get("brief"):
+        return False
     return len(re.findall(r"\w", "".join(tk.get("t", "") for tk in u["toks"] if "a" not in tk))) > 1
 
 

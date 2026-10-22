@@ -117,6 +117,12 @@ keys `1`–`5` jump to a level, `-`/`=` step, `L` cycles languages, clicking a p
 the reader is still, the screen is laid out at each level ahead of time (in a hidden copy, one level per idle moment),
 and a zoom plays those keyframes; the page takes over again at rest.
 
+A Chinese section's folded levels leave out what is not argument: an apparatus line (a contents line, a footnote)
+exists only at Full, and a background unit whose takeaway stepped down is left out of Brief, Takeaway and Topic
+(`l3`, an empty takeaway) while Key and Full keep it. A sentence a page break cut in half is joined at its first word.
+`ladder.dress` writes those decisions into the layer (`glue`, `l3`), and an English section ends where its sentences
+do, so it shows as before.
+
 Notes: select text anywhere (a paragraph at any level, a section's summary or its title) to highlight it, write a note,
 or ask the model about it (the answer, in the reading language, cites the paragraphs it rests on; a cite opens that
 paragraph to its full text in place). The reader's own notes sit in the left margin, the conversations with the model
@@ -251,8 +257,9 @@ become one bibliography the marks [1] point into. Stored as `papers/wiki-<langua
 the day it was read (`snapshot`, shown under the title and carried into the notes' exports: the article may have changed
 since), under CC BY-SA 4.0.
 
-The model is still told it reads a paper, and the levels are made in English first: a document in another language
-is read with English levels over its own text. Making the levels in the document's language is the next step.
+The model is still told it reads a paper. A document written in Chinese (or Japanese kana) is read with levels in its
+own language, written to character budgets; another language is read with English levels over its own text. Making the
+levels in every document's own language is the next step.
 
 ## PDFs and web pages
 
@@ -363,7 +370,8 @@ textfold/omml.py     Office's formulas (OMML) as LaTeX
 textfold/pdf.py      a paper's original PDF for the side-by-side view (source.pdf)
 textfold/zotero.py   a Zotero library through Zotero Desktop's local API; an item read as a link or a dropped file
 textfold/tokens.py   tokenizer, sentence splitter (English .?! and Chinese 。！？), LCS alignment
-textfold/ladder.py   one model call per section; validation; written words aligned to source words for the morph
+textfold/ladder.py   one model call per section; validation; written words aligned to source words for the morph; a
+                     Chinese document's character budgets, apparatus and background, and the page-break glue
 textfold/links.py    argument links; generation stopped calling it (2026-10), the reader no longer draws stored links
 textfold/translate.py  a language the reader offers: sentence-aligned translation + short levels, one call per section (langs.py: English and Simplified Chinese)
 textfold/store.py    versioned layers per paper; assembling a reader from them
@@ -403,6 +411,10 @@ is dropped when the layer is applied, and the first sentence stands in. A unit w
 takes the older splitter, so its sentence numbers and parts do not move; in a unit with CJK, a closing quote, bracket
 or brace glued to a stop (a run such as `.")` stays with its sentence) and an ASCII stop beside a CJK character also
 end a sentence.
+
+A generated layer may also carry `glue` (the half of a sentence a page break left in the unit before it) and
+`l3: false` (a background unit the section's own line already summarises, kept out of Brief). An older layer has
+neither and is read as it was; a unit with no written levels at all (an apparatus line) has `ev: []` and stays at Full.
 
 Every text file TextFold itself reads or writes names UTF-8, whatever the computer's locale: model replies in
 `llm.py`, layers in `store.write`, notes in `notes.py`, settings in `models.py`, a paper's `source.html` and
