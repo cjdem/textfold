@@ -1,6 +1,6 @@
 // The runtime the app ships, in desktop-mygo/resources/payload:
 //   python/   a standalone CPython (python-build-standalone, the "install_only_stripped" build for the app's system:
-//             64-bit Windows) with TextFold's packages (requirements.txt) installed into it
+//             64-bit Windows) with TextFold's packages (requirements.txt, and the Anthropic SDK) installed into it
 //   app/      the code: textfold/ (its web/ inside)
 // Parts of CPython the server never uses (tkinter and its Tcl/Tk, the test suite, IDLE) are left out: a smaller app.
 //
@@ -65,9 +65,13 @@ rmSync(path.join(payload, 'python.tar.gz'));
 const py = WIN ? path.join(payload, 'python', 'python.exe') : path.join(payload, 'python', 'bin', 'python3');
 const run = (args, opts) => execFileSync(py, args, opts);
 
+// The Anthropic API's SDK too: requirements.txt leaves it to those who want it, but a person who picks the Anthropic
+// API in the app's Settings has no way to run pip there
+const APP_ONLY = ['anthropic>=1.15,<2'];
+
 console.log('installing TextFold\'s packages…');
 run(['-m', 'pip', 'install', '--no-cache-dir', '--disable-pip-version-check', '--no-warn-script-location',
-  '-r', path.join(root, 'requirements.txt')], { stdio: 'inherit', env: { ...process.env, PYTHONNOUSERSITE: '1' } });
+  '-r', path.join(root, 'requirements.txt'), ...APP_ONLY], { stdio: 'inherit', env: { ...process.env, PYTHONNOUSERSITE: '1' } });
 
 // what the server never uses
 const stdlib = WIN ? path.join(payload, 'python', 'Lib')
@@ -91,8 +95,9 @@ mkdirSync(app, { recursive: true });
 for (const d of ['textfold']) {
   cpSync(path.join(root, d), path.join(app, d), { recursive: true, filter: (src) => !src.includes('__pycache__') });
 }
-writeFileSync(path.join(app, 'requirements.txt'), '# installed into ../python\n');
+writeFileSync(path.join(app, 'requirements.txt'), "# installed into ../python: TextFold's packages and the Anthropic SDK\n");
 
-// a quick check that the runtime imports what the server needs (trafilatura: web pages and HTML files)
-run(['-s', '-c', 'import bs4, lxml, PIL, trafilatura, mammoth, openpyxl, pypdfium2, textfold.server; print("payload ok")'], { cwd: app, stdio: 'inherit' });
+// a quick check that the runtime imports what the server needs (trafilatura: web pages and HTML files; anthropic:
+// the Anthropic API its Settings offer)
+run(['-s', '-c', 'import bs4, lxml, PIL, trafilatura, mammoth, openpyxl, pypdfium2, anthropic, textfold.server; print("payload ok")'], { cwd: app, stdio: 'inherit' });
 if (!existsSync(path.join(app, 'textfold', 'web', 'reader.js'))) throw new Error('web/ missing from the payload');

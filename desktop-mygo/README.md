@@ -27,15 +27,18 @@ Set `TEXTFOLD_DATA` for a disposable test library. It defaults to
 
 ## Payload and build
 
-The packaged app needs a standalone CPython and TextFold's packages:
+The packaged app needs a standalone CPython, TextFold's packages and the
+Anthropic API's SDK:
 
 ```powershell
 node scripts/prepare-payload.mjs
 go tool mygo build
 ```
 
-`prepare-payload.mjs` writes `resources/payload/{python,app}`. The MyGo build
-output is under `build/`.
+`prepare-payload.mjs` writes `resources/payload/{python,app}`. The SDK is
+installed into the payload even though `requirements.txt` leaves it optional:
+the Settings offer the Anthropic API, and an installed app has no way to run
+pip. The MyGo build output is under `build/`.
 If GitHub's API is unreachable, pass a downloaded python-build-standalone
 archive and its published digest:
 
