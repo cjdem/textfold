@@ -61,7 +61,7 @@
 | R7 | 完成 | optimize | EPUB 章节先解码再解析 | `13d7794` | 无 | 小 |
 | R8 | 完成 | optimize | 翻译漏段重试（只取 `d457cfa` 的翻译部分） | `d457cfa` | 无 | 中 |
 | R9 | 完成 | optimize | 应用 payload 带 Anthropic SDK | `f260244` | 无 | 小 |
-| R10 | 待做 | feature | 多文件导入：逐文件队列，不用 MinerU batch | `523e5f4` | R1–R9 | 中 |
+| R10 | 进行中 | feature | 多文件导入：逐文件队列，不用 MinerU batch | `523e5f4` | R1–R9 | 中 |
 | R11 | 待做 | feature | 可配置 MinerU v4 base URL，默认官方 | fork-specific | R10 后或并行 | 小 |
 | R12 | 待做 | feature | self-hosted V1 adapter（条件项） | fork-specific | R11；仅确有自部署时 | 大 |
 | R13 | 待做 | feature | 中文 Brief 句子切分 | `770fb08` | R4/R5 之后 | 中 |
