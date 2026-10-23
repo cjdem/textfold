@@ -2033,6 +2033,7 @@
   // a question note is a conversation about its passage: every turn asked there, and a field to ask the next
   const turnsOf = (n) => n.thread || (n.ask ? [n.ask] : []);
   function openNote(n, draft = false, back = '') {   // back: a question stopped, in the field again to be put right
+    if (popNote && popNote.id !== n.id) closeNote();   // (a note opened over another keeps the first one's words, draft or not)
     if (whole(n.anchor) && n.kind === 'ask') { openChat(n, back); return; }   // a conversation about the whole paper lives in the chat
     const was = popNote && popNote.id === n.id && npop.querySelector('.np-input'), typed = was ? was.value : '';   // (drawn again: what is written stays)
     popNote = n; popDraft = draft;
@@ -2073,9 +2074,12 @@
   function closeNote() {
     if (!popNote) return;
     const field = npop.querySelector('.np-text');
-    if (popDraft) {   // (a draft let go with no words: not kept; one the debounce saved a moment ago is taken out again)
+    if (popDraft) {   // (words typed and let go before the debounce are kept; no words: not kept, even one the timer saved empty)
       clearTimeout(saveTimer);
-      if ((!field || !field.value.trim()) && notes.some((x) => x.id === popNote.id)) deleteNote({ ...popNote, text: '' });
+      const v = field ? field.value : '';
+      if (v.trim()) {
+        if (v !== (popNote.text || '')) saveNote({ ...popNote, text: v });
+      } else if (notes.some((x) => x.id === popNote.id)) deleteNote({ ...popNote, text: '' });
     } else if (field && field.value !== (popNote.text || '')) { clearTimeout(saveTimer); saveNote({ ...popNote, text: field.value }); }
     popNote = null;
     if (npop.contains(document.activeElement)) document.activeElement.blur();   // the keys go back to the page
