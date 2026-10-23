@@ -293,7 +293,9 @@ class Jobs:
                 job["next"] = self.submit(job["pid"], job["lang"] or "en", False)["id"]   # its levels, in the other queue
                 job.update(status="done", finished=time.time())
             except Exception as e:
-                if job["kind"] == "convert":   # what MinerU wrote before it failed
+                # (a lost connection keeps its out/: the batch and the stage there are what the next import resumes;
+                # what MinerU wrote before a refusal is thrown away)
+                if job["kind"] == "convert" and not isinstance(e, engine.Resumable):
                     shutil.rmtree(store.DATA / "uploads" / f"{job['pid']}-{job['tier']}", ignore_errors=True)
                 self._end(job, e, stop)
 

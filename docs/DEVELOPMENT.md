@@ -362,6 +362,16 @@ change opens from its stored result. The document leaves this computer for conve
 page or the file, heading depth from numbering, a figure's panels grouped under the caption that names it, figures from
 after the references put before them, short front matter dropped.
 
+A conversion keeps `_mineru.json` in its output folder: the batch's id, whether the file reached it, the pass (1, or
+the OCR pass 2) and the stage. A lost connection is retried on the same batch — the polls, the signed upload and the
+download have their own tries, and a stop ends the job — and an attempt that still cannot reach the service raises
+`engine.Resumable`; the conversion queue keeps its output folder then, where a refusal removes it. Importing the same
+file again — or converting it again — continues that batch, because a document's id is the hash of its bytes and its
+upload and output folders are named after it. The file is sent again only when the API no longer has the task (-60012),
+when it reports the batch has no file (-60011), when the signed upload URL refuses it, or when the batch still has no
+file after a lost upload. The state holds no key and no signed URL, and a file whose bytes changed starts from the
+beginning.
+
 Other files take the same entry (`POST /api/files`, `take_file`; `doc-<file hash>`, the file kept as `original.<ext>`).
 New imports of RTF, OpenDocument (.odt, .ods, .odp) and old Office files (.doc, .ppt, .xls) are refused with
 `legacy-format`, in the server and before the picker offers them. Those kinds stay in `engine.FILES` so a document
