@@ -277,6 +277,19 @@ Links: argument links (supports / builds on / qualifies / explains) were written
 paragraphs, so a regenerated English layer drops the links instead of carrying them over. Author cross-references come
 from the parser and stay: hovering a reference previews its target; clicking jumps there and a Back pill returns.
 
+## Releases
+
+One version is stated in three files: `textfold/__init__.py`'s `__version__`, `desktop-mygo/mygo.json`'s `version`
+and `site/strings.py`'s `VERSION`. `tests/test_site_deploy.py` holds them together, and `desktop-mygo/main_test.go`
+holds the first two. A release also carries its notes in `docs/releases/v<version>.md`; `tests/test_release.py` holds
+that file to the current version and the workflow to it.
+
+Commit the version and the notes, push `main`, then tag `v<version>` and push that tag alone. Never `git push --tags`:
+this clone also holds upstream's `v0.10.8`–`v0.10.22`, and every `v*` tag starts the desktop workflow. The tag build
+runs the Python suite, prepares the payload, builds the app and its signed update files, and publishes the release
+with the notes file as its body; the website follows that run. A tag build needs `MYGO_UPDATER_PRIVATE_KEY`; without
+it the run stops before a draft. A failed build is retried by dispatching `desktop` on the tag, not by moving the tag.
+
 ## Other sources: one parser, through semantic HTML
 
 arXiv's LaTeXML page is read by `parse.py`. Every other source is first written as plain semantic HTML (headings,

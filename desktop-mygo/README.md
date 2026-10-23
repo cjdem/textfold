@@ -55,7 +55,9 @@ after launch and every four hours. A newer signed release shows as a note at
 the bottom right of the page; nothing downloads until the reader asks, and the
 new version starts when they restart. The installed copy sits in
 `%LOCALAPPDATA%\Programs\TextFold`, which the current user can write, so it
-updates itself without administrator rights.
+updates itself without administrator rights. The release notes are
+`docs/releases/v<version>.md`: the tag build publishes that file as the release
+body, and the note's link opens that release.
 
 The public key is in `mygo.json`; the secret key is **not** in the repository.
 `go tool mygo keygen` wrote this machine's pair to

@@ -4,6 +4,8 @@
 # A version tag builds it into a draft release; run by hand (Actions › desktop › Run workflow) it is kept as the
 # run's artifacts. The release carries the signed MyGo update manifest and archive the installed app updates from;
 # the old Electron latest.yml is not compatible, so a copy installed before the MyGo switch needs one manual install.
+# The draft's body is docs/releases/<tag>.md (a release without one stops before the draft), and the Python suite runs
+# before the app is built.
 # A tag build needs the MYGO_UPDATER_PRIVATE_KEY secret; without it the release stops before a draft is made.
 name: desktop
 on:
@@ -27,6 +29,10 @@ jobs:
           if [[ "$GITHUB_REF" == refs/tags/* ]]; then
             test "${GITHUB_REF_NAME#v}" = "$code" || { echo "tag $GITHUB_REF_NAME, code $code"; exit 1; }
           fi
+      - name: The release has notes of its own
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: bash
+        run: test -s "docs/releases/${GITHUB_REF_NAME}.md" || { echo "no release notes for ${GITHUB_REF_NAME}"; exit 1; }
       - name: A release needs the update signing key
         if: startsWith(github.ref, 'refs/tags/')
         shell: bash
@@ -37,7 +43,9 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         run: |
           gh release view "$TAG" -R "$REPO" >/dev/null 2>&1 || \
-            gh release create "$TAG" -R "$REPO" --draft --title "TextFold ${TAG#v}" --notes "Building the app."
+            gh release create "$TAG" -R "$REPO" --draft --title "TextFold ${TAG#v}" \
+              --notes-file "docs/releases/$TAG.md"
+          gh release edit "$TAG" -R "$REPO" --notes-file "docs/releases/$TAG.md"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ github.ref_name }}
@@ -65,6 +73,10 @@ jobs:
         run: node desktop-mygo/scripts/prepare-payload.mjs
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}   # the payload script asks GitHub for the newest CPython build
+      - name: Python tests
+        run: desktop-mygo/resources/payload/python/python.exe -m unittest discover tests
+        env:
+          TEXTFOLD_NO_MODELS: "1"
       - name: Go shell tests
         working-directory: desktop-mygo
         run: |
