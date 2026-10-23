@@ -190,6 +190,29 @@ open(done, "w").close()
         self.assertFalse(store.pdir(pid).exists())   # (no folder recreated behind the trash)
         self.assertTrue((moved / "layers" / "en.json").exists())
 
+    def test_two_processes_saving_a_layer_leave_one_complete_layer_with_its_fingerprints(self):
+        pid = "md-layer-race-0002"
+        self._paper(pid)
+        script = f'''
+import os, sys, time
+from textfold import store
+{START}
+hold("read")
+tag = sys.argv[2]
+doc = {{"meta": {{"id": "{pid}"}}, "atoms": {{}},
+       "units": {{"u0": {{"id": "u0", "toks": [{{"t": tag}}], "sents": [[0, 1]],
+                          "lad": {{"brief": [{{"t": tag}}], "ev": [0], "tn": 1}}}}}},
+       "chunks": [], "edges": []}}
+store.save_en(doc, tag)
+'''
+        results = self._two(script, ["a", "b"])
+        for code, _, err in results:
+            self.assertEqual(code, 0, err)
+        en = store.read(pid, "en")
+        self.assertIn(en["model"], {"a", "b"})
+        self.assertEqual(en["h"], {"u0": store.unit_hash({"toks": [{"t": en["model"]}]})})   # (one writer's, whole)
+        self.assertEqual(en["units"]["u0"]["brief"], [{"t": en["model"]}])
+
 
 class Conversion(Base):
     """A re-converted PDF snapshots the reader's notes and card, rebuilds the folder, and copies them back. The notes'

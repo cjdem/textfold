@@ -59,6 +59,10 @@ checker can compare the two.
 - `levels_made`: when they were written. `made_with`: the program and its version.
 - `local`: no model has written the levels yet; the written levels are the author's first sentence, cut to length
   (in a Chinese document, the unit's claim sentence; `ai_generated` is then false).
+- `stale` (only when true): the base's stored levels were made from an earlier parse of the text. A unit whose words
+  no longer match is read from the author's first sentences, so the written levels may then be part model-written and
+  part local; regenerating replaces them. (A translation built on an older base is reported by the reader's language
+  menu, not by this key.)
 
 ## A section
 

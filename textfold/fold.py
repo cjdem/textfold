@@ -59,6 +59,16 @@ def document(pid, lang="en"):
     en = store.read(pid, "en")
     tr = store.read(pid, f"tr-{lang}") if lang != "en" else None
     written_by = (tr or en or {}).get("model") or ""
+    stale = "en" in (meta.get("stale") or ())   # (the base fell back to local levels: some written ones are the author's)
+    provenance = {
+        "made_with": f"TextFold {__version__}", "exported": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        # the written levels: a language model's (EU AI Act, art. 50(2): marked as generated, machine-readably)
+        "ai_generated": bool(written_by), "model": written_by,
+        "levels_made": (tr or en or {}).get("version", ""),
+        "local": not en,   # no model has written its levels yet: the written ones are the author's first sentences
+    }
+    if stale:   # (some units are the author's first sentences, not the model's: see docs/format.md)
+        provenance["stale"] = True
     return {
         "format": "textfold/doc", "version": 0, "id": pid, "lang": lang if (lang == "en" or tr) else "en",
         "title": (meta.get("titles") or {}).get(lang) or meta.get("title", ""), "authors": meta.get("authors", []),
@@ -68,13 +78,7 @@ def document(pid, lang="en"):
                    "label": meta.get("label") or (f"arXiv:{pid}{meta.get('version') or ''}" if store.ARXIV_ID.fullmatch(pid) else ""),
                    "license": meta.get("license", "")},
         "levels": LEVELS, "written": [lv for lv in LEVELS if WRITTEN[lv]],
-        "provenance": {
-            "made_with": f"TextFold {__version__}", "exported": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-            # the written levels: a language model's (EU AI Act, art. 50(2): marked as generated, machine-readably)
-            "ai_generated": bool(written_by), "model": written_by,
-            "levels_made": (tr or en or {}).get("version", ""),
-            "local": not en,   # no model has written its levels yet: the written ones are the author's first sentences
-        },
+        "provenance": provenance,
         "sections": [section(doc, c, lang) for c in doc["chunks"]],
         "links": [{"from": e["f"], "to": e["t"], "rel": e["rel"]} for e in doc.get("edges", []) if e.get("tk") == "unit"],
     }
@@ -103,6 +107,10 @@ def markdown(d, level="topic", which=None):
     who = d["provenance"]["model"] or "the author's first sentences (no model yet)"
     out += [f"*Level: {level}. " + (f"Written by {who}; each line rests on the sentences marked in the full text.*" if WRITTEN[level]
                                     else "The author's own words.*"), ""]
+    if d["provenance"].get("stale"):
+        out += ["*The stored levels were made from an earlier parse of the text and may no longer match it; a "
+                "paragraph that could not be matched may be read from the author's first sentences. Regenerate to "
+                "replace them.*", ""]
     sections = [_pick(d["sections"], which)] if which else d["sections"]
     for s in sections:
         head = f"{s['num']} {s['title']}".strip() or "(untitled)"

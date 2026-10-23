@@ -498,6 +498,13 @@ before the document gate may carry `l3: false`, which nothing reads now (a stepp
 instead). A unit with no written levels at all (an apparatus
 line) has `ev: []` and stays at Full.
 
+A layer also keeps `h`, a fingerprint of each unit: its words and the atoms it names (an atom's id and visible text).
+A unit is keyed by id, and a parser change can leave the same id naming a different part (the mixed paragraph above)
+or renumber its atoms, so `apply_en` reads a unit whose fingerprint no longer matches with its local levels, and the
+reader reports the base stale; a translation of that base is reported stale too. A layer written before `h` is
+trusted only when its unit ids are exactly this parse's; a different set means some id may have moved, so its units
+are read local and the layer is stale. Regenerating replaces the layer and clears it.
+
 Every text file TextFold itself reads or writes names UTF-8, whatever the computer's locale: model replies in
 `llm.py`, layers in `store.write`, notes in `notes.py`, settings in `models.py`, a paper's `source.html` and
 `meta.json`, the library, the Zotero index and the reader's web assets. Its own files are read through

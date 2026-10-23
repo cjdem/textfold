@@ -9,8 +9,10 @@
 A model samples differently on every run, so the same paper does not come out the same twice.
 The layers are what makes a paper read the same every time it is opened: a reader is assembled
 from them without any model call, and "regenerate" replaces one layer with a new version.
-A translation whose English base has since been regenerated is reported as stale.
+A translation whose English base has since been regenerated is reported as stale, and a layer whose units no longer
+match the parse is reported stale and read with local levels rather than another paragraph's.
 """
+import hashlib
 import json
 import locale
 import os
@@ -270,10 +272,30 @@ def stamp():
     return time.strftime("%Y-%m-%dT%H:%M:%S")
 
 
+def unit_hash(u, atoms=None):
+    """A unit as the fingerprint a layer keeps of it: its words and the atoms it names (an id and its visible text).
+    A layer is keyed by unit id, and an id names the same paragraph only while the parse gives it the same tokens; a
+    stored ladder also names atoms by id, so a renumbered atom has to count as a different unit even when its words
+    read the same (a mixed Chinese/English paragraph can move every later id; a parser change renumbers atoms)."""
+    atoms = atoms or {}
+    parts = []
+    for tk in u.get("toks") or []:
+        if "a" in tk:
+            at = atoms.get(tk["a"]) or {}
+            parts.append(f"a{tk['a']}:{at.get('alt') or at.get('text') or ''}")
+        elif "x" in tk:
+            parts.append(f"x:{tk['x']}")
+        else:
+            parts.append(tk.get("t") or "")
+    return hashlib.sha1("\x1f".join(parts).encode("utf-8")).hexdigest()[:16]
+
+
 def save_en(doc, model):
+    atoms = doc.get("atoms") or {}
     write(doc["meta"]["id"], "en", {
         "version": stamp(), "model": model,
         "units": {uid: u["lad"] for uid, u in doc["units"].items() if "lad" in u},
+        "h": {uid: unit_hash(u, atoms) for uid, u in doc["units"].items() if "lad" in u},
         "chunks": {c["id"]: c.get("lad") for c in doc["chunks"]},
         "edges": [e for e in doc["edges"] if e["rel"] != "ref"],
     })
@@ -290,20 +312,34 @@ def save_tr(doc, lang, base, model):
 
 def apply_en(doc, en):
     """The stored English ladder on the parse as it is now. Evidence is a sentence number; a parser change can leave
-    one past the end of a shorter part, so it is dropped, and the first sentence stands in when none is left."""
+    one past the end of a shorter part, so it is dropped, and the first sentence stands in when none is left. The
+    layer also keeps each unit's fingerprint (`h`, its words and the atoms it names): a unit that no longer matches
+    is read with its own local levels instead of another paragraph's takeaway. A layer saved before fingerprints is
+    trusted only when its unit ids are exactly this parse's. Returns whether the stored ladder was used whole; the
+    caller reports it stale when not."""
     cjk = ladder.cjk_doc(doc)
+    atoms = doc.get("atoms") or {}
+    stored = en.get("units") or {}
+    hashes = en.get("h") if isinstance(en.get("h"), dict) else None
+    whole = hashes is not None or set(stored) == set(doc["units"])   # (an old layer's ids are all there is to check)
+    used = set(stored) == set(doc["units"])   # (save_en writes every unit, so a different set is a different parse)
     for uid, u in doc["units"].items():
-        lad = en["units"].get(uid)
-        if isinstance(lad, dict) and lad:
+        lad = stored.get(uid)
+        same = (isinstance(lad, dict) and lad and whole
+                and (hashes is None or hashes.get(uid) == unit_hash(u, atoms)))
+        if same:
             ev = [s for s in lad.get("ev") or [] if isinstance(s, int) and 0 <= s < len(u["sents"])]
             u["lad"] = lad if ev == lad.get("ev") else {**lad, "ev": ev or [0]}
         else:
-            u["lad"] = ladder.local(u, doc["atoms"], cjk)
+            u["lad"] = ladder.local(u, atoms, cjk)
+            if uid in stored:
+                used = False
     for c in doc["chunks"]:
         c["lad"] = en["chunks"].get(c["id"])
     have = {(e["f"], e["t"]) for e in en["edges"]}
     doc["edges"] = [e for e in doc["edges"] if (e["f"], e["t"]) not in have] + [
         e for e in en["edges"] if e["f"] in doc["units"] and (e["tk"] != "unit" or e["t"] in doc["units"])]
+    return used
 
 
 _KANA_HANGUL = re.compile(
@@ -384,10 +420,13 @@ def assemble(pid, only=None):
     cjk = ladder.cjk_doc(doc)
     if cjk:   # the reader's CJK rules (an English paper's page carries nothing new)
         meta["cjk"] = True
+    whole = True
     if en:
-        apply_en(doc, en)
+        whole = apply_en(doc, en)
         meta["langs"].append("en")
         meta["versions"]["en"] = en["version"]
+        if not whole:   # (a unit the layer's words no longer match: read local, and the layer is out of date)
+            meta["stale"].append("en")
     else:
         for u in doc["units"].values():
             u["lad"] = ladder.local(u, doc["atoms"], cjk)
@@ -398,7 +437,7 @@ def assemble(pid, only=None):
         apply_tr(doc, lang, tr, view=True)   # (for the reader and exports; the pipeline attaches without the view)
         meta["langs"].append(lang)
         meta["versions"][lang] = tr["version"]
-        if not en or tr.get("base") != en["version"]:
+        if not en or not whole or tr.get("base") != en["version"]:   # (a translation of a base that no longer fits)
             meta["stale"].append(lang)
         else:   # paragraphs it has no translation for (a call that failed): asked for when it is generated again
             from .translate import gaps   # (translate imports ladder and llm, which read through this module)
