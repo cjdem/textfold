@@ -165,8 +165,10 @@ paragraph to its full text in place). The reader's own notes sit in the left mar
 in the right. Full and Brief show whole cards, Key shows them compact, and Takeaway and Topic show only a
 mark, with the notes on hover. Highlights zoom with the words. `#n=<note id>` opens the reader at a note. A note of the
 reader's own can be on the whole text, not a passage (the notes menu's **New note**): it sits by the paper's title, is
-shown at every level, and opens beside the head; it has no quote and no Ask beside it, since the chat is where the whole
-paper is asked about.
+shown at every level, and opens beside the head; at Topic it sits under the title, in the column, so a narrow window
+or a docked sidebar cannot push it off screen (the Topic map is drawn over the page, so the note is under it while the
+map is shown). It has no quote and no Ask beside it, since the chat is where the whole paper is asked about, and the
+chat never treats it as a conversation.
 
 What the model is given for a question (`textfold/notes.py`, `prompt`): the title, the abstract and a line per section
 (with where the reader is); the level they read at and whose words it shows (at Key and below, a warning that the

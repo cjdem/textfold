@@ -232,6 +232,8 @@ html[data-font="sans"] { --text: var(--sans); }
 .paper-head .orig { color: var(--muted); font-size: calc(15px * var(--fs)); font-style: italic; margin: -4px 0 8px; font-family: var(--text); }
 .doc[data-level="0"] .paper-head { margin: 8px 0 18px; }
 .doc[data-level="0"] .paper-head h1 { font-size: calc(22px * var(--fs)); }
+/* the whole text's notes: at Topic they sit under the title, in the column, so a narrow window cannot push them off it */
+.doc[data-level="0"] .paper-head > .lside { position: static; width: min(420px, 100%); max-width: 100%; margin-top: 6px; }
 .doc[data-level="1"] .paper-head h1, .doc[data-level="2"] .paper-head h1 { font-size: calc(28px * var(--fs)); }
 
 .chunk { position: relative; transition: background-color .35s, border-color .35s, box-shadow .35s, padding .35s; border: 1px solid transparent; border-radius: 12px; }

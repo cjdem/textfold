@@ -2174,13 +2174,14 @@
   // a question goes to the model with the turns before it; the note keeps the question at once, the answer fills it in.
   // Stopped (its words wrong, say), the turns before it are as they were and the question is in the field again.
   const asking = new Map();   // a note's id -> the question under way: {req, ctl, q, before}
+  const stopping = new Set();   // a question whose stop is on its way: no new question until it is put back
   async function askNote(n, q) {
     if (!D.app) {   // a page made to share has no model behind it: the question stays on screen, with how to ask for real
       const shown = { ...n, kind: 'ask', thread: [...turnsOf(n).filter((x) => x.a || x.demo), { q, demo: true }] };
       if (whole(n.anchor)) { chatNote = shown; openChat(shown); } else openNote(shown, true);
       return;
     }
-    if (asking.has(n.id)) return;
+    if (asking.has(n.id) || stopping.has(n.id)) return;
     const done = turnsOf(n).filter((x) => x.a), qlang = (turnsOf(n).find((x) => x.lang) || {}).lang || lang;
     const note = { ...n, kind: 'ask', thread: [...done, { q, a: '', pending: true, lang: qlang }] };
     delete note.ask;
@@ -2202,23 +2203,29 @@
     if (chatNote && chatNote.id === answered.id) openChat(answered);
   }
 
-  function stopAsk(n) {
+  async function stopAsk(n) {
     const a = asking.get(n.id);
-    if (!a) return;
-    asking.delete(n.id);
+    if (!a || stopping.has(n.id)) return;
+    stopping.add(n.id);
     a.ctl.abort();
-    post('/api/ask/stop', { req: a.req }).catch(() => {});
+    try { await post('/api/ask/stop', { req: a.req }); } catch { /* the note below still wins */ }
+    stopping.delete(n.id);
     const field = whole(n.anchor) ? chat.querySelector('.ch-input') : npop.querySelector('.np-input');
     const back = field && field.value.trim() ? field.value : a.q;
-    // the conversation as it was before the question; a first question, stopped, leaves no note (only the field again)
-    const was = a.before && turnsOf(a.before).filter((x) => x.a).length ? { ...a.before, thread: turnsOf(a.before).filter((x) => x.a) } : null;
-    if (was) { delete was.ask; saveNote(was); } else deleteNote(n);
+    // the conversation as it was before the question; a first question, stopped, leaves no note (only the field again).
+    // A note that became a question (an older whole-text note, or a passage note's Ask) is put back as it was.
+    const before = a.before;
+    const was = before && before.kind === 'ask' && turnsOf(before).filter((x) => x.a).length ? { ...before, thread: turnsOf(before).filter((x) => x.a) } : null;
+    if (was) { delete was.ask; saveNote(was); }
+    else if (before && before.kind === 'note') saveNote(before);
+    else if (before && before.text) saveNote({ ...before, kind: 'note', thread: [] });
+    else deleteNote(n);
     const fresh = was || { id: noteId(), kind: 'ask', anchor: n.anchor, text: '', thread: [] };
     if (whole(n.anchor)) { chatNote = was; openChat(was, back); } else openNote(fresh, !was, back);
   }
   // a turn out of its conversation (not while a question is under way there): the note without it, or none
   function deleteTurn(n, k) {
-    if (asking.has(n.id) || !confirm(T[ui].n_turn_del_q)) return;
+    if (asking.has(n.id) || stopping.has(n.id) || !confirm(T[ui].n_turn_del_q)) return;
     const thread = turnsOf(n).filter((x, i) => i !== k && !x.pending);
     if (!thread.length) {
       deleteNote(n);
@@ -2240,8 +2247,9 @@
   document.body.append(chatBtn, chat);
   function chatLabel() { chatBtn.innerHTML = `<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 4.5h12a1.5 1.5 0 0 1 1.5 1.5v6.5A1.5 1.5 0 0 1 16 14H9l-3.5 3v-3H4a1.5 1.5 0 0 1-1.5-1.5V6A1.5 1.5 0 0 1 4 4.5z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>${esc(T[ui].n_chat)}`; }
   chatLabel();
-  const latestChat = () => notes.filter((x) => x.anchor && whole(x.anchor)).sort((x, y) => (y.updated || '').localeCompare(x.updated || ''))[0] || null;
+  const latestChat = () => notes.filter((x) => x.kind === 'ask' && x.anchor && whole(x.anchor)).sort((x, y) => (y.updated || '').localeCompare(x.updated || ''))[0] || null;
   function openChat(n, back = '') {
+    if (n && n.kind !== 'ask') n = null;   // (a note on the whole text is not a conversation)
     const t = T[ui], keep = !chat.hidden && chat.querySelector('.ch-input');
     const draft = back || (keep ? keep.value : '');
     chatNote = n;
@@ -2259,7 +2267,11 @@
     field.setSelectionRange(field.value.length, field.value.length);
   }
   function closeChat() { chat.hidden = true; chatBtn.classList.remove('on'); if (chat.contains(document.activeElement)) document.activeElement.blur(); }
-  chatBtn.addEventListener('click', () => { if (!chat.hidden) closeChat(); else openChat(chatNote && notes.some((x) => x.id === chatNote.id) ? notes.find((x) => x.id === chatNote.id) : latestChat()); });
+  chatBtn.addEventListener('click', () => {
+    if (!chat.hidden) { closeChat(); return; }
+    const last = chatNote && notes.find((x) => x.id === chatNote.id);
+    openChat(last && last.kind === 'ask' ? last : latestChat());
+  });
   chat.addEventListener('click', (e) => {
     const b = e.target.closest('button');
     if (!b) return;
@@ -2273,9 +2285,9 @@
   });
   function chatSend(field) {
     const q = field.value.trim();
-    if (!q || (chatNote && asking.has(chatNote.id))) return;
+    if (!q || (chatNote && (asking.has(chatNote.id) || stopping.has(chatNote.id)))) return;
     field.value = '';
-    const n = chatNote || { id: noteId(), kind: 'ask', text: '', thread: [],
+    const n = chatNote && chatNote.kind === 'ask' ? chatNote : { id: noteId(), kind: 'ask', text: '', thread: [],
       anchor: { unit: null, section: null, on: 'paper', lang, level, tokens: null, sents: null, quote: { exact: '' } } };
     chatNote = n;
     askNote(n, q);
@@ -2289,7 +2301,7 @@
   // the field's words sent (not while the answer before is still being written: they wait in the field)
   function sendPop() {
     const f = npop.querySelector('.np-input'), q = f && f.value.trim();
-    if (!q || !popNote || asking.has(popNote.id)) return;
+    if (!q || !popNote || asking.has(popNote.id) || stopping.has(popNote.id)) return;
     f.value = '';
     askNote(popNote, q);
   }
