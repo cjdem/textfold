@@ -306,10 +306,42 @@ def apply_en(doc, en):
         e for e in en["edges"] if e["f"] in doc["units"] and (e["tk"] != "unit" or e["t"] in doc["units"])]
 
 
-def apply_tr(doc, lang, tr):
+_KANA_HANGUL = re.compile(
+    r"[぀-ヿㇰ-ㇿｦ-ﾟ"   # (U+3040-30FF, U+31F0-31FF, U+FF66-FF9F: kana, the ranges tokens.CJK counts)
+    r"ᄀ-ᇿ㄰-㆏가-힯ﾠ-ￜ]")   # (U+1100-11FF, U+3130-318F, U+AC00-D7AF, U+FFA0-FFDC: hangul jamo and syllables)
+
+
+def _translation_view(u, lang):
+    """What the text gives a translated unit: the page-break join the base carries, and a takeaway that stepped down
+    (`tn: 0`). Both describe where the text was cut and how far the section folds, not the language it is read in, so
+    the reader takes them from the unit's own language layer; the join is the base's words, and is copied only into a
+    Chinese translation when the join itself has no kana or hangul (a Japanese or Korean tail prepended to Chinese
+    would be another language's sentence). The test is the tail's characters, not the text's language, so a Chinese
+    tail that quotes a Japanese word loses its join — rarer than a Japanese tail reaching Chinese. Called when a
+    document is read for the reader, never while a layer is being saved."""
+    z = (u.get("tr") or {}).get(lang)
+    lad = z.get("lad") if isinstance(z, dict) else None
+    if not isinstance(lad, dict):
+        return
+    base = u.get("lad") or {}
+    glue = base.get("glue")
+    if glue and not lad.get("glue") and lang == "zh" and not _KANA_HANGUL.search(glue):
+        lad["glue"] = glue
+    if base.get("tn") == 0:
+        lad["tn"] = 0
+
+
+def apply_tr(doc, lang, tr, view=False):
+    """A translation layer on the parse. view: also give each translated unit what the text gives it
+    (`_translation_view`) — for the reader and exports; a generation attaches layers without it, because it saves them
+    back and must not write another layer's fields into the file."""
     for uid, z in tr["units"].items():
-        if uid in doc["units"]:
-            doc["units"][uid].setdefault("tr", {})[lang] = z
+        u = doc["units"].get(uid)
+        if u is None:
+            continue
+        u.setdefault("tr", {})[lang] = z
+        if view:
+            _translation_view(u, lang)
     for c in doc["chunks"]:
         if c["id"] in tr["chunks"]:
             c.setdefault("tr", {})[lang] = tr["chunks"][c["id"]]
@@ -363,7 +395,7 @@ def assemble(pid, only=None):
         if only is not None and lang not in only:
             continue
         tr = read(pid, f"tr-{lang}")
-        apply_tr(doc, lang, tr)
+        apply_tr(doc, lang, tr, view=True)   # (for the reader and exports; the pipeline attaches without the view)
         meta["langs"].append(lang)
         meta["versions"][lang] = tr["version"]
         if not en or tr.get("base") != en["version"]:

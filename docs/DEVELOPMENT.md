@@ -155,7 +155,11 @@ A Chinese document's folded levels leave out what is not argument: an apparatus 
 exists only at Full, and a background unit whose takeaway stepped down is read at Brief and Key but not at Takeaway or
 Topic. A sentence a page break cut in half is joined at its first word. `ladder.dress` writes the join into the layer
 (`glue`); the page is marked `meta.cjk` and only such a page takes these rules, so an English section ends where its
-sentences do and shows as before.
+sentences do and shows as before. A translation is read with the base layer's `glue` and with `tn: 0` where the base's
+takeaway stepped down (`store.assemble`): the step-down belongs to the section, and the join is the base's words, so
+it is copied only into a Chinese translation, and only when the join itself has no kana or hangul (every written form:
+halfwidth, the phonetic extensions, hangul jamo). The view is made when a document is read; a generation attaches
+layers without it, so nothing of the base is written into `tr-<lang>.json`.
 
 At Topic, a section with sections under it heads a row of their cards (`parent`, `top` for the shallowest, `newrow` for
 a section that follows a deeper one), and the choice beside the zoom bar switches Topic between those cards and a map
@@ -488,8 +492,10 @@ end a sentence; a number and its stop at the head of a CJK sentence (`1.研究�
 before that guard can have an ordinal that still fits a shorter sentence list and now points at another sentence.
 
 A generated layer may also carry `glue` (the half of a sentence a page break left in the unit before it). An older
-layer has no `glue` and is read as it was; a layer from before the document gate may carry `l3: false`, which nothing
-reads now (a stepped-down unit has an empty takeaway instead). A unit with no written levels at all (an apparatus
+layer has no `glue` and is read as it was; a translation is shown with the base's `glue` and with `tn: 0` when the
+base's takeaway stepped down, made when the document is read and not written into the translation's file. A layer from
+before the document gate may carry `l3: false`, which nothing reads now (a stepped-down unit has an empty takeaway
+instead). A unit with no written levels at all (an apparatus
 line) has `ev: []` and stays at Full.
 
 Every text file TextFold itself reads or writes names UTF-8, whatever the computer's locale: model replies in
