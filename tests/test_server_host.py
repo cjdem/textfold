@@ -42,6 +42,19 @@ class Names(unittest.TestCase):
             self.assertFalse(server.addressed_here(host), host)
 
 
+class Origins(unittest.TestCase):
+    def test_this_servers_own_page(self):
+        for origin in ("http://127.0.0.1:3017", "http://localhost:3017", "http://[::1]:3017"):
+            self.assertTrue(server.same_origin(origin, 3017), origin)
+
+    def test_any_other_page(self):
+        for origin in ("http://127.0.0.1:3018", "http://localhost:9999", "http://evangelist.example:3017",
+                       "http://127.0.0.2:3017", "https://127.0.0.1:3017", "http://evil@127.0.0.1:3017",
+                       "http://@127.0.0.1:3017", "http://:@127.0.0.1:3017", "http://localhost.:3017", "null",
+                       "file:///x", "http://localhost:abc", "", None):
+            self.assertFalse(server.same_origin(origin, 3017), origin)
+
+
 class Rebinding(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -102,6 +115,16 @@ class Rebinding(unittest.TestCase):
         self.assertEqual([p["id"] for p in json.loads(self.ask("GET", "/api/papers", local)[1])], [self.pid])
         self.assertEqual(self.ask("GET", "/api/jobs", local)[1], b"[]")
         self.assertEqual(self.ask("GET", "/api/openrouter/minted", local)[1], b'{"minted": false}')
+
+    def test_a_page_on_another_local_port_may_not_write(self):
+        local = f"127.0.0.1:{self.port}"
+        body = {"pdf_tier": "fast"}
+        status, _ = self.ask("POST", "/api/settings", local, body, origin=f"http://127.0.0.1:{self.port + 1}")
+        self.assertEqual(status, 403)
+        status, _ = self.ask("POST", "/api/settings", local, body, origin=f"http://localhost:{self.port}")
+        self.assertEqual(status, 200)   # (this server's own page, under the other local name)
+        status, _ = self.ask("POST", "/api/settings", local, body)   # (no Origin: a command line or a native client)
+        self.assertEqual(status, 200)
 
     def test_this_computer_reads_as_before(self):
         for host in (f"127.0.0.1:{self.port}", f"localhost:{self.port}", f"[::1]:{self.port}"):

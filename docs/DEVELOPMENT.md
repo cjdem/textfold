@@ -81,7 +81,11 @@ CLI runtimes.
 - **API providers** include environment and `.env` keys for Zhipu, Qwen, OpenAI, Anthropic, Google, DeepSeek, Kimi and
   OpenRouter, plus Ollama and Magpie as local API gateways. Other services can be added in Settings from presets or as
   custom OpenAI-compatible endpoints. Provider model lists are fetched from `/models`; keys added in Settings stay in
-  `~/.textfold/settings.json` (mode 600), outside the project folder.
+  `~/.textfold/settings.json` (mode 600), outside the project folder. A key the server holds is used only for the
+  address it was saved with: a probe or a save that would move a saved key, or the minted OpenRouter key, to another
+  base is refused, while a key typed in the request may be tested against any address. A page on another localhost
+  port cannot drive a writing POST (when it carries an Origin, its port must be the server's; a request with no Origin
+  is a command line or a native client). The OpenRouter return is a GET and is outside that rule.
 - **Thinking, per task** is selected by the reader's task settings: `models.DEFAULT_THINKING` sets levels and takeaways
   off, translation off, questions low, and reading cards low. API providers use supported fields: the Claude API's
   thinking and effort by model; OpenAI-compatible APIs use provider-specific fields such as `reasoning`, `thinking`,

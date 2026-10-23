@@ -12,7 +12,8 @@
   GET  /api/models            every API model this computer can reach
   POST /api/models/select     {model, effort}: the model generations use; {task: "ask", model, effort}: the one questions
                               are answered with (none: the same) and its reasoning level (none: the default)
-  POST /api/providers/probe   {base, api_key | key, preset}: a provider's /models
+  POST /api/providers/probe   {base, api_key | key, preset}: a provider's /models. A key the server keeps (a saved
+                              provider's, or a minted OpenRouter one) goes only to the address it was saved with
   POST /api/providers/save    {key?, preset, name, base, api_key?, models}  ·  POST /api/providers/remove {key}
   POST /api/settings          {use_thoughtdag_env, pdf_tier, mineru_api_key, mineru_api_url}: one change; the models
                               after it (mineru_api_url: a v4-compatible base; empty restores the official one)
@@ -439,6 +440,54 @@ def addressed_here(host):
     return bool(m) and m.group(1) in LOCAL_NAMES
 
 
+def same_origin(origin, port):
+    """Whether a write's Origin is this server's own page: the local name it was opened under, and the server's port.
+    A page on another localhost port is another site to a browser, and must not drive this server (a saved provider
+    key must not be sendable by any local page). A request with no Origin is a command line or a native client, not a
+    page; the routes that matter still refuse it a key from another address."""
+    if not origin:
+        return False
+    u = urlparse(origin)
+    if u.scheme != "http" or "@" in u.netloc or (u.hostname or "").casefold() not in ("localhost", "127.0.0.1", "::1"):
+        return False   # (a browser's Origin has no userinfo; one that does is not a page of this server)
+    try:
+        origin_port = u.port or 80
+    except ValueError:   # a malformed port
+        return False
+    return origin_port == port
+
+
+OPENROUTER_BASE = next(p["base"] for p in providers.PRESETS if p["id"] == "openrouter")
+KEY_ADDRESS = "a key the server keeps is only sent to the address it was kept for"
+
+
+def _secret(key):
+    """A key worth keeping from another address: a placeholder a local or keyless provider carries is not one."""
+    return bool(key) and key not in ("none", "ollama", "magpie")
+
+
+def _same_base(a, b):
+    return (a or "").strip().rstrip("/").casefold() == (b or "").strip().rstrip("/").casefold()
+
+
+def probe_key(settings, body, base):
+    """The key a probe may use, and None: the request's own key; else a key the server keeps — a minted OpenRouter
+    key for OpenRouter, a saved provider's key for that provider's saved address. A page must not be able to make the
+    server hand a saved key to another host."""
+    if body.get("minted"):
+        key = openrouter.minted()
+        if key:
+            return (key, None) if _same_base(base, OPENROUTER_BASE) else (None, KEY_ADDRESS)
+    typed = body.get("api_key")
+    if isinstance(typed, str) and typed:
+        return typed, None
+    held = next((p for p in settings.get("providers") or [] if p.get("key") == body.get("key")), None) or {}
+    key = held.get("api_key") or ""
+    if _secret(key) and not _same_base(base, held.get("base")):
+        return None, KEY_ADDRESS
+    return key, None
+
+
 def make_handler(jobs):
     class Handler(BaseHTTPRequestHandler):
         def send(self, code, body, ctype="application/json; charset=utf-8", cache="no-store"):
@@ -571,8 +620,8 @@ def make_handler(jobs):
                 return self.json({"error": "misdirected"}, 421)
             u = urlparse(self.path)
             origin = self.headers.get("Origin")
-            if origin and urlparse(origin).hostname not in ("localhost", "127.0.0.1"):
-                return self.json({"error": "forbidden"}, 403)  # another site may not drive this server
+            if origin and not same_origin(origin, self.server.server_address[1]):
+                return self.json({"error": "forbidden"}, 403)  # another site — or another local port — may not drive it
             try:
                 size = int(self.headers.get("Content-Length") or 0)
                 m = re.fullmatch(r"/api/pdf/([\w.-]+)", u.path)
@@ -775,16 +824,18 @@ def make_handler(jobs):
                     models.update_settings(select_model)
                     return self.json(models_payload())
                 if u.path == "/api/providers/probe":
-                    key = (openrouter.minted() if body.get("minted") else None) or body.get("api_key") or \
-                        next((p.get("api_key") for p in s["providers"] if p["key"] == body.get("key")), "")
                     preset = next((p for p in providers.PRESETS + [models.ANTHROPIC_PRESET] if p["id"] == body.get("preset")), None)
-                    if (preset or {}).get("id") == "magpie":
-                        key = "magpie"
+                    base = str(body.get("base") or "").strip()
                     if preset and preset.get("fixed"):  # MiniMax and Anthropic have no /models a key can list
                         found = [{"id": i} for i in preset["fixed"]]
                     else:
+                        key, refused = probe_key(s, body, base)
+                        if refused:
+                            return self.json({"error": refused}, 400)
+                        if (preset or {}).get("id") == "magpie":
+                            key = "magpie"
                         try:
-                            found = providers.probe(body.get("base", ""), key)
+                            found = providers.probe(base, key)
                         except Exception as e:
                             return self.json({"error": str(e)}, 400)
                     for rid in (preset or {}).get("recommend", []):  # recommended ids the probe left out
@@ -799,16 +850,26 @@ def make_handler(jobs):
                     known = providers.PRESETS + [models.ANTHROPIC_PRESET]
                     name = (body.get("name") or "").strip() or next((p["name"] for p in known if p["id"] == preset), "") or "Custom"
                     key = "magpie" if preset == "magpie" else body.get("key") or re.sub(r"[^a-z0-9]+", "-", f"{preset}-{name}".lower()).strip("-")
+                    base = (body.get("base") or "").strip().rstrip("/")
+                    typed = body.get("api_key") if isinstance(body.get("api_key"), str) else ""
+                    minted = bool(body.get("minted")) and bool(openrouter.minted())
+                    if minted and not _same_base(base, OPENROUTER_BASE):
+                        return self.json({"error": KEY_ADDRESS}, 400)
                     def save_provider(current):
                         old = next((p for p in current["providers"] if p["key"] == key), {})
-                        row = {"key": key, "preset": preset, "name": name, "base": (body.get("base") or "").strip().rstrip("/"),
-                               "api_key": (openrouter.take_minted() if body.get("minted") else None) or body.get("api_key") or
+                        if not minted and not typed and _secret(old.get("api_key")) and not _same_base(base, old.get("base")):
+                            raise ValueError(KEY_ADDRESS)   # (a saved key does not move to another host)
+                        row = {"key": key, "preset": preset, "name": name, "base": base,
+                               "api_key": (openrouter.take_minted() if minted else None) or typed or
                                           old.get("api_key") or ("magpie" if preset == "magpie" else ""),
                                "models": [{"id": i} for i in (body.get("models") or [])][:providers.MAX_MODELS]}
                         if preset == "anthropic":
                             row["protocol"] = "anthropic"
                         current["providers"] = ([p for p in current["providers"] if p["key"] != key] + [row])[-providers.MAX_PROVIDERS:]
-                    models.update_settings(save_provider)
+                    try:
+                        models.update_settings(save_provider)
+                    except ValueError as e:
+                        return self.json({"error": str(e)}, 400)
                     return self.json(models_payload())
                 if u.path == "/api/providers/remove":
                     models.update_settings(lambda current: current.update(

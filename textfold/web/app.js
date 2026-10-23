@@ -1749,8 +1749,10 @@
       q('.pf-save').onclick = async () => {
         keep();
         const picked = [...dlg.querySelectorAll('.st-pick input:checked')].map((i) => i.value);
-        const d = await api('/api/providers/save', { key: form.key, preset: form.preset, name: form.name, base: form.base, api_key: form.api_key, models: picked, minted: !!form.minted });
-        form = null; update(d);
+        try {
+          const d = await api('/api/providers/save', { key: form.key, preset: form.preset, name: form.name, base: form.base, api_key: form.api_key, models: picked, minted: !!form.minted });
+          form = null; update(d);
+        } catch (x) { const e2 = q('.pf-err'); if (e2) e2.textContent = x.message; }   // (a refused key/address says so)
       };
     }
     async function fetchModels() {
