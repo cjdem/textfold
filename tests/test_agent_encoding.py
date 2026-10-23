@@ -153,6 +153,8 @@ class Saved(unittest.TestCase):
         store.DATA = Path(__import__("tempfile").mkdtemp())
         try:
             data = {"version": "t", "model": "m", "translation": {"units": {"u1": "한국어 ⟦a1⟧"}}}
+            store.pdir("web-ko").mkdir(parents=True)
+            (store.pdir("web-ko") / "meta.json").write_text('{"title": "x"}', encoding="utf-8")
             store.write("web-ko", "ko", data)
             self.assertEqual(store.read("web-ko", "ko"), data)
             notes._file("web-ko").parent.mkdir(parents=True, exist_ok=True)

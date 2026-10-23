@@ -10,6 +10,7 @@ import hashlib
 import json
 import re
 import shutil
+import tempfile
 import urllib.parse
 import urllib.request
 from pathlib import Path
@@ -118,13 +119,19 @@ def import_text(text, name="document.md", base=None):
     return store_doc(pid, html, meta, "source.md", text, lambda folder: Images(folder, base).resolve, sizes=True)
 
 
-def store_doc(pid, html, meta, raw_name, raw, resolver, sizes=False):
+def store_doc(pid, html, meta, raw_name, raw, resolver, sizes=False, lock=True):
     """A document's semantic HTML stored as a paper: normalized (with its images, through resolver(img folder)) into
-    papers/<pid>/, written whole or not at all. A paper already stored stays as it is."""
+    papers/<pid>/, written whole or not at all. A paper already stored stays as it is. The write holds the papers lock
+    (a trash, an Undo or a re-conversion in another process cannot cross it); a re-conversion that already holds it
+    passes lock=False."""
+    if lock:
+        with store.file_lock("papers", wait=60):
+            return store_doc(pid, html, meta, raw_name, raw, resolver, sizes, lock=False)
     d = store.pdir(pid)
     if (d / "meta.json").exists() and (d / "source.html").exists():
         return pid
-    tmp = d.with_name(d.name + ".tmp")
+    d.parent.mkdir(parents=True, exist_ok=True)   # (papers/, not the document's folder: that one this call may create)
+    tmp = Path(tempfile.mkdtemp(prefix=d.name + ".", suffix=".tmp", dir=d.parent))   # (a folder of its own: two writers never share one)
     shutil.rmtree(tmp, ignore_errors=True)
     tmp.mkdir(parents=True)
     try:

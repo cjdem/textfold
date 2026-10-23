@@ -553,7 +553,7 @@ class ConvertedPdf(unittest.TestCase):
         from textfold import engine, local, pdfdoc
         d = store.pdir(self.pid)
 
-        def store_doc(pid, html, meta, raw_name, raw, resolver, sizes=False):
+        def store_doc(pid, html, meta, raw_name, raw, resolver, sizes=False, lock=True):
             shutil.rmtree(d)   # (local.store_doc writes the document whole)
             d.mkdir(parents=True)
             (d / "meta.json").write_text(json.dumps(meta), encoding="utf-8")
@@ -579,7 +579,7 @@ class ConvertedPdf(unittest.TestCase):
         base = cards.read(self.pid)
         entered, release, errors = threading.Event(), threading.Event(), []
 
-        def store_doc(pid, html, meta, raw_name, raw, resolver, sizes=False):
+        def store_doc(pid, html, meta, raw_name, raw, resolver, sizes=False, lock=True):
             entered.set()
             release.wait(5)
             shutil.rmtree(d)   # (local.store_doc writes the document whole)

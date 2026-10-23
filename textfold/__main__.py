@@ -81,6 +81,11 @@ def get(a):
         if "No model" not in str(e):
             raise
         _say("No API model: the written levels are the author's first sentences (connect one in Settings).")
+    except ValueError as e:   # (a delete in the other process took the folder while this command was reading it)
+        if str(e) != "no-document":
+            raise
+        _say("The document is no longer there: it was deleted while this command was reading it.")
+        return 1
     d = fold.document(pid, a.lang)
     if a.json:
         import json
@@ -157,8 +162,14 @@ def main():
     ref = local.import_file(a.paper) if Path(a.paper).suffix.lower() in local.KINDS and Path(a.paper).is_file() else a.paper
     pid = None
     for lang in ["en"] + a.lang:
-        pid = pipeline.generate(ref, lang, spec, force=a.force, jobs=a.jobs, log=print,
-                                progress=lambda s, d, t: print(f"  {s} {d}/{t}", end="\r"))
+        try:
+            pid = pipeline.generate(ref, lang, spec, force=a.force, jobs=a.jobs, log=print,
+                                    progress=lambda s, d, t: print(f"  {s} {d}/{t}", end="\r"))
+        except ValueError as e:   # (a delete in the other process took the folder while this command was reading it)
+            if str(e) != "no-document":
+                raise
+            _say("The document is no longer there: it was deleted while this command was reading it.")
+            sys.exit(1)
     print(f"\n  → {build.export(pid)}  ({time.time() - t0:.0f}s)")
 
 

@@ -426,8 +426,11 @@ def store_pdf(pid, folder, sc, name, tier, replace=False):
     with ExitStack() as held:
         if replace:
             held.enter_context(cards._LOCK)
+            held.enter_context(store.file_lock("papers", wait=60))   # (a trash in another process waits for the rebuild)
             held.enter_context(store.file_lock("notes", wait=60))
             held.enter_context(store.file_lock("cards", wait=60))
+            if not (d / "meta.json").exists():
+                raise ValueError("no-document")   # (trashed before the conversion got here: do not recreate it)
         if replace and d.exists():
             shutil.rmtree(keep, ignore_errors=True)
             keep.mkdir(parents=True)
@@ -437,7 +440,8 @@ def store_pdf(pid, folder, sc, name, tier, replace=False):
             if (d / "source.html").exists():
                 (d / "source.html").unlink()   # so that store_doc writes the document again
         try:
-            local.store_doc(pid, html, meta, "source.md", text, lambda f: local.Images(f, Path(folder)).resolve, sizes=True)
+            local.store_doc(pid, html, meta, "source.md", text, lambda f: local.Images(f, Path(folder)).resolve, sizes=True,
+                            lock=not replace)   # (a replacing conversion holds the papers lock already)
             from . import zotero
             zotero.apply(pid)   # read from a Zotero item's file: the item's own title, authors and citekey
             # ASCII-escaped, as MinerU's own zip is: pdfdoc reads these files as UTF-8 (place, read_output)

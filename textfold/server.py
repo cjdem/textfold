@@ -243,7 +243,11 @@ class Jobs:
             data = r.read(pdf.LIMIT + 1)
         if data[:5] != b"%PDF-" or len(data) > pdf.LIMIT:
             raise ValueError("not-pdf")
-        shutil.rmtree(store.pdir(job["pid"]), ignore_errors=True)   # (only its address was there)
+        with store.LOCK:   # (only its address was there: never a document that arrived meanwhile)
+            with store.file_lock("papers", wait=60):
+                d = store.pdir(job["pid"])
+                if not (d / "meta.json").exists():
+                    shutil.rmtree(d, ignore_errors=True)
         pid = pdfdoc.pid_of(data)
         name = Path(urllib.parse.urlparse(url).path).name or "document.pdf"
         f = store.DATA / "uploads" / f"{pid}.pdf"

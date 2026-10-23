@@ -25,6 +25,8 @@ class Offered(unittest.TestCase):
         old = store.DATA
         try:
             store.DATA = Path(tempfile.mkdtemp())
+            store.pdir("web-x").mkdir(parents=True)
+            (store.pdir("web-x") / "meta.json").write_text('{"title": "x"}', encoding="utf-8")
             for lang in ("zh", "ja", "de"):
                 store.write("web-x", f"tr-{lang}", {"version": "v", "base": "b"})
             self.assertEqual(store.languages("web-x"), ["zh"])

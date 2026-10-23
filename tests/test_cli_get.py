@@ -4,6 +4,7 @@ Run from the repo root:
     python -m unittest discover tests
 """
 import argparse
+import sys
 import unittest
 from unittest import mock
 
@@ -41,6 +42,25 @@ class Get(unittest.TestCase):
         resolve, generate = self.run_get("openrouter/free", no_generate=True)
         resolve.assert_not_called()
         self.assertIsNone(generate.call_args.args[2])
+
+    def test_a_document_deleted_while_reading_it_says_so(self):
+        with mock.patch.object(models, "load_settings", return_value={}), \
+             mock.patch.object(models, "resolve", return_value=None), \
+             mock.patch.object(store, "resolve", return_value="2512.24601"), \
+             mock.patch.object(pipeline, "generate", side_effect=ValueError("no-document")), \
+             mock.patch.object(cli, "_say") as say:
+            self.assertEqual(cli.get(args()), 1)   # (a sentence, not a traceback)
+        self.assertTrue(any("deleted" in call.args[0] for call in say.call_args_list))
+
+    def test_the_generate_command_says_so_when_the_document_is_deleted(self):
+        with mock.patch.object(sys, "argv", ["textfold", "2512.24601"]), \
+             mock.patch.object(models, "resolve", return_value={"id": "magpie/auto"}), \
+             mock.patch.object(pipeline, "generate", side_effect=ValueError("no-document")), \
+             mock.patch.object(cli, "_say") as say:
+            with self.assertRaises(SystemExit) as raised:
+                cli.main()
+        self.assertEqual(raised.exception.code, 1)   # (a sentence, not a traceback)
+        self.assertTrue(any("deleted" in call.args[0] for call in say.call_args_list))
 
 
 if __name__ == "__main__":

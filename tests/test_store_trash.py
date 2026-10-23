@@ -8,6 +8,7 @@ import json
 import shutil
 import tempfile
 import threading
+import time
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -65,6 +66,53 @@ class Trash(unittest.TestCase):
             pdf.keep(PID, b"%PDF-1.4\n")   # (the folder is gone: the write fails rather than making a ghost)
         self.assertFalse(store.pdir(PID).exists())
         self.assertIsNotNone(store.untrash(PID))   # (the Undo still finds the folder: no ghost is in the way)
+
+    def test_a_layer_saved_after_the_folder_moved_to_the_trash_does_not_recreate_it(self):
+        store.trash(PID)
+        doc = {"meta": {"id": PID}, "units": {}, "chunks": [], "edges": []}
+        with self.assertRaises(ValueError):
+            store.save_en(doc, "a model")   # (a save does not make the folder again)
+        self.assertFalse(store.pdir(PID).exists())
+        self.assertIsNotNone(store.untrash(PID))   # (the Undo still finds the folder: no ghost is in the way)
+
+    def test_a_layer_save_and_the_move_to_the_trash_do_not_cross(self):
+        entered, release, moved, errors = threading.Event(), threading.Event(), [], []
+        orig = store.write_text_atomic
+
+        def slow(f, text):
+            if Path(f).name == "en.json":
+                entered.set()
+                release.wait(5)
+            orig(f, text)
+
+        doc = {"meta": {"id": PID}, "units": {}, "chunks": [], "edges": []}
+
+        def save():
+            try:
+                store.save_en(doc, "a model")
+            except Exception as e:   # the test reports the thread's failure
+                errors.append(e)
+
+        def trash_it():
+            try:
+                moved.append(store.trash(PID))
+            except Exception as e:
+                errors.append(e)
+
+        with mock.patch.object(store, "write_text_atomic", side_effect=slow):
+            saver = threading.Thread(target=save)
+            saver.start()
+            self.assertTrue(entered.wait(5))
+            deleter = threading.Thread(target=trash_it)
+            deleter.start()   # (waits on the lock the save holds)
+            time.sleep(0.3)
+            self.assertTrue(store.pdir(PID).exists())   # (the folder has not moved under the save)
+            release.set()
+            saver.join(10)
+            deleter.join(10)
+        self.assertFalse(errors, errors)
+        self.assertFalse(store.pdir(PID).exists())
+        self.assertTrue((moved[0] / "layers" / "en.json").exists())   # (the layer went with the folder)
 
     def test_restoring_what_is_not_there(self):
         self.assertIsNone(store.untrash(PID))   # (never deleted)

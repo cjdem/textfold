@@ -155,6 +155,42 @@ zotero.link("users/0", tag, "md-zot-item-" + tag, "T" + tag)
         self.assertTrue((self.data / "zotero.lock").exists())
 
 
+class LayerSave(Base):
+    """A generation's layer write and a trash in the other process share the papers lock, so the save finishes before
+    the folder moves and the layer travels with it; neither side leaves a folder behind."""
+
+    def test_a_layer_save_and_a_trash_in_another_process_do_not_cross(self):
+        pid = "md-layer-race-0001"
+        self._paper(pid)
+        writing, done = self.data / "child.writing", self.data / "child.done"
+        script = f'''
+import os, sys, time
+from textfold import store
+writing, done = sys.argv[1], sys.argv[2]
+orig = store._file
+def slow(pid, name):
+    open(writing, "w").close()
+    time.sleep(0.6)   # (the window a trash in the other process must not enter)
+    return orig(pid, name)
+store._file = slow
+store.save_en({{"meta": {{"id": "{pid}"}}, "units": {{}}, "chunks": [], "edges": []}}, "a model")
+open(done, "w").close()
+'''
+        flags = subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0
+        child = subprocess.Popen([sys.executable, "-c", script, str(writing), str(done)], env=self._env(),
+                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding="utf-8",
+                                 creationflags=flags)
+        end = time.monotonic() + 5
+        while time.monotonic() < end and not writing.exists():
+            time.sleep(0.02)
+        self.assertTrue(writing.exists(), "the child never reached its layer write")
+        moved = store.trash(pid)   # (waits for the save's lock, then moves the folder with the layer)
+        out, err = child.communicate(timeout=60)
+        self.assertEqual(child.returncode, 0, err)
+        self.assertFalse(store.pdir(pid).exists())   # (no folder recreated behind the trash)
+        self.assertTrue((moved / "layers" / "en.json").exists())
+
+
 class Conversion(Base):
     """A re-converted PDF snapshots the reader's notes and card, rebuilds the folder, and copies them back. The notes'
     and card's locks are held for that whole window: the saving process reaches its save, and the save has not landed
@@ -177,7 +213,7 @@ class Conversion(Base):
         d = store.pdir(self.PID)
         entered, release, errors = threading.Event(), threading.Event(), []
 
-        def store_doc(pid, html, meta, raw_name, raw, resolver, sizes=False):
+        def store_doc(pid, html, meta, raw_name, raw, resolver, sizes=False, lock=True):
             entered.set()
             release.wait(10)
             shutil.rmtree(d)   # (local.store_doc writes the document whole)
@@ -203,9 +239,11 @@ class Conversion(Base):
             except Exception as e:   # the test reports the thread's failure
                 errors.append(e)
 
-        thread = threading.Thread(target=convert)
+        thread = threading.Thread(target=convert, daemon=True)
         thread.start()
-        self.assertTrue(entered.wait(10))
+        self.addCleanup(thread.join, 20)
+        self.addCleanup(release.set)   # (a failed assertion must not leave the conversion holding the locks for the next test)
+        self.assertTrue(entered.wait(10), errors)
         return thread, release, errors
 
     def _convert(self, child_script, landed_now):
@@ -233,11 +271,11 @@ class Conversion(Base):
         self.assertFalse(errors, errors)
         return finished, landed, child.returncode, out, err
 
-    def test_a_reconversion_holds_the_notes_and_cards_locks(self):
+    def test_a_reconversion_holds_the_papers_notes_and_cards_locks(self):
         self._pdf()
         thread, release, errors = self._held_conversion()
         try:
-            for name in ("notes", "cards"):   # (a second handle cannot take the byte the conversion holds)
+            for name in ("papers", "notes", "cards"):   # (a second handle cannot take the byte the conversion holds)
                 with self.assertRaises(OSError, msg=name):
                     with store.file_lock(name, wait=0.05):
                         pass
@@ -245,9 +283,68 @@ class Conversion(Base):
             release.set()
             thread.join(20)
         self.assertFalse(errors, errors)
-        for name in ("notes", "cards"):   # (free again once the conversion is done)
+        for name in ("papers", "notes", "cards"):   # (free again once the conversion is done)
             with store.file_lock(name, wait=0.05):
                 pass
+
+    def test_a_trash_in_another_process_waits_for_a_reconversion(self):
+        self._pdf()
+        thread, release, errors = self._held_conversion()
+        ready = self.data / "trash.ready"
+        flags = subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0
+        child = subprocess.Popen([sys.executable, "-c", f'''
+import os, sys
+from textfold import store
+ready = sys.argv[1]
+open(ready, "w").close()
+store.trash("{self.PID}")
+open(ready + ".done", "w").close()
+''', str(ready)], env=self._env(), stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding="utf-8",
+                                 creationflags=flags)
+        end = time.monotonic() + 5
+        while time.monotonic() < end and not ready.exists():
+            time.sleep(0.02)
+        done = Path(f"{ready}.done")
+        end = time.monotonic() + 1.5
+        while time.monotonic() < end and not done.exists():
+            time.sleep(0.02)
+        self.assertFalse(done.exists(), "the trash returned while the conversion held the folder")
+        release.set()
+        thread.join(20)
+        out, err = child.communicate(timeout=60)
+        self.assertFalse(errors, errors)
+        self.assertEqual(child.returncode, 0, err)
+        self.assertFalse(store.pdir(self.PID).exists())   # (no folder recreated behind the trash)
+        trashed = sorted((store.DATA / "papers" / ".trash").glob(f"{self.PID}-*"))
+        self.assertEqual(len(trashed), 1)
+        self.assertTrue((trashed[0] / "source.html").exists())
+
+    def test_a_reconversion_of_a_trashed_document_does_not_recreate_it(self):
+        from textfold import engine, local, pdfdoc
+        self._pdf()
+        store.trash(self.PID)
+        called = []
+
+        def store_doc(pid, html, meta, raw_name, raw, resolver, sizes=False, lock=True):
+            called.append(True)   # (an unlocked conversion gets here and makes the folder again)
+            d = store.pdir(self.PID)
+            d.mkdir(parents=True, exist_ok=True)
+            (d / "meta.json").write_text(json.dumps(meta), encoding="utf-8")
+
+        folder = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, folder)
+        with mock.patch.object(pdfdoc, "to_markdown", return_value=("New text.", ["A"], "")), \
+             mock.patch.object(pdfdoc, "cut_figures", return_value={}), \
+             mock.patch.object(pdfdoc.markdown, "to_html", return_value=("<article></article>", [])), \
+             mock.patch.object(pdfdoc, "layout_of", return_value=[]), \
+             mock.patch.object(pdfdoc, "source_of", return_value=None), \
+             mock.patch.object(local, "store_doc", side_effect=store_doc), \
+             mock.patch.object(engine, "kind_of", return_value="pdf"), \
+             mock.patch.object(engine, "tier_for", return_value="fast"):
+            with self.assertRaises(ValueError):
+                pdfdoc.store_pdf(self.PID, Path(folder), {}, "x.pdf", "fast", replace=True)
+        self.assertFalse(called)
+        self.assertFalse(store.pdir(self.PID).exists())
 
     def test_a_note_saved_during_a_reconversion_is_kept(self):
         self._pdf()

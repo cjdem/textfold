@@ -254,11 +254,16 @@ def read(pid, name):
 
 
 def write(pid, name, data):
-    f = _file(pid, name)
-    f.parent.mkdir(parents=True, exist_ok=True)
-    # ASCII-escaped, UTF-8: a layer holds any language the reader offers, and Korean or Hindi are not in GBK at all
-    # (the system's encoding on a Chinese Windows), where ensure_ascii=False failed the save after the model answered
-    write_text_atomic(f, json.dumps(data))
+    with LOCK:   # (a layer save and the folder's move to the trash cannot cross)
+        with file_lock("papers", wait=60):   # (a trash, an Undo or a re-conversion in another process either side)
+            if not (pdir(pid) / "meta.json").exists():
+                raise ValueError("no-document")   # (a save does not recreate a document that moved to the trash)
+            f = _file(pid, name)
+            f.parent.mkdir(parents=True, exist_ok=True)   # (the layers folder, inside the document that exists)
+            # ASCII-escaped, UTF-8: a layer holds any language the reader offers, and Korean or Hindi are not in GBK
+            # at all (the system's encoding on a Chinese Windows), where ensure_ascii=False failed the save after the
+            # model answered
+            write_text_atomic(f, json.dumps(data))
 
 
 def stamp():
@@ -405,21 +410,22 @@ def trash(pid, kept=None):
     to = DATA / "papers" / ".trash" / f"{pid}-{time.strftime('%Y%m%d-%H%M%S')}"
     tmp = None
     with LOCK:   # a card save and the move of the folder it writes into cannot cross
-        to.parent.mkdir(parents=True, exist_ok=True)
-        if kept:
-            tmp = DATA / "papers" / f".{pid}-place.tmp"
-            write_text_atomic(tmp, json.dumps(kept))   # (ASCII-escaped: the reader's file, plain)
-        try:
-            pdir(pid).rename(to)
-        except OSError:
-            if tmp:
-                tmp.unlink(missing_ok=True)
-            raise
-        if tmp:
+        with file_lock("papers", wait=60):   # (a re-conversion in another process finishes before its folder moves)
+            to.parent.mkdir(parents=True, exist_ok=True)
+            if kept:
+                tmp = DATA / "papers" / f".{pid}-place.tmp"
+                write_text_atomic(tmp, json.dumps(kept))   # (ASCII-escaped: the reader's file, plain)
             try:
-                tmp.replace(to / "library.json")
+                pdir(pid).rename(to)
             except OSError:
-                tmp.unlink(missing_ok=True)
+                if tmp:
+                    tmp.unlink(missing_ok=True)
+                raise
+            if tmp:
+                try:
+                    tmp.replace(to / "library.json")
+                except OSError:
+                    tmp.unlink(missing_ok=True)
     return to
 
 
@@ -433,19 +439,20 @@ def untrash(pid, use=None):
         return None
     at = re.compile(re.escape(pid) + r"-\d{8}-\d{6}")
     with LOCK:   # (a restore and a delete of the same folder cannot cross; the place is read before the move)
-        if pdir(pid).exists():
-            return None
-        gone = sorted(d for d in (DATA / "papers" / ".trash").glob(f"{pid}-*") if at.fullmatch(d.name) and (d / "meta.json").exists())
-        if not gone:
-            return None
-        kept_f = gone[-1] / "library.json"
-        try:
-            kept = json.loads(read_text(kept_f)) if kept_f.exists() else {}
-        except (OSError, ValueError):
-            kept = {}
-        kept = kept if isinstance(kept, dict) else {}
-        gone[-1].rename(pdir(pid))
-        if use:
-            use(kept)
-        (pdir(pid) / "library.json").unlink(missing_ok=True)
+        with file_lock("papers", wait=60):   # (nor does it cross a re-conversion in another process)
+            if pdir(pid).exists():
+                return None
+            gone = sorted(d for d in (DATA / "papers" / ".trash").glob(f"{pid}-*") if at.fullmatch(d.name) and (d / "meta.json").exists())
+            if not gone:
+                return None
+            kept_f = gone[-1] / "library.json"
+            try:
+                kept = json.loads(read_text(kept_f)) if kept_f.exists() else {}
+            except (OSError, ValueError):
+                kept = {}
+            kept = kept if isinstance(kept, dict) else {}
+            gone[-1].rename(pdir(pid))
+            if use:
+                use(kept)
+            (pdir(pid) / "library.json").unlink(missing_ok=True)
     return kept

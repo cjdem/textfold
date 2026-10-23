@@ -518,19 +518,24 @@ their mixture. Every read-modify-write of the reader's own files — the library
 index — is serialized across processes by a lock byte in a lock file in the data folder (`library.lock`, `notes.lock`,
 `cards.lock`, `zotero.lock`; the files stay, and the OS releases the byte when a process ends), so one process's save
 cannot drop another's folder or name, note, card edit or Zotero link. The lock files stay out of `papers/`, whose
-folders move to the trash. A re-conversion of a PDF holds the notes' and card's locks for its whole document write — it
-snapshots those files, rebuilds the folder and copies them back — so a save made during it waits for the rebuilt
-document and lands in it rather than being overwritten by the snapshot's copy. The move to the trash itself is
-serialized within one process (the server holds `store.LOCK` while the library forgets the document and the folder
-moves); a save crossing it from another process either travels with the folder or fails loudly, the library's
-forget-and-move is not atomic against another process's library write, and a trash or an Undo in another process is
-not serialized against a re-conversion. A `library.json` that cannot be trusted is neither read as an empty library
-nor saved over: not JSON at all, a top level that is not an object, or a `folders`, `of`, `names`, `added` or `opened`
-field that is not the container the library writes.
+folders move to the trash. A re-conversion of a PDF holds the `papers` lock and the notes' and card's locks for its
+whole document write — it snapshots those files, rebuilds the folder and copies them back — so a save made during it
+waits for the rebuilt document and lands in it rather than being overwritten by the snapshot's copy, and a trash or an
+Undo in another process waits for the rebuild, as does a layer save or an import (`local.store_doc`) — the last writes
+into a temporary folder of its own (`tempfile.mkdtemp`), never a fixed name two writers share. The `papers` lock is
+one file for all documents: a conversion or a slow import of any document makes another document's trash, Undo, layer
+save or import wait up to 60 s and then fail, and a layer save waits while holding `store.LOCK`, so card saves and the
+trash in that process wait behind it too. The move to the trash is serialized within one process (the server holds
+`store.LOCK` while the library forgets the document and the folder moves) and, across processes, by the same `papers`
+lock; a save crossing it either travels with the folder or fails loudly, and the library's forget-and-move is still
+not atomic against another process's library write. A `library.json` that cannot be trusted is neither read as an
+empty library nor saved over: not JSON at all, a top level that is not an object, or a `folders`, `of`, `names`,
+`added` or `opened` field that is not the container the library writes.
 Its bytes are copied to `library.json.corrupt-<time>` and the read fails (`library.LibraryError`, answered as a 500
 carrying its message). A bad row inside a good list or object is dropped instead (a folder entry without a name, a date
 that is not a date). An empty file is an empty library; a file in neither encoding still fails with
 `UnicodeDecodeError`, as it did, and is not copied. A card save also names the revision it was composed against
-(`rev`), so a save that lost a race is refused rather than written over a newer card. A note, a card or a PDF does not
-create the document's folder as it is written: a save that crosses the move to the trash fails instead of leaving a
-ghost folder that keeps the Undo from finding the trashed one.
+(`rev`), so a save that lost a race is refused rather than written over a newer card. A note, a card, a PDF or a layer
+does not create the document's folder as it is written: a save that crosses the move to the trash fails instead of
+leaving a ghost folder that keeps the Undo from finding the trashed one, and a re-conversion of a document already in
+the trash fails rather than making the folder again.
