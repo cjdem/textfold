@@ -12,7 +12,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from textfold import store
+from textfold import pdf, store
 
 PID = "2512.24601"
 
@@ -58,6 +58,13 @@ class Trash(unittest.TestCase):
         where = store.trash(PID)
         self.assertFalse((where / "library.json").exists())
         self.assertEqual(store.untrash(PID), {})
+
+    def test_a_save_after_the_folder_moved_to_the_trash_does_not_recreate_it(self):
+        store.trash(PID)
+        with self.assertRaises(FileNotFoundError):
+            pdf.keep(PID, b"%PDF-1.4\n")   # (the folder is gone: the write fails rather than making a ghost)
+        self.assertFalse(store.pdir(PID).exists())
+        self.assertIsNotNone(store.untrash(PID))   # (the Undo still finds the folder: no ghost is in the way)
 
     def test_restoring_what_is_not_there(self):
         self.assertIsNone(store.untrash(PID))   # (never deleted)

@@ -228,13 +228,9 @@ def _write(pid, data):
     trash must not recreate papers/<id>/ as a ghost folder."""
     if not (store.pdir(pid) / "meta.json").exists():
         raise ValueError("no-document")
-    f = _file(pid)
-    f.parent.mkdir(parents=True, exist_ok=True)
-    tmp = f.with_suffix(".tmp")
     # ASCII-escaped UTF-8, as a note is: a card is written in any language the reader offers, and GBK on a Chinese
     # Windows cannot hold several scripts a text may quote
-    tmp.write_text(json.dumps(data, indent=1), encoding="utf-8")
-    tmp.replace(f)
+    store.write_text_atomic(_file(pid), json.dumps(data, indent=1))   # (the folder exists: it was checked just above)
 
 
 # ── the document and its fingerprint ────────────────────────────────────

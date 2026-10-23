@@ -489,9 +489,10 @@ line) has `ev: []` and stays at Full.
 Every text file TextFold itself reads or writes names UTF-8, whatever the computer's locale: model replies in
 `llm.py`, layers in `store.write`, notes in `notes.py`, settings in `models.py`, a paper's `source.html` and
 `meta.json`, the library, the Zotero index and the reader's web assets. Its own files are read through
-`store.read_text`: UTF-8 first, else the system's codepage — GBK on a Chinese Windows, which is what an older TextFold
-wrote there. The read writes nothing; the file's next save writes UTF-8. A file in neither
-encoding is an error, never replacement text that a save could then persist. The exceptions are the ones with a marker
+`store.read_text`: UTF-8 first (a byte-order mark, as Notepad writes, is read as UTF-8 and dropped), else the system's
+codepage — GBK on a Chinese Windows, which is what an older TextFold wrote there. The read writes nothing; the file's
+next save writes UTF-8. A file in neither encoding is an error, never replacement text that a save could then persist.
+The exceptions are the ones with a marker
 or a rebuild: a stored web address is read by `store.read_url` (it carries a byte-order mark), and the model's reply
 cache is ASCII-only (a non-ASCII cache is a miss and is made again). The system's codepage is `store.codepage()`, from
 `locale.getencoding()` or, before Python 3.11, Windows' ANSI code page: `locale.getpreferredencoding()` returns UTF-8
@@ -502,3 +503,21 @@ page, an SVG, an Office file — is decoded by its declaration or, where it name
 the content's rule, not TextFold's. On the command line, stdout and stderr speak UTF-8 as well. Document metadata and library JSON are ASCII-escaped, so a reader with any encoding sees plain ASCII: titles
 and folder names may contain characters absent from GBK. Stored web addresses use a UTF-8 byte-order mark so earlier
 text can still be read correctly; exported pages and CLI output use UTF-8 as well.
+
+Layers, notes, cards, the library, the Zotero index and a kept PDF are written whole or not at all
+(`store.write_text_atomic`, `store.write_bytes_atomic`): a temporary file of its own beside the file, flushed to the
+disk, then moved over it. A crash leaves the old file; the app and `textfold serve` may share a data folder and write one
+file at once, and neither writes into the other's temporary file nor moves it away, so the file is one of the two, never
+their mixture. The library's read-modify-write is serialized across processes too, by a lock byte in `library.json.lock`
+(the file stays; the OS releases the byte when a process ends), so one process's save cannot drop another's folder or
+name. A `library.json` that cannot be trusted is neither read as an empty library nor saved over: not JSON at all, a
+top level that is not an object, or a `folders`, `of`, `names`, `added` or `opened` field that is not the container the
+library writes.
+Its bytes are copied to `library.json.corrupt-<time>` and the read fails (`library.LibraryError`, answered as a 500
+carrying its message). A bad row inside a good list or object is dropped instead (a folder entry without a name, a date
+that is not a date). An empty file is an empty library; a file in neither encoding still fails with
+`UnicodeDecodeError`, as it did, and is not copied. The read-modify-write of the notes, the cards and the Zotero index
+is serialized only within one process: two processes editing one of them can still have the later save overwrite the
+earlier, though neither leaves a half-written or mixed file. A note, a card or a PDF does not create the document's
+folder as it is written: a save that crosses the move to the trash fails instead of leaving a ghost folder that keeps
+the Undo from finding the trashed one.

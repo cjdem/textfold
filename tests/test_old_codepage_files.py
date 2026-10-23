@@ -119,6 +119,12 @@ class OldCodepageFiles(unittest.TestCase):
         self.assertEqual(store.read_text(f), '{"a": "跨境"}\n')
         self.assertEqual(f.read_bytes(), '{"a": "跨境"}\r\n'.encode("utf-8"))   # (left as it is)
 
+    def test_a_file_with_a_byte_order_mark_reads_as_utf8(self):
+        f = self.tmp / "bom.json"
+        f.write_bytes('﻿{"a": "跨境"}'.encode("utf-8"))   # (as Notepad saves it)
+        self.assertEqual(store.read_text(f), '{"a": "跨境"}')
+        self.assertEqual(f.read_bytes(), '﻿{"a": "跨境"}'.encode("utf-8"))   # (left as it is)
+
     def test_a_file_in_neither_encoding_is_an_error_and_left_as_it_was(self):
         bad = self.tmp / "bad.json"
         bad.write_bytes(b'{"a": "\xff\xfe"}')   # in neither UTF-8 nor GBK

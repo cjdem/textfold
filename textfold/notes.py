@@ -53,12 +53,9 @@ def read(pid):
 
 
 def _write(pid, data):
-    f = _file(pid)
-    tmp = f.with_suffix(".tmp")
     # ASCII-escaped, UTF-8, as a layer is (store.write): a question is answered in any language the reader offers,
     # and Korean or Hindi are not in GBK at all
-    tmp.write_text(json.dumps(data, indent=1), encoding="utf-8")
-    tmp.replace(f)
+    store.write_text_atomic(_file(pid), json.dumps(data, indent=1))
 
 
 def put(pid, note):

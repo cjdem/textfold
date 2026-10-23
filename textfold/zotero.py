@@ -277,10 +277,8 @@ def link(lib, key, pid, title, record=None):
             data = {}
         data[f"{lib}/{key}"] = {"paper": pid, "title": title, **({"record": record} if record else {})}
         f.parent.mkdir(parents=True, exist_ok=True)
-        tmp = f.with_suffix(".tmp")
         # ASCII-escaped: an item's title can hold any character, and the file stays plain ASCII
-        tmp.write_text(json.dumps(data, indent=1), encoding="utf-8")
-        tmp.replace(f)
+        store.write_text_atomic(f, json.dumps(data, indent=1))
 
 
 def apply(pid):
@@ -309,7 +307,5 @@ def apply(pid):
     meta["zotero"] = {"library": lib, "item": key, "citekey": rec.get("citekey", "")}
     # ASCII-escaped: a Zotero title can hold a character GBK lacks, and escaping keeps the file plain ASCII.
     # Temp file and replace: this is also how an old meta.json is converted, and a crash must not leave it half written
-    tmp = mf.with_suffix(".tmp")
-    tmp.write_text(json.dumps(meta), encoding="utf-8")
-    tmp.replace(mf)
+    store.write_text_atomic(mf, json.dumps(meta))
     return True

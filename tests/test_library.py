@@ -6,12 +6,17 @@ Run from the repo root:
 """
 import json
 import os
+import subprocess
+import sys
 import tempfile
+import time
 import unittest
 from pathlib import Path
 from unittest import mock
 
 from textfold import library, store
+
+ROOT = Path(__file__).resolve().parent.parent
 
 
 class Library(unittest.TestCase):
@@ -146,9 +151,90 @@ class Library(unittest.TestCase):
         self.assertEqual((d["of"], d["names"], d["added"], d["opened"]), ({}, {}, {}, {}))
         self.assertFalse(library.path().exists())   # (nothing written at all)
 
-    def test_a_damaged_file_reads_as_none(self):
-        library.path().write_text("{not json", encoding="utf-8")
-        self.assertEqual(library.folders(), {"folders": [], "of": {}})
+    def test_a_bom_does_not_lose_the_library_on_the_next_save(self):
+        library.path().write_text("﻿" + json.dumps({
+            "folders": [{"id": "f-1", "name": "Keep me"}],
+            "names": {"2512.24601": "A kept name"},
+        }), encoding="utf-8")
+        self.assertEqual(library.load()["folders"][0]["name"], "Keep me")
+        library.change({"op": "new", "name": "Second"})
+        d = library.load()
+        self.assertEqual([f["name"] for f in d["folders"]], ["Keep me", "Second"])
+        self.assertEqual(d["names"]["2512.24601"], "A kept name")
+        self.assertFalse(library.path().read_text(encoding="utf-8").startswith("﻿"))
+
+    def test_a_damaged_file_is_copied_aside_and_not_saved_over(self):
+        raw = "{not json"
+        library.path().write_text(raw, encoding="utf-8")
+        with self.assertRaises(library.LibraryError):
+            library.folders()
+        backups = list(library.path().parent.glob("library.json.corrupt-*"))
+        self.assertEqual(len(backups), 1)
+        self.assertEqual(backups[0].read_text(encoding="utf-8"), raw)
+        self.assertEqual(library.path().read_text(encoding="utf-8"), raw)
+
+    def test_valid_json_of_the_wrong_shape_is_copied_aside_and_not_saved_over(self):
+        library.path().write_text("null", encoding="utf-8")
+        with self.assertRaises(library.LibraryError):
+            library.load()
+        bodies = ({"folders": {"f-1": "Thesis"}}, {"folders": None}, {"of": []},
+                  {"names": []}, {"added": []}, {"opened": []})
+        for body in bodies:
+            raw = json.dumps(body)
+            library.path().write_text(raw, encoding="utf-8")
+            with self.assertRaises(library.LibraryError, msg=body):
+                library.opened("2512.24601")   # (the save path: a damaged file is not written over)
+            self.assertEqual(library.path().read_text(encoding="utf-8"), raw)
+        backups = list(library.path().parent.glob("library.json.corrupt-*"))
+        self.assertEqual(len(backups), 1 + len(bodies))
+        self.assertEqual({b.read_text(encoding="utf-8") for b in backups}, {"null"} | {json.dumps(b) for b in bodies})
+
+    def test_a_bad_row_in_a_good_field_is_dropped(self):
+        library.path().write_text(json.dumps({
+            "folders": [{"id": "f-1", "name": "A"}, {"id": "f-2"}, "junk"],
+            "of": {"2512.24601": [], "2512.24602": "f-1", "2512.24603": 3},
+            "names": {"2512.24601": 5, "2512.24602": "Kept"},
+            "added": {"2512.24601": float("nan"), "2512.24602": 10 ** 400, "2512.24603": 1_790_000_000},
+            "opened": {},
+        }), encoding="utf-8")
+        d = library.load()
+        self.assertEqual([f["id"] for f in d["folders"]], ["f-1"])
+        self.assertEqual(d["of"], {"2512.24602": "f-1"})
+        self.assertEqual(d["names"], {"2512.24602": "Kept"})
+        self.assertEqual(d["added"], {"2512.24603": 1_790_000_000.0})
+        library.name("2512.24602", "Renamed")   # (the good row is still there, and the library saves again)
+        self.assertEqual(library.load()["names"]["2512.24602"], "Renamed")
+
+    def test_two_processes_do_not_lose_each_others_folders(self):
+        go = Path(self.tmp.name) / "go"
+        script = r'''
+import os, sys, time
+from textfold import library
+go, tag = sys.argv[1], sys.argv[2]
+while not os.path.exists(go):
+    time.sleep(0.01)
+orig = library._save
+def slow(d):
+    time.sleep(0.05)
+    orig(d)
+library._save = slow
+library.change({"op": "new", "name": tag})
+'''
+        env = os.environ.copy()
+        env.update({"TEXTFOLD_DATA": self.tmp.name, "TEXTFOLD_NO_MODELS": "1",
+                    "PYTHONPATH": str(ROOT), "PYTHONIOENCODING": "utf-8"})
+        flags = subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0
+        procs = [subprocess.Popen([sys.executable, "-c", script, str(go), tag], env=env,
+                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                  text=True, encoding="utf-8", creationflags=flags)
+                 for tag in ("a", "b")]
+        time.sleep(0.5)
+        go.write_text("go", encoding="utf-8")
+        for p in procs:
+            _, err = p.communicate(timeout=60)
+            self.assertEqual(p.returncode, 0, err)
+        self.assertEqual({f["name"] for f in library.load()["folders"]}, {"a", "b"})
+        self.assertFalse(list(library.path().parent.glob("library.json.*.tmp")))
 
 
 if __name__ == "__main__":

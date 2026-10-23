@@ -15,6 +15,7 @@ import json
 import locale
 import os
 import re
+import tempfile
 import threading
 import time
 from pathlib import Path
@@ -42,15 +43,68 @@ def read_text(f):
     text. It is written as UTF-8; TextFold 0.10.9 and before wrote it on Windows in the system's codepage (GBK on a
     Chinese Windows: a title, a translation, a note in Chinese), and such a file is read in that, so the library an
     update finds still opens. This read writes nothing: the file is left as it is, and its next save writes UTF-8. A
-    file in neither encoding raises: an already damaged file is not read as replacement text and then saved over.
-    Line ends as Path.read_text gives them."""
+    UTF-8 byte-order mark (Notepad writes one) is read as UTF-8, not as text. A file in neither encoding raises: an
+    already damaged file is not read as replacement text and then saved over. Line ends as Path.read_text gives them."""
     f = Path(f)
     raw = f.read_bytes()
     try:
-        text = raw.decode("utf-8")
+        text = raw.decode("utf-8-sig")
     except UnicodeDecodeError:
         text = raw.decode(codepage())   # (neither encoding holds it: the caller hears it, and nothing is written)
     return text.replace("\r\n", "\n").replace("\r", "\n")
+
+
+def _replace(tmp, f):
+    """os.replace, tried again for a few seconds: on Windows a reader that has the file open (another app showing the
+    same library, an indexer) can hold it for the instant of the move, and the move is refused; a moment later it is
+    not. A hold that outlasts this fails the save loudly, with the old file still in place."""
+    for n in range(160):
+        try:
+            os.replace(tmp, f)
+            return
+        except PermissionError:
+            if n == 159:
+                raise
+            time.sleep(0.025)
+
+
+def write_text_atomic(f, text):
+    """A text file written whole or not at all: a new temporary file beside it, flushed to the disk, then moved over it.
+    The temporary file's name is unique, so two processes writing the same file at once do not write over each other's
+    half-written one; the last move wins, and the file is always one of the two, never their mixture. The folder must
+    exist: a write does not create the document folder, or a save crossing the move to the trash would leave a ghost."""
+    f = Path(f)
+    fd, name = tempfile.mkstemp(prefix=f.name + ".", suffix=".tmp", dir=f.parent)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as out:
+            out.write(text)
+            out.flush()
+            os.fsync(out.fileno())
+        _replace(name, f)
+    except BaseException:
+        try:
+            os.unlink(name)
+        except OSError:
+            pass
+        raise
+
+
+def write_bytes_atomic(f, data):
+    """A binary file written whole or not at all, as write_text_atomic writes a text one (and the folder must exist)."""
+    f = Path(f)
+    fd, name = tempfile.mkstemp(prefix=f.name + ".", suffix=".tmp", dir=f.parent)
+    try:
+        with os.fdopen(fd, "wb") as out:
+            out.write(data)
+            out.flush()
+            os.fsync(out.fileno())
+        _replace(name, f)
+    except BaseException:
+        try:
+            os.unlink(name)
+        except OSError:
+            pass
+        raise
 
 
 ROOT = Path(__file__).resolve().parent.parent   # the project folder, when run from a clone of it
@@ -146,11 +200,9 @@ def read(pid, name):
 def write(pid, name, data):
     f = _file(pid, name)
     f.parent.mkdir(parents=True, exist_ok=True)
-    tmp = f.with_suffix(".tmp")
     # ASCII-escaped, UTF-8: a layer holds any language the reader offers, and Korean or Hindi are not in GBK at all
     # (the system's encoding on a Chinese Windows), where ensure_ascii=False failed the save after the model answered
-    tmp.write_text(json.dumps(data), encoding="utf-8")
-    tmp.replace(f)
+    write_text_atomic(f, json.dumps(data))
 
 
 def stamp():
@@ -300,7 +352,7 @@ def trash(pid, kept=None):
         to.parent.mkdir(parents=True, exist_ok=True)
         if kept:
             tmp = DATA / "papers" / f".{pid}-place.tmp"
-            tmp.write_text(json.dumps(kept), encoding="utf-8")   # (ASCII-escaped: the reader's file, plain)
+            write_text_atomic(tmp, json.dumps(kept))   # (ASCII-escaped: the reader's file, plain)
         try:
             pdir(pid).rename(to)
         except OSError:

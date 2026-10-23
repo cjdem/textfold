@@ -60,9 +60,7 @@ def path(pid):
             except (urllib.error.URLError, OSError):
                 continue
             if data[:5] == b"%PDF-" and len(data) <= LIMIT:
-                tmp = f.with_suffix(".part")
-                tmp.write_bytes(data)
-                tmp.replace(f)
+                store.write_bytes_atomic(f, data)
                 return f
     return None
 
@@ -79,7 +77,5 @@ def keep(pid, data):
     if data[:5] != b"%PDF-" or len(data) > LIMIT:
         return False
     f = store.pdir(pid) / "source.pdf"
-    tmp = f.with_suffix(".part")
-    tmp.write_bytes(data)
-    tmp.replace(f)
+    store.write_bytes_atomic(f, data)
     return True

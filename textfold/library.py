@@ -17,34 +17,137 @@ before this was kept is dated as well); when it was opened, each time the reader
      "added": {"2512.24601": 1791000000.0}, "opened": {"2512.24601": 1792000000.0}}
 """
 import json
+import os
 import re
 import secrets
+import shutil
 import threading
 import time
+from contextlib import contextmanager
 
 from . import store
 
-_lock = threading.Lock()
+try:
+    import msvcrt   # Windows: one lock file, one byte, held across the read-modify-write
+except ImportError:
+    msvcrt = None
+try:
+    import fcntl    # the tests and a developer's machine may not be Windows
+except ImportError:
+    fcntl = None
+
+_lock = threading.Lock()   # threads in this process; the file lock covers other processes
+
+
+class LibraryError(RuntimeError):
+    """library.json exists but cannot be read as a library; its bytes are left as they were."""
 
 
 def path():
     return store.DATA / "library.json"
 
 
+@contextmanager
+def _file_lock():
+    """One library.json at a time, across processes: the app and `textfold serve` may share a data folder. The lock
+    file stays beside the library (it can stay empty: Windows locks the first byte past its end); the OS releases the
+    byte when the process ends. The file is opened empty here on purpose: a byte written before the lock is taken is a
+    race of its own, two processes creating it at once, and one of them failing the write."""
+    f = path()
+    lock = f.with_name(f.name + ".lock")
+    lock.parent.mkdir(parents=True, exist_ok=True)
+    fd = os.open(lock, os.O_RDWR | os.O_CREAT | getattr(os, "O_BINARY", 0), 0o600)
+    try:
+        if msvcrt is not None:
+            _lock_byte(fd)
+        elif fcntl is not None:
+            fcntl.flock(fd, fcntl.LOCK_EX)
+        else:
+            raise RuntimeError("no file locking on this platform")
+        try:
+            yield
+        finally:
+            os.lseek(fd, 0, os.SEEK_SET)
+            if msvcrt is not None:
+                msvcrt.locking(fd, msvcrt.LK_UNLCK, 1)
+            elif fcntl is not None:
+                fcntl.flock(fd, fcntl.LOCK_UN)
+    finally:
+        os.close(fd)
+
+
+def _lock_byte(fd):
+    """Take the lock file's first byte, waiting for another process to let it go. msvcrt's blocking lock gives up after
+    ten seconds with an error, and that error would lose the save; this waits the same ten seconds, trying again, and
+    only then says the lock is held (a process that died has had its lock released by the OS already)."""
+    end = time.monotonic() + 10
+    while True:
+        os.lseek(fd, 0, os.SEEK_SET)
+        try:
+            msvcrt.locking(fd, msvcrt.LK_NBLCK, 1)
+            return
+        except OSError:
+            if time.monotonic() >= end:
+                raise
+            time.sleep(0.025)
+
+
+@contextmanager
+def _locked():
+    with _lock:
+        with _file_lock():
+            yield
+
+
+def _backup():
+    f = path()
+    stamp = time.strftime("%Y%m%d-%H%M%S")
+    n = 0
+    while True:
+        b = f.with_name(f"{f.name}.corrupt-{stamp}" + (f"-{n}" if n else ""))
+        if not b.exists():
+            break
+        n += 1
+    shutil.copy2(f, b)
+    return b
+
+
+def _date(v):
+    """A time as JSON carries it: a positive number of seconds, not a bool, not NaN or an infinity (a hand-edited file
+    can carry anything, and a date of the year 30000 is not a date)."""
+    return isinstance(v, (int, float)) and not isinstance(v, bool) and 0 < v < 1e12
+
+
 def _times(d, key):
     v = d.get(key) if isinstance(d.get(key), dict) else {}
-    return {p: float(t) for p, t in v.items() if store.valid_id(p) and isinstance(t, (int, float))}
+    return {p: float(t) for p, t in v.items() if store.valid_id(p) and _date(t)}
 
 
 def load():
     try:
-        d = json.loads(store.read_text(path()))
-    except UnicodeDecodeError:
-        raise   # (in neither UTF-8 nor the codepage: never read it as empty and save that over it)
-    except (OSError, ValueError):
+        text = store.read_text(path())
+    except FileNotFoundError:
         d = {}
+    else:
+        if not text.strip():   # (an empty file is a library with nothing in it yet, not a damaged one)
+            d = {}
+        else:
+            try:
+                d = json.loads(text)
+            except ValueError:
+                backup = _backup()
+                raise LibraryError(f"library.json cannot be read; a copy is at {backup.name}") from None
+            if not isinstance(d, dict):
+                backup = _backup()
+                raise LibraryError(f"library.json is not a library; a copy is at {backup.name}")
+            # a field of the wrong shape is a damaged file, not an empty one: reading it as empty is what a save would
+            # then write over. (A wrong entry inside a good list or object is dropped instead: that is one bad row.)
+            for key, want in (("folders", list), ("of", dict), ("names", dict), ("added", dict), ("opened", dict)):
+                if key in d and not isinstance(d[key], want):
+                    backup = _backup()
+                    raise LibraryError(f"library.json is not a library; a copy is at {backup.name}")
     folders = [{"id": f["id"], "name": f["name"], **({"parent": f["parent"]} if isinstance(f.get("parent"), str) else {})}
-               for f in d.get("folders") or []
+               for f in (d.get("folders") or [])
                if isinstance(f, dict) and isinstance(f.get("id"), str) and isinstance(f.get("name"), str)]
     ids = {f["id"] for f in folders}
     by = {f["id"]: f for f in folders}
@@ -57,7 +160,8 @@ def load():
             f.pop("parent", None)
     of = d.get("of") if isinstance(d.get("of"), dict) else {}
     names = d.get("names") if isinstance(d.get("names"), dict) else {}
-    return {"folders": folders, "of": {p: f for p, f in of.items() if f in ids and store.valid_id(p)},
+    return {"folders": folders, "of": {p: f for p, f in of.items()
+                                        if isinstance(f, str) and f in ids and store.valid_id(p)},
             "names": {p: n for p, n in names.items() if store.valid_id(p) and isinstance(n, str) and n.strip()},
             "added": _times(d, "added"), "opened": _times(d, "opened")}
 
@@ -65,10 +169,8 @@ def load():
 def _save(d):
     f = path()
     f.parent.mkdir(parents=True, exist_ok=True)
-    tmp = f.with_name(f.name + ".tmp")
     # ASCII-escaped: a folder's name is the reader's, in any language, and the file stays plain ASCII
-    tmp.write_text(json.dumps(d, indent=1), encoding="utf-8")
-    tmp.replace(f)
+    store.write_text_atomic(f, json.dumps(d, indent=1))
 
 
 def folders():
@@ -102,7 +204,7 @@ def change(body):
     parent: id or null (to the top)} · {op: "move", papers: [ids], folder: id or null (out of any)}.
     ValueError for one that cannot be made."""
     op = body.get("op")
-    with _lock:
+    with _locked():
         d = load()
         ids = {f["id"] for f in d["folders"]}
         if op == "new":
@@ -158,7 +260,7 @@ def name(pid, value):
     """What the reader calls a document in the library: a name ("" or None: its own title again). The names after it."""
     if not store.valid_id(pid):
         raise ValueError("no such document")
-    with _lock:
+    with _locked():
         d = load()
         v = re.sub(r"\s+", " ", str(value or "")).strip()[:200]
         if v:
@@ -190,7 +292,7 @@ def _came_in(pid):
 def stamp(papers):
     """The documents of the list (store.papers), each with when it came in ("added") and when it was last opened
     ("opened", or None), and the name the reader gave it, if any; one listed for the first time is dated here and kept."""
-    with _lock:
+    with _locked():
         d = load()
         new = {p["id"]: _came_in(p["id"]) for p in papers if p["id"] not in d["added"]}
         if new:
@@ -204,7 +306,7 @@ def opened(pid):
     """The reader shows a document: when."""
     if not store.valid_id(pid):
         return
-    with _lock:
+    with _locked():
         d = load()
         d["opened"][pid] = time.time()
         _save(d)
@@ -213,7 +315,7 @@ def opened(pid):
 def forget(pid):
     """A document deleted from the library: out of its folder, its name and dates gone (read again, it comes in anew).
     What it had, to remember it by: {"of": folder, "name": name, "added": time, "opened": time}, those it had."""
-    with _lock:
+    with _locked():
         d = load()
         gone = {k: d[k].pop(pid) for k in ("of", "added", "opened") if pid in d[k]}
         if pid in d["names"]:
@@ -227,13 +329,12 @@ def remember(pid, kept):
     """A deleted document back (its Undo): in its folder if that is still there, with its name and dates."""
     if not store.valid_id(pid) or not isinstance(kept, dict):
         return
-    with _lock:
+    with _locked():
         d = load()
         ids = {f["id"] for f in d["folders"]}
-        stamp = lambda v: isinstance(v, (int, float)) and not isinstance(v, bool) and 0 < v < 1e12   # (a JSON number, a date)
         put = False
         for k, into, ok in (("of", "of", lambda v: isinstance(v, str) and v in ids), ("name", "names", lambda v: isinstance(v, str) and bool(v.strip())),
-                            ("added", "added", stamp), ("opened", "opened", stamp)):
+                            ("added", "added", _date), ("opened", "opened", _date)):
             if k in kept and ok(kept[k]):
                 d[into][pid] = kept[k]
                 put = True
