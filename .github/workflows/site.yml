@@ -1,12 +1,15 @@
 # The website, https://cjdem.github.io/textfold/: the download, install and usage page in English and Chinese
-# (site/build.py). Built and served by GitHub Pages when the site or this file changes on main; run it by hand
-# (Actions › site › Run workflow) after other changes.
+# (site/build.py). GitHub Pages publishes it when the desktop workflow finishes a release for a v* tag — the page offers
+# releases/latest, so it goes up with the installer it describes rather than on a push to main that touches site/**.
+# (The release is published with the repository's GITHUB_TOKEN, which does not start a `release` event, so this waits
+# on the run that publishes it instead.) Run it by hand (Actions › site › Run workflow) after a site-only change; a
+# manual run may publish only the page of the latest release.
 # Pages must serve from GitHub Actions (Settings › Pages › Source); with a branch as the source, deploy-pages fails.
 name: site
 on:
-  push:
-    branches: [main]
-    paths: ['site/**', '.github/workflows/site.yml']
+  workflow_run:
+    workflows: ['desktop']
+    types: [completed]
   workflow_dispatch:
 
 permissions:
@@ -20,12 +23,36 @@ concurrency:
 
 jobs:
   build:
+    # A release built from a v* tag — by the tag's push or by a dispatch on the tag — and published; a dispatch on a
+    # branch builds artifacts only, and a failed run publishes nothing, so neither deploys the site.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+      startsWith(github.event.workflow_run.head_branch, 'v'))
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - name: The page states the release it is published with
+        if: github.event_name == 'workflow_run'
+        env:
+          TAG: ${{ github.event.workflow_run.head_branch }}
+        run: |
+          code="$(python3 -c 'import sys; sys.path.insert(0, "site"); import strings; print(strings.VERSION)')"
+          test "v$code" = "$TAG" || { echo "the page says $code, the release is $TAG"; exit 1; }
+      - name: A manual run publishes the latest release's page, not a newer one
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          code="$(python3 -c 'import sys; sys.path.insert(0, "site"); import strings; print(strings.VERSION)')"
+          latest="$(gh api "repos/$REPO/releases/latest" --jq .tag_name)"
+          test "v$code" = "$latest" || { echo "the page says $code, the latest release is $latest"; exit 1; }
       - run: python3 site/build.py
       - uses: actions/upload-pages-artifact@v3
         with:
