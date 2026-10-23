@@ -164,9 +164,12 @@ layers without it, so nothing of the base is written into `tr-<lang>.json`.
 At Topic, a section with sections under it heads a row of their cards (`parent`, `top` for the shallowest, `newrow` for
 a section that follows a deeper one), and the choice beside the zoom bar switches Topic between those cards and a map
 of the text's outline (`textfold.topicview`, this browser): the title at the left, the top-level sections each a branch
-in a colour of its own (their subsections in their parent's colour), each paragraph's topic at a branch's end. The map is drawn over the page at rest at Topic and only then — the
-page stays under it, so a zoom plays from the cards as ever, the map gone as the zoom starts. A section folds and
-unfolds with a click (or "Sections only" folds them all to their sections), and a topic opens its paragraph at Key.
+in a colour of its own (their subsections in their parent's colour), each paragraph's topic at a branch's end. The
+reader's own notes on the whole paper are drawn above the title in the map's left column (the map covers the page's
+margin), and a click opens the note beside that card; the map stays. The map is drawn over the page at rest at Topic
+and only then — the page stays under it, so a zoom plays from the cards as ever, the map gone as the zoom starts. A
+section folds and unfolds with a click (or "Sections only" folds them all to their sections), and a topic opens its
+paragraph at Key.
 
 Notes: select text anywhere (a paragraph at any level, a section's summary or its title) to highlight it, write a note,
 or ask the model about it (the answer, in the reading language, cites the paragraphs it rests on; a cite opens that
@@ -175,10 +178,10 @@ in the right. Full and Brief show whole cards, Key shows them compact, and Takea
 mark, with the notes on hover. Highlights zoom with the words. `#n=<note id>` opens the reader at a note. A note of the
 reader's own can be on the whole text, not a passage (the notes menu's **New note**): it sits by the paper's title, is
 shown at every level, and opens beside the head; at Topic it sits under the title, in the column, so a narrow window
-or a docked sidebar cannot push it off screen (the Topic map is drawn over the page, so the note is under it while the
-map is shown). It has no quote and no Ask beside it, since the chat is where the whole paper is asked about, and the
-chat never treats it as a conversation. A new one is a draft: the words typed are kept when it closes, even before the
-700 ms save timer, and an empty draft is not kept.
+or a docked sidebar cannot push it off screen, and with the map shown it is drawn in the map's left column (above the
+title) and opens beside that card. It has no quote and no Ask beside it, since the chat is where the whole paper is
+asked about, and the chat never treats it as a conversation. A new one is a draft: the words typed are kept when it
+closes, even before the 700 ms save timer, and an empty draft is not kept.
 
 What the model is given for a question (`textfold/notes.py`, `prompt`): the title, the abstract and a line per section
 (with where the reader is); the level they read at and whose words it shows (at Key and below, a warning that the

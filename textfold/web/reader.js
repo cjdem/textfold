@@ -1777,7 +1777,11 @@
   // what a change of notes redraws: the units, their margin, the keyframes (which hold the marks)
   function notesChanged(uids) {
     for (const uid of new Set(uids)) {
-      if (uid === '¶') { renderNoteCards(uid); continue; }   // the whole paper: the notes on it, by its head
+      if (uid === '¶') {   // the whole paper: the notes on it, by its head and in the Topic map
+        renderNoteCards(uid);
+        if (mapShown) { mapRender(); if (popNote) placePop(); } else mapKey = '';   // (built afresh when the map opens)
+        continue;
+      }
       if (uid.startsWith('§')) {   // a section: its heading's mark, its summary's marks, its margins
         const sc = secs.get(uid.slice(1));
         if (!sc) continue;
@@ -2061,7 +2065,9 @@
   }
   function placePop() {
     if (!popNote) return;
-    const el = targetEl(popNote.anchor), card = docEl.querySelector(`.ncard[data-note="${CSS.escape(popNote.id)}"]`);
+    const el = targetEl(popNote.anchor);
+    const card = (mapShown && mapEl.querySelector(`.ncard[data-note="${CSS.escape(popNote.id)}"]`))
+      || docEl.querySelector(`.ncard[data-note="${CSS.escape(popNote.id)}"]`);   // (the map's card stands for the covered head)
     if (!el) return;
     const marks = [...el.querySelectorAll('.hl')];
     const r = (card && visibleRect(card)) || (marks.length && marks[marks.length - 1].getBoundingClientRect()) || el.getBoundingClientRect();
@@ -2331,23 +2337,25 @@
   }
 
   // ── the margin: notes with text, questions ──
+  function noteCard(n) {   // (`t` is read here: the notes menu, the margin and the Topic map redraw after a language change)
+    const t = T[ui], c = h('button', `ncard${n.kind === 'ask' ? ' ask' : ''}`);
+    c.type = 'button';
+    c.dataset.note = n.id;
+    const turns = turnsOf(n), last = turns[turns.length - 1] || {}, said = [...turns].reverse().find((x) => x.a);
+    c.innerHTML = n.kind === 'ask'
+      ? `<span class="nc-q">${esc((turns[0] || {}).q || '')}${turns.length > 1 ? ` <em class="nc-n">${turns.length}</em>` : ''}</span>` +
+        `<span class="nc-t">${last.pending ? esc(t.n_thinking) : last.error ? esc(t.n_failed) : said ? mdLite(said.takeaway).replace(/<\/?p>/g, '') : ''}</span>` +
+        `<span class="nc-at">${esc(askedAt(n.anchor))}</span>`
+      : `<span class="nc-t">${esc(n.text).replace(/\n/g, '<br>')}</span>`;
+    return c;
+  }
+  const mineOn = (key) => (notesOf.get(key) || []).filter((n) => n.kind !== 'ask' && n.text && n.text.trim());
   function renderNoteCards(key) {
-    const list = notesOf.get(key) || [], t = T[ui], host = hostOf(key);
+    const list = notesOf.get(key) || [], host = hostOf(key);
     if (!host || !host.el) return;
     // (the conversations about the whole paper live in the chat: its head carries the reader's own notes alone)
-    const mine = list.filter((n) => n.kind !== 'ask' && n.text && n.text.trim()), asks = key === '¶' ? [] : list.filter((n) => n.kind === 'ask');
-    const card = (n) => {
-      const c = h('button', `ncard${n.kind === 'ask' ? ' ask' : ''}`);
-      c.type = 'button';
-      c.dataset.note = n.id;
-      const turns = turnsOf(n), last = turns[turns.length - 1] || {}, said = [...turns].reverse().find((x) => x.a);
-      c.innerHTML = n.kind === 'ask'
-        ? `<span class="nc-q">${esc((turns[0] || {}).q || '')}${turns.length > 1 ? ` <em class="nc-n">${turns.length}</em>` : ''}</span>` +
-          `<span class="nc-t">${last.pending ? esc(t.n_thinking) : last.error ? esc(t.n_failed) : said ? mdLite(said.takeaway).replace(/<\/?p>/g, '') : ''}</span>` +
-          `<span class="nc-at">${esc(askedAt(n.anchor))}</span>`
-        : `<span class="nc-t">${esc(n.text).replace(/\n/g, '<br>')}</span>`;
-      return c;
-    };
+    const mine = mineOn(key), asks = key === '¶' ? [] : list.filter((n) => n.kind === 'ask');
+    const card = noteCard;
     const right = asks.length ? ensureSide(key) : host.el.querySelector(':scope > .side');
     if (right) right.querySelector(':scope > .side-notes').replaceChildren(...asks.map(card));
     const left = mine.length ? ensureSide(key, true) : host.el.querySelector(':scope > .lside');
@@ -3835,12 +3843,34 @@ math { font-size: 1.05em; }
     mapTools.innerHTML = `<button type="button" data-mm="all">${esc(t.mm_all)}</button><button type="button" data-mm="secs">${esc(t.mm_secs)}</button><span class="mm-hint">${esc(t.mm_hint)}</span>`;
     mapLayout();
   }
+  // the reader's notes on the whole paper: the map's left column, above the title, since the map covers the page's own
+  // margin; a click opens the note beside its card here (placePop prefers it while the map is shown)
+  function mapNotes() {
+    if ((document.documentElement.dataset.hide || '').split(' ').includes('notes')) return null;   // (the margins' switch)
+    const list = mineOn('¶');
+    if (!list.length) return null;
+    // a save appends the note to `notes`: keep each card where it was by creation time (edited first, still first)
+    list.sort((a, b) => (a.created || a.updated || '').localeCompare(b.created || b.updated || ''));
+    const box = h('div', 'mm-notes', `<div class="mm-notes-h">${esc(T[ui].n_whole)}</div>`);
+    for (const n of list) box.append(noteCard(n));
+    texify(box);
+    return box;
+  }
   // each node right of its parent; a node's children one under another, the node level with the first of them (a long
   // text reads down the map as down its outline, the title at the top)
   function mapLayout() {
     mapCanvas.replaceChildren();
+    const GAPX = 46, PAD = 24;
     const els = [], svgNS = 'http://www.w3.org/2000/svg', svg = document.createElementNS(svgNS, 'svg');
     mapCanvas.append(svg);
+    const notes = mapNotes();
+    let startY = PAD + 10, right = 0;
+    if (notes) {   // (measured, so the title and the outline begin under it)
+      mapCanvas.append(notes);
+      notes.style.transform = `translate(${PAD}px, ${PAD}px)`;   // (its width follows the viewport and the sidebar, in CSS)
+      startY = PAD + notes.offsetHeight + 20;
+      right = PAD + notes.offsetWidth;
+    }
     (function make(n) {
       const cls = n.kind === 'root' ? 'mm-root' : n.kind === 'sec' ? `mm-sec d${n.depth}` : `mm-leaf${notesOf.has(n.uid) ? ' has-notes' : ''}`;
       const el = h('div', `mm-n ${cls}`);
@@ -3855,8 +3885,6 @@ math { font-size: 1.05em; }
       shownKids(n).forEach(make);
     })(mapRoot);
     for (const n of els) { n.w = n.el.offsetWidth; n.h = n.el.offsetHeight; }
-    const GAPX = 46, PAD = 24;
-    let right = 0;
     (function place(n, x, y) {
       n.x = x;
       right = Math.max(right, x + n.w);
@@ -3867,7 +3895,7 @@ math { font-size: 1.05em; }
       const a = kids[0];
       n.y = Math.max(y, a.y + a.h / 2 - n.h / 2);
       return Math.max(cy - y, n.y + n.h - y);
-    })(mapRoot, PAD, PAD + 10);
+    })(mapRoot, PAD, startY);
     let bottom = 0, paths = '';
     for (const n of els) {
       n.el.style.transform = `translate(${n.x}px, ${n.y}px)`;
@@ -3883,9 +3911,10 @@ math { font-size: 1.05em; }
   }
   // where it lies: under the bar at the top, beside the sidebar (the app's)
   function mapFrame() {
-    const tb = document.querySelector('.topbar'), bs = getComputedStyle(document.body);
+    const tb = document.querySelector('.topbar'), bs = getComputedStyle(document.body), left = parseFloat(bs.paddingLeft) || 0;
     mapEl.style.top = `${Math.max(0, tb ? tb.getBoundingClientRect().bottom : 0)}px`;
-    mapEl.style.left = `${parseFloat(bs.paddingLeft) || 0}px`;
+    mapEl.style.left = `${left}px`;
+    mapEl.style.setProperty('--mm-left', `${left}px`);   // (the notes' width is the viewport less the sidebar)
   }
   function mapSync() {
     const can = mapReady && topicView === 'map' && level === 0 && !localLevel.size
@@ -3905,7 +3934,14 @@ math { font-size: 1.05em; }
     (function walk(n) { if (n.kind === 'sec') { n.closed = false; n.bare = secsOnly; } n.kids.forEach(walk); })(mapRoot);
     mapLayout();
   });
+  mapEl.addEventListener('scroll', () => { if (popNote) placePop(); }, { passive: true });   // (a card's popover follows it)
   mapCanvas.addEventListener('click', (e) => {
+    const card = e.target.closest('.mm-notes .ncard');
+    if (card) {   // a whole-paper note: open it beside its card, the map staying under it
+      const n = notes.find((x) => x.id === card.dataset.note);
+      if (n) openNote(n);
+      return;
+    }
     const leaf = e.target.closest('.mm-leaf'), sec = e.target.closest('.mm-sec');
     if (leaf) {   // its paragraph at Key, where the topic was on the screen
       const el = unitEl.get(leaf.dataset.u);
@@ -3930,7 +3966,10 @@ math { font-size: 1.05em; }
   // ⌘/Ctrl + wheel and a pinch zoom from the page under it: the map goes before the zoom looks for what it is over
   addEventListener('wheel', (e) => { if (mapShown && (e.ctrlKey || e.metaKey)) mapAway(); }, { capture: true, passive: true });
   addEventListener('gesturestart', () => { if (mapShown) mapAway(); }, { capture: true });
-  addEventListener('resize', () => { if (mapShown) mapFrame(); });
+  addEventListener('resize', () => {
+    if (mapShown) { mapFrame(); mapLayout(); if (popNote) placePop(); }   // (a narrower note wraps taller: the title moves down)
+    else mapKey = '';   // (the map is built afresh at the new width when it opens)
+  });
   renderTview();
   mapReady = true;
 

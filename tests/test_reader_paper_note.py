@@ -34,7 +34,8 @@ class PaperNote(unittest.TestCase):
     def test_the_notes_menu_writes_one_and_the_margins_show_it(self):
         reader = text("reader.js")
         self.assertIn("if (key === '¶') return { el: paperHead, after: null };", reader)   # (by the title)
-        self.assertIn("if (uid === '¶') { renderNoteCards(uid); continue; }", reader)
+        self.assertIn("if (uid === '¶') {   // the whole paper: the notes on it, by its head and in the Topic map", reader)
+        self.assertIn("if (mapShown) { mapRender(); if (popNote) placePop(); } else mapKey = '';", reader)
         self.assertIn("asks = key === '¶' ? [] : list.filter((n) => n.kind === 'ask')", reader)   # (chats stay in the chat)
         self.assertIn("if (whole(n.anchor) && n.kind === 'ask') { openChat(n, back); return; }", reader)
         self.assertIn("${!ask && !whole(a) ? `<button type=\"button\" data-act=\"ask\">", reader)   # (no Ask on the whole text)
@@ -105,7 +106,7 @@ class PaperNote(unittest.TestCase):
         self.assertEqual([(n["id"], n["anchor"]["on"], n["text"]) for n in kept], [("n-paper01", "paper", "The whole of it, in a line.")])
         self.assertEqual(notes.kind(kept[0]), "note")
         doc = (ROOT / "docs" / "notes-format.md").read_text(encoding="utf-8")
-        self.assertIn('So does a note of the reader\'s own on the whole paper, not on a passage (`kind:\n    "note"` with its `text`, written from the notes menu): it is shown by the paper\'s title, at every level.', doc)
+        self.assertIn('So does a note of the reader\'s own on the whole paper, not on a passage (`kind:\n    "note"` with its `text`, written from the notes menu): it is shown by the paper\'s title, at every level, and with\n    the Topic map shown it is drawn above the map\'s title, in the map\'s left column.', doc)
 
 
 if __name__ == "__main__":
