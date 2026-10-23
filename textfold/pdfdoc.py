@@ -418,11 +418,16 @@ def store_pdf(pid, folder, sc, name, tier, replace=False):
                           "engine": producer}
         meta["label"] = f"{engine.FILES.get(ext, ext.upper())} · {name}"
     keep = d.with_name(d.name + ".keep")   # the reader's notes, reading card and the file, on disk while the document is rewritten
-    from contextlib import nullcontext
+    from contextlib import ExitStack
     from . import cards
-    # the card's own lock, held while the folder is snapshotted, replaced and restored: a save made during that window
-    # waits for the new document and then writes into it, rather than being overwritten by the snapshot's copy
-    with (cards._LOCK if replace else nullcontext()):
+    # the card's own lock and the notes' and card's file locks, held while the folder is snapshotted, replaced and
+    # restored: a save made during that window, in this process or another, waits for the new document and then writes
+    # into it, rather than being overwritten by the snapshot's copy
+    with ExitStack() as held:
+        if replace:
+            held.enter_context(cards._LOCK)
+            held.enter_context(store.file_lock("notes", wait=60))
+            held.enter_context(store.file_lock("cards", wait=60))
         if replace and d.exists():
             shutil.rmtree(keep, ignore_errors=True)
             keep.mkdir(parents=True)

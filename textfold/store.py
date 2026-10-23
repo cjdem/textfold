@@ -18,7 +18,17 @@ import re
 import tempfile
 import threading
 import time
+from contextlib import contextmanager
 from pathlib import Path
+
+try:
+    import msvcrt   # Windows: a lock file's first byte, held across a read-modify-write
+except ImportError:
+    msvcrt = None
+try:
+    import fcntl    # the tests and a developer's machine may not be Windows
+except ImportError:
+    fcntl = None
 
 from . import ladder, langs
 from .fetch import paper_id
@@ -64,6 +74,52 @@ def _replace(tmp, f):
             return
         except PermissionError:
             if n == 159:
+                raise
+            time.sleep(0.025)
+
+
+@contextmanager
+def file_lock(name, wait=10.0):
+    """One read-modify-write of a file at a time, across processes: the app and `textfold serve` may share a data
+    folder. The lock is an empty file in the data folder, named after what it guards and never inside papers/ (whose
+    folders move to the trash); the OS releases its byte when the process ends. The file is opened empty on purpose: a
+    byte written before the lock is taken is a race of its own, two processes creating it at once and one of them
+    failing the write. `wait`: seconds to wait for another holder before failing — longer where the holder may be a
+    document being converted, which takes seconds."""
+    f = DATA / f"{name}.lock"
+    f.parent.mkdir(parents=True, exist_ok=True)
+    fd = os.open(f, os.O_RDWR | os.O_CREAT | getattr(os, "O_BINARY", 0), 0o600)
+    try:
+        if msvcrt is not None:
+            _lock_byte(fd, wait)
+        elif fcntl is not None:
+            fcntl.flock(fd, fcntl.LOCK_EX)
+        else:
+            raise RuntimeError("no file locking on this platform")
+        try:
+            yield
+        finally:
+            os.lseek(fd, 0, os.SEEK_SET)
+            if msvcrt is not None:
+                msvcrt.locking(fd, msvcrt.LK_UNLCK, 1)
+            elif fcntl is not None:
+                fcntl.flock(fd, fcntl.LOCK_UN)
+    finally:
+        os.close(fd)
+
+
+def _lock_byte(fd, wait):
+    """Take the lock file's first byte, waiting for another process to let it go. msvcrt's blocking lock gives up after
+    `wait` seconds with an error, and that error would lose the save; this waits the same time, trying again, and only
+    then says the lock is held (a process that died has had its lock released by the OS already)."""
+    end = time.monotonic() + wait
+    while True:
+        os.lseek(fd, 0, os.SEEK_SET)
+        try:
+            msvcrt.locking(fd, msvcrt.LK_NBLCK, 1)
+            return
+        except OSError:
+            if time.monotonic() >= end:
                 raise
             time.sleep(0.025)
 

@@ -514,16 +514,23 @@ Layers, notes, cards, the library, the Zotero index and a kept PDF are written w
 (`store.write_text_atomic`, `store.write_bytes_atomic`): a temporary file of its own beside the file, flushed to the
 disk, then moved over it. A crash leaves the old file; the app and `textfold serve` may share a data folder and write one
 file at once, and neither writes into the other's temporary file nor moves it away, so the file is one of the two, never
-their mixture. The library's read-modify-write is serialized across processes too, by a lock byte in `library.json.lock`
-(the file stays; the OS releases the byte when a process ends), so one process's save cannot drop another's folder or
-name. A `library.json` that cannot be trusted is neither read as an empty library nor saved over: not JSON at all, a
-top level that is not an object, or a `folders`, `of`, `names`, `added` or `opened` field that is not the container the
-library writes.
+their mixture. Every read-modify-write of the reader's own files — the library, the notes, a card and the Zotero
+index — is serialized across processes by a lock byte in a lock file in the data folder (`library.lock`, `notes.lock`,
+`cards.lock`, `zotero.lock`; the files stay, and the OS releases the byte when a process ends), so one process's save
+cannot drop another's folder or name, note, card edit or Zotero link. The lock files stay out of `papers/`, whose
+folders move to the trash. A re-conversion of a PDF holds the notes' and card's locks for its whole document write — it
+snapshots those files, rebuilds the folder and copies them back — so a save made during it waits for the rebuilt
+document and lands in it rather than being overwritten by the snapshot's copy. The move to the trash itself is
+serialized within one process (the server holds `store.LOCK` while the library forgets the document and the folder
+moves); a save crossing it from another process either travels with the folder or fails loudly, the library's
+forget-and-move is not atomic against another process's library write, and a trash or an Undo in another process is
+not serialized against a re-conversion. A `library.json` that cannot be trusted is neither read as an empty library
+nor saved over: not JSON at all, a top level that is not an object, or a `folders`, `of`, `names`, `added` or `opened`
+field that is not the container the library writes.
 Its bytes are copied to `library.json.corrupt-<time>` and the read fails (`library.LibraryError`, answered as a 500
 carrying its message). A bad row inside a good list or object is dropped instead (a folder entry without a name, a date
 that is not a date). An empty file is an empty library; a file in neither encoding still fails with
-`UnicodeDecodeError`, as it did, and is not copied. The read-modify-write of the notes, the cards and the Zotero index
-is serialized only within one process: two processes editing one of them can still have the later save overwrite the
-earlier, though neither leaves a half-written or mixed file. A note, a card or a PDF does not create the document's
-folder as it is written: a save that crosses the move to the trash fails instead of leaving a ghost folder that keeps
-the Undo from finding the trashed one.
+`UnicodeDecodeError`, as it did, and is not copied. A card save also names the revision it was composed against
+(`rev`), so a save that lost a race is refused rather than written over a newer card. A note, a card or a PDF does not
+create the document's folder as it is written: a save that crosses the move to the trash fails instead of leaving a
+ghost folder that keeps the Undo from finding the trashed one.

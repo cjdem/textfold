@@ -63,20 +63,22 @@ def put(pid, note):
     if not isinstance(note, dict) or not str(note.get("id", "")).startswith("n-") or not isinstance(note.get("anchor"), dict):
         raise ValueError("bad note")
     with _LOCK:
-        data = read(pid)
-        old = next((n for n in data["notes"] if n["id"] == note["id"]), None)
-        note["created"] = (old or {}).get("created") or note.get("created") or now()
-        note["updated"] = now()
-        data["notes"] = [n for n in data["notes"] if n["id"] != note["id"]] + [note]
-        _write(pid, data)
+        with store.file_lock("notes", wait=60):   # (the app and `serve` may share a data folder: one note save at a time; a conversion holds it for seconds)
+            data = read(pid)
+            old = next((n for n in data["notes"] if n["id"] == note["id"]), None)
+            note["created"] = (old or {}).get("created") or note.get("created") or now()
+            note["updated"] = now()
+            data["notes"] = [n for n in data["notes"] if n["id"] != note["id"]] + [note]
+            _write(pid, data)
     return data
 
 
 def delete(pid, nid):
     with _LOCK:
-        data = read(pid)
-        data["notes"] = [n for n in data["notes"] if n["id"] != nid]
-        _write(pid, data)
+        with store.file_lock("notes", wait=60):
+            data = read(pid)
+            data["notes"] = [n for n in data["notes"] if n["id"] != nid]
+            _write(pid, data)
     return data
 
 

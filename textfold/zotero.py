@@ -269,16 +269,17 @@ def links():
 def link(lib, key, pid, title, record=None):
     f = _links_file()
     with _lock:
-        try:
-            data = json.loads(store.read_text(f))
-        except UnicodeDecodeError:
-            raise
-        except (OSError, ValueError):
-            data = {}
-        data[f"{lib}/{key}"] = {"paper": pid, "title": title, **({"record": record} if record else {})}
-        f.parent.mkdir(parents=True, exist_ok=True)
-        # ASCII-escaped: an item's title can hold any character, and the file stays plain ASCII
-        store.write_text_atomic(f, json.dumps(data, indent=1))
+        with store.file_lock("zotero"):   # (one item's link at a time: the app and `serve` may share a data folder)
+            try:
+                data = json.loads(store.read_text(f))
+            except UnicodeDecodeError:
+                raise
+            except (OSError, ValueError):
+                data = {}
+            data[f"{lib}/{key}"] = {"paper": pid, "title": title, **({"record": record} if record else {})}
+            f.parent.mkdir(parents=True, exist_ok=True)
+            # ASCII-escaped: an item's title can hold any character, and the file stays plain ASCII
+            store.write_text_atomic(f, json.dumps(data, indent=1))
 
 
 def apply(pid):

@@ -17,7 +17,6 @@ before this was kept is dated as well); when it was opened, each time the reader
      "added": {"2512.24601": 1791000000.0}, "opened": {"2512.24601": 1792000000.0}}
 """
 import json
-import os
 import re
 import secrets
 import shutil
@@ -26,15 +25,6 @@ import time
 from contextlib import contextmanager
 
 from . import store
-
-try:
-    import msvcrt   # Windows: one lock file, one byte, held across the read-modify-write
-except ImportError:
-    msvcrt = None
-try:
-    import fcntl    # the tests and a developer's machine may not be Windows
-except ImportError:
-    fcntl = None
 
 _lock = threading.Lock()   # threads in this process; the file lock covers other processes
 
@@ -48,54 +38,9 @@ def path():
 
 
 @contextmanager
-def _file_lock():
-    """One library.json at a time, across processes: the app and `textfold serve` may share a data folder. The lock
-    file stays beside the library (it can stay empty: Windows locks the first byte past its end); the OS releases the
-    byte when the process ends. The file is opened empty here on purpose: a byte written before the lock is taken is a
-    race of its own, two processes creating it at once, and one of them failing the write."""
-    f = path()
-    lock = f.with_name(f.name + ".lock")
-    lock.parent.mkdir(parents=True, exist_ok=True)
-    fd = os.open(lock, os.O_RDWR | os.O_CREAT | getattr(os, "O_BINARY", 0), 0o600)
-    try:
-        if msvcrt is not None:
-            _lock_byte(fd)
-        elif fcntl is not None:
-            fcntl.flock(fd, fcntl.LOCK_EX)
-        else:
-            raise RuntimeError("no file locking on this platform")
-        try:
-            yield
-        finally:
-            os.lseek(fd, 0, os.SEEK_SET)
-            if msvcrt is not None:
-                msvcrt.locking(fd, msvcrt.LK_UNLCK, 1)
-            elif fcntl is not None:
-                fcntl.flock(fd, fcntl.LOCK_UN)
-    finally:
-        os.close(fd)
-
-
-def _lock_byte(fd):
-    """Take the lock file's first byte, waiting for another process to let it go. msvcrt's blocking lock gives up after
-    ten seconds with an error, and that error would lose the save; this waits the same ten seconds, trying again, and
-    only then says the lock is held (a process that died has had its lock released by the OS already)."""
-    end = time.monotonic() + 10
-    while True:
-        os.lseek(fd, 0, os.SEEK_SET)
-        try:
-            msvcrt.locking(fd, msvcrt.LK_NBLCK, 1)
-            return
-        except OSError:
-            if time.monotonic() >= end:
-                raise
-            time.sleep(0.025)
-
-
-@contextmanager
 def _locked():
     with _lock:
-        with _file_lock():
+        with store.file_lock("library"):
             yield
 
 

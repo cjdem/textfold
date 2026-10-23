@@ -2,10 +2,10 @@
 papers/
 # exported pages (they hold the papers' text and figures)
 out/
-# the sidebar's state when the server runs from the source checkout (store.DATA is the clone there), the lock that
-# makes one process wait for another, and a damaged file copied aside rather than saved over
+# the sidebar's state when the server runs from the source checkout (store.DATA is the clone there), the locks that
+# make one process wait for another (library, notes, cards, zotero), and a damaged file copied aside rather than saved over
 /library.json
-/library.json.lock
+/*.lock
 /library.json.corrupt-*
 # a sample PDF dropped in tests/ for a manual check; the suite makes its own
 tests/*.pdf

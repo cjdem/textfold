@@ -21,6 +21,7 @@ import re
 import secrets
 import threading
 import time
+from contextlib import contextmanager
 from urllib.parse import quote
 
 from . import kinds, langs, llm, models, store
@@ -31,6 +32,16 @@ KEYS = ("problem", "method", "setup", "results")
 STATES = ("found", "missing", "na", "check")
 ORIGINS = ("model", "user")
 _LOCK = store.LOCK   # one writer at a time: a save and a generation finishing (or the folder moving) may cross
+
+
+@contextmanager
+def _locked():
+    """A card's read-modify-write, serialized across processes as well as threads: the app and `textfold serve` may
+    share a data folder, and a save and a generation finishing on one card must not drop each other's change."""
+    with _LOCK:
+        with store.file_lock("cards", wait=60):
+            yield
+
 
 # A stored document is never rewritten, so its parsed form is worth keeping: opening a card, saving one and building a
 # generation prompt all need the same units. The key carries both files' modification times, so a test or a hand edit
@@ -462,7 +473,7 @@ def blank(pid, lang="en"):
 
 def create(pid, lang="en"):
     """A card to fill in by hand. An existing card is left as it is."""
-    with _LOCK:
+    with _locked():
         old = read(pid)
         if old:
             return old
@@ -556,7 +567,7 @@ def save(pid, incoming):
     unverified. `rev` refuses a save composed against an older card, so a slow request cannot overwrite a newer edit."""
     if not isinstance(incoming, dict) or not isinstance(incoming.get("sections"), dict):
         raise ValueError("bad card")
-    with _LOCK:   # (the document is read under the same lock: a conversion must not swap it between parse and write)
+    with _locked():   # (the document is read under the same lock: a conversion must not swap it between parse and write)
         doc = _doc(pid)
         old = read(pid)
         if old and isinstance(incoming.get("rev"), int) and incoming["rev"] != old.get("rev", 0):
@@ -821,7 +832,7 @@ def generate(pid, lang, spec, progress=None, stop=None, log=print):
             if not sections[k]:
                 sections[k] = [_missing(lang, k)]
     candidate = {**gen, "sections": sections}
-    with _LOCK:
+    with _locked():
         cur = read(pid)
         if cur:
             cur["candidate"] = candidate
@@ -861,7 +872,7 @@ def add_evidence(pid, item_id, anchors, drop=None):
     """One or more passages the reader selected become evidence of an item; the item goes back to checking. `drop`
     replaces an evidence entry whose target was lost, rather than adding beside it."""
     anchors = anchors if isinstance(anchors, list) else [anchors]
-    with _LOCK:
+    with _locked():
         doc = _doc(pid)
         evs = [_anchor_evidence(pid, doc, a) for a in anchors]
         card = read(pid)
@@ -948,7 +959,7 @@ def _candidate_sections(cand, pid, doc):
 
 
 def adopt_item(pid, item_id):
-    with _LOCK:
+    with _locked():
         doc = _doc(pid)
         card = read(pid)
         if not card:
@@ -978,7 +989,7 @@ def adopt(pid, mode):
     """Adopt the candidate: replace the card's items with it, or add the points it has and the card lacks."""
     if mode not in ("replace", "merge"):
         raise ValueError("bad mode")
-    with _LOCK:
+    with _locked():
         doc = _doc(pid)
         card = read(pid)
         cand = (card or {}).get("candidate")
@@ -1009,7 +1020,7 @@ def adopt(pid, mode):
 
 
 def discard(pid):
-    with _LOCK:
+    with _locked():
         card = read(pid)
         if not card:
             raise ValueError("no-card")
@@ -1021,7 +1032,7 @@ def discard(pid):
 
 def review(pid):
     """The reader has looked at a changed document and accepts the card against it: the next change starts afresh."""
-    with _LOCK:
+    with _locked():
         card = read(pid)
         if not card:
             raise ValueError("no-card")
