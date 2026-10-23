@@ -286,7 +286,7 @@ that file to the current version and the workflow to it.
 
 Commit the version and the notes, push `main`, then tag `v<version>` and push that tag alone. Never `git push --tags`:
 this clone also holds upstream's `v0.10.8`–`v0.10.22`, and every `v*` tag starts the desktop workflow. The tag build
-runs the Python suite, prepares the payload, builds the app and its signed update files, and publishes the release
+prepares the payload, runs the Python suite, builds the app and its signed update files, and publishes the release
 with the notes file as its body; the website follows that run. A tag build needs `MYGO_UPDATER_PRIVATE_KEY`; without
 it the run stops before a draft. A failed build is retried by dispatching `desktop` on the tag, not by moving the tag.
 

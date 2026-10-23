@@ -1,7 +1,7 @@
 {
   "name": "TextFold",
   "identifier": "io.github.cjdem.textfold",
-  "version": "0.10.7",
+  "version": "0.11.0",
   "out": "build",
   "updates": {
     "publicKey": "VBgE3b47YNjxa/XEwCyweTPei+0RcHGqB24kA1M+ux0=",
