@@ -47,15 +47,17 @@ Choose the level of detail you need, and lower your cognitive load.
 
 - **Words that travel.** As you zoom, every word that stays slides to its new place and the rest fade around it.
 - **Zoom under your fingers.** Stop halfway, turn back, or open one paragraph alone.
+- **Make the page yours.** Aa sets the size, width and font, light or dark, a paper or plain style, line spacing, and which margins show. `F` dims everything but the paragraph you are on, and the place you left is kept.
 
 - **Beside the original.** Open a paper's or a PDF's own pages next to the text, each paragraph shown where it stands on its page.
 - **Ask AI about exactly what you read.** Select a passage, or ask about the whole text. The answer comes structured: the short answer first, then the evidence, each point citing the paragraph it rests on, one click away.
 - **Notes that zoom with the text.** Highlight and write in the margin; what you marked stays as you zoom out, and is saved with the page.
 - **A reading card you can keep.** Four sections — the question, the method, the setup and the results — with every point editable and linked back to the passage it came from. A new draft waits beside the card instead of replacing what you wrote.
+- **The whole text as a map.** At Topic, choose Map beside the zoom bar and its sections become a mind map; a note on the whole paper sits in its left column.
 
 - **Your language.** English and Simplified Chinese, translated sentence by sentence, with every formula as typeset.
 
-- **Your library, in order.** Search it with Ctrl+K, keep documents in folders (drag one in, or right-click it), and list it by kind, by when each came in, or by when you last opened it.
+- **Your library, in order.** Search it with Ctrl+K, keep documents in nested folders (drag one in, or right-click it), select several to move or delete, keep a delete reversible for ten seconds, name a document, and list it by kind, when it came in, or when you last opened it.
 
 <table>
 <tr>
@@ -126,15 +128,17 @@ What you read is then kept in the clone.
 
 ## Connect a model
 
-TextFold sends model requests through API providers. It does not scan for or run Claude Code, Codex or Pi CLI agents. If the optional [Magpie gateway](https://github.com/yetone/magpie) is already running on your computer, TextFold discovers its models from `http://127.0.0.1:3425/v1/models`; Magpie stays an external service and is not installed by TextFold. Its model IDs are read dynamically. An explicitly selected available model stays selected; otherwise the first Magpie model becomes the default when Magpie is available.
+TextFold sends every model request to an API provider. It does not run a coding agent, a CLI or a local bridge. If the optional [Magpie gateway](https://github.com/yetone/magpie) is already running on your computer, TextFold discovers its models from `http://127.0.0.1:3425/v1/models` and lists them first; Magpie stays an external service and is not installed by TextFold. Its model IDs are read dynamically. A model you already chose, if still available, stays selected; otherwise the first Magpie model becomes the default.
 
 | You have | What to do |
 |---|---|
 | Magpie running locally | Nothing. TextFold connects to its OpenAI-compatible API and lists the models Magpie reports. |
-| Nothing yet | Click **OpenRouter in one click**. Authorize once, and free models are ready. |
-| An API key | **Settings › Advanced › Add provider**: Anthropic, OpenAI, DeepSeek, Qwen, Zhipu GLM, Kimi, MiniMax, Google, Ollama, or any OpenAI-compatible endpoint. |
+| Nothing yet | Click **OpenRouter in one click · free models**. Authorize once, and free models are ready. |
+| An API key | **Settings › Advanced settings › API providers › Add provider**, then pick a provider: OpenRouter, Anthropic, OpenAI, DeepSeek, Google AI Studio, Z.ai GLM or 智谱 GLM, GLM Coding Plan, Kimi Code, Moonshot, MiniMax, Ollama, Magpie, or **Custom** for any OpenAI-compatible endpoint. |
 
-If Magpie is unavailable, TextFold uses the other available providers. Your questions can go to a stronger model than the one that writes the levels: **Settings › Advanced › Answering questions**, with how hard it reasons.
+The Anthropic API is spoken through its official SDK: the Windows app includes it, and a copy run from source needs `pip install anthropic`. Keys stay in `~/.textfold/settings.json` and are never sent back to the page.
+
+If Magpie is unavailable, TextFold uses the other available providers. Your questions can go to a stronger model than the one that writes the levels: **Settings › Advanced settings › Answering questions**, with its **Reasoning** level.
 
 ## In the reader
 
@@ -142,11 +146,15 @@ If Magpie is unavailable, TextFold uses the other available providers. Your ques
 |---|---|
 | Pinch, or Ctrl + scroll | zoom around the pointer |
 | `1` to `5` | jump to a level |
+| **Aa**, at the top | size, width and font; light or dark, style, line spacing, margins |
+| `F` | focus on the paragraph being read |
 | Click a paragraph | open just that paragraph |
 | Click a figure | see it enlarged |
 | **Original**, at the top | read beside the paper's PDF |
 | **Export**, at the top | your notes or the reading card as Markdown; more formats and the whole page in the dialog |
 | **Reading card**, at the top | keep the four questions a paper answers, with evidence back to the text |
+| **Cards / Map**, beside the zoom bar | show the Topic level as cards, or as a mind map |
+| **Pin**, in the sidebar | keep the library open beside the text |
 | Select text | highlight, write a note, or ask |
 | **Ask the paper**, bottom right | ask about the whole text |
 | `L` | next language |
@@ -154,7 +162,7 @@ If Magpie is unavailable, TextFold uses the other available providers. Your ques
 
 ## Export
 
-**Export**, at the top of the reader, opens the two everyday files directly: your notes as Markdown, and the reading card as Markdown. **More export options…** opens the save dialog: the page as one HTML file that opens anywhere without a server (its levels, the notes you choose and, if you like, its original PDF to read beside it), or only your notes as a page, a PDF, Markdown for Obsidian or JSON.
+**Export**, at the top of the reader, opens the two everyday files directly: your notes as Markdown, and the reading card as Markdown. **More export options…** opens the save dialog: the whole text at the level you are reading, as one HTML file that opens anywhere without a server (with the notes you choose and, if you like, its original PDF to read beside it), as PDF, Markdown or JSON, or only your notes as a page, a PDF, Markdown for Obsidian or JSON.
 
 TextFold is a tool, and its license covers its code. When you share a file, follow the terms of the original text, shown under its title.
 
